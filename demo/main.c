@@ -11,13 +11,15 @@
 
 SDL_Window* window = NULL;
 SDL_Renderer *sdl_renderer = NULL;
-SDL_Surface *window_surface = NULL;
-SDL_Surface *surface = NULL;
+SDL_Texture *texture = NULL;
 
 static renderer rend;
 static camera cam;
 static level_data *demo_level = NULL;
 static uint64_t last_ticks;
+static const int scale = 1,
+                 initial_window_width = 1024,
+                 initial_window_height = 768;
 
 static struct {
   float forward, turn, raise;
@@ -33,13 +35,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return -1;
   }
 
-  const int initial_width = 1024,
-            initial_height = 768;
-
   SDL_CreateWindowAndRenderer(
     "Software Rendering Example",
-    initial_width,
-    initial_height,
+    initial_window_width,
+    initial_window_height,
     SDL_WINDOW_RESIZABLE,
     &window,
     &sdl_renderer
@@ -50,19 +49,23 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
       return -1;
   }
 
+  printf("sdl_renderer: %s\n", SDL_GetRendererName(sdl_renderer));
+
   SDL_SetRenderVSync(sdl_renderer, 1);
 
-  window_surface = SDL_GetWindowSurface(window);
-
-  renderer_init(&rend, VEC2U(initial_width, initial_height));
+  renderer_init(&rend, VEC2U(initial_window_width / scale, initial_window_height / scale));
 
   if (!rend.buffer) {
     return -1;
   }
 
-  surface = SDL_CreateSurfaceFrom(initial_width, initial_height, SDL_PIXELFORMAT_ARGB8888, rend.buffer, initial_width * sizeof(uint32_t));
+  texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
+  
+  if (!texture) return -1;
 
-  //create_demo_level();
+  SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+
+  // create_demo_level();
   create_grid_level();
   camera_init(&cam, demo_level);
 
@@ -98,11 +101,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       if (event->key.key == SDLK_Q) { movement.raise = 0.f; }
       else if (event->key.key == SDLK_Z) { movement.raise = 0.f; }
     } else if (event->type == SDL_EVENT_WINDOW_RESIZED) {
-      window_surface = SDL_GetWindowSurface(window);
-      printf("Resize buffer to %dx%d\n", window_surface->w, window_surface->h);
-      renderer_resize(&rend, VEC2U(window_surface->w, window_surface->h));
-      SDL_DestroySurface(surface);
-      surface = SDL_CreateSurfaceFrom(window_surface->w, window_surface->h, SDL_PIXELFORMAT_ARGB8888, rend.buffer, window_surface->w * sizeof(uint32_t));
+      printf("Resize buffer to %dx%d\n", event->window.data1 / scale, event->window.data2 / scale);
+      renderer_resize(&rend, VEC2U(event->window.data1 / scale, event->window.data2 / scale));
+      SDL_DestroyTexture(texture);
+      texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
+      SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
     }
 
     return SDL_APP_CONTINUE;
@@ -117,20 +120,31 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   last_ticks = now_ticks;
 
   if (titlebar_update_time >= 0.5f) {
-    sprintf(debug_buffer, "Raycaster ::: %dx%d , dt: %f, fps: %i", rend.buffer_size.x, rend.buffer_size.y, delta_time, (unsigned int)(1/delta_time));
+    sprintf(debug_buffer, "Raycaster ::: %dx%d @ %dx, dt: %f, fps: %i", rend.buffer_size.x, rend.buffer_size.y, scale, delta_time, (unsigned int)(1/delta_time));
     SDL_SetWindowTitle(window, debug_buffer);
     titlebar_update_time = 0.f;
   } else {
     titlebar_update_time += delta_time;
   }
 
-  SDL_ClearSurface(window_surface, 0, 0, 0, 1.f);
+  // SDL_ClearSurface(window_surface, 0, 0, 0, 1.f);
 
   process_camera_movement(delta_time);
   renderer_draw(&rend, &cam);
 
-  SDL_BlitSurfaceScaled(surface, NULL, window_surface, NULL, SDL_SCALEMODE_NEAREST);
-  SDL_UpdateWindowSurface(window);
+
+  void* pixels;
+  int pitch;
+
+  /*if (SDL_LockTexture(texture, NULL, &pixels, &pitch)) {
+    memcpy(pixels, rend.buffer, rend.buffer_size.y*pitch);
+    SDL_UnlockTexture(texture);
+  }*/
+
+  SDL_UpdateTexture(texture, NULL, rend.buffer, rend.buffer_size.x*sizeof(pixel_type));
+
+  SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
+  SDL_RenderPresent(sdl_renderer);
 
   return SDL_APP_CONTINUE;
 }

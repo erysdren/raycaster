@@ -173,7 +173,7 @@ static void draw_column(
     float end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, top_limit, bottom_limit);
 
     draw_wall_segment(this, info, line, start_y, end_y);
-    draw_ceiling_segment(this, info, sect, M_CLAMP(start_y-1, top_limit, bottom_limit), top_limit);
+    draw_ceiling_segment(this, info, sect, top_limit, M_CLAMP(start_y, top_limit, bottom_limit));
     draw_floor_segment(this, info, sect, M_MIN(end_y+1, bottom_limit), bottom_limit);
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
@@ -193,7 +193,7 @@ static void draw_column(
       draw_wall_segment(this, info, line, bottom_start_y, bottom_end_y);
     }
 
-    draw_ceiling_segment(this, info, sect, M_MAX(top_start_y-1, top_limit), top_limit);
+    draw_ceiling_segment(this, info, sect, top_limit, M_MAX(top_start_y, top_limit));
     draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, bottom_limit), bottom_limit);
 
     if ((int)top_end_y == (int)bottom_start_y) {
@@ -264,11 +264,11 @@ static void draw_ceiling_segment(
     return;
   }
 
-  register int32_t y;
+  register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
   register uint32_t c = sect->color % 16;
 
-  for (y = from; y > to; --y, p -= this->buffer_size.x) {
+  for (y = from; y < to; ++y, p += this->buffer_size.x) {
     *p = 0xFF000000
       | (debug_colors_dark[c][0] << 16)
       | (debug_colors_dark[c][1] << 8)
