@@ -1,0 +1,4 @@
+build.exe
+*.old
+bin/
+deps/SDL3*

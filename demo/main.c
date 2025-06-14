@@ -1,0 +1,238 @@
+#define SDL_MAIN_USE_CALLBACKS 1
+#include "renderer.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_surface.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+SDL_Window* window = NULL;
+SDL_Renderer *sdl_renderer = NULL;
+SDL_Surface *window_surface = NULL;
+SDL_Surface *surface = NULL;
+
+static renderer rend;
+static camera cam;
+static level_data *demo_level = NULL;
+static uint64_t last_ticks;
+
+static struct {
+  float forward, turn, raise;
+} movement = { 0 };
+
+static void create_demo_level();
+static void create_grid_level();
+static void process_camera_movement(const float delta_time);
+
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
+  if (!SDL_Init(SDL_INIT_VIDEO)) {
+    SDL_Log("SDL_Init failed: %s", SDL_GetError());
+    return -1;
+  }
+
+  const int initial_width = 1024,
+            initial_height = 768;
+
+  SDL_CreateWindowAndRenderer(
+    "Software Rendering Example",
+    initial_width,
+    initial_height,
+    SDL_WINDOW_RESIZABLE,
+    &window,
+    &sdl_renderer
+  );
+
+  if (!window) {
+      SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
+      return -1;
+  }
+
+  SDL_SetRenderVSync(sdl_renderer, 1);
+
+  window_surface = SDL_GetWindowSurface(window);
+
+  renderer_init(&rend, VEC2U(initial_width, initial_height));
+
+  if (!rend.buffer) {
+    return -1;
+  }
+
+  surface = SDL_CreateSurfaceFrom(initial_width, initial_height, SDL_PIXELFORMAT_ARGB8888, rend.buffer, initial_width * sizeof(uint32_t));
+
+  // create_demo_level();
+  create_grid_level();
+  camera_init(&cam, demo_level);
+
+  last_ticks = SDL_GetTicks();
+
+  return 0;
+}
+
+void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+  renderer_destroy(&rend);
+}
+
+/* This function runs when a new event (mouse input, keypresses, etc) occurs. */
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+    if (event->type == SDL_EVENT_QUIT) {
+      return SDL_APP_SUCCESS;
+    } else if (event->type == SDL_EVENT_KEY_DOWN) {
+      if (event->key.key == SDLK_W) { movement.forward = 1.f; }
+      else if (event->key.key == SDLK_S) { movement.forward = -1.f; }
+      
+      if (event->key.key == SDLK_A) { movement.turn = 1.f; }
+      else if (event->key.key == SDLK_D) { movement.turn = -1.f; }
+      
+      if (event->key.key == SDLK_Q) { movement.raise = 1.f; }
+      else if (event->key.key == SDLK_Z) { movement.raise = -1.f; }
+    } else if (event->type == SDL_EVENT_KEY_UP) {
+      if (event->key.key == SDLK_W) { movement.forward = 0.f; }
+      else if (event->key.key == SDLK_S) { movement.forward = 0.f; }
+      
+      if (event->key.key == SDLK_A) { movement.turn = 0.f; }
+      else if (event->key.key == SDLK_D) { movement.turn = 0.f; }
+      
+      if (event->key.key == SDLK_Q) { movement.raise = 0.f; }
+      else if (event->key.key == SDLK_Z) { movement.raise = 0.f; }
+    } else if (event->type == SDL_EVENT_WINDOW_RESIZED) {
+      window_surface = SDL_GetWindowSurface(window);
+      printf("Resize buffer to %dx%d\n", window_surface->w, window_surface->h);
+      renderer_resize(&rend, VEC2U(window_surface->w, window_surface->h));
+      SDL_DestroySurface(surface);
+      surface = SDL_CreateSurfaceFrom(window_surface->w, window_surface->h, SDL_PIXELFORMAT_ARGB8888, rend.buffer, window_surface->w * sizeof(uint32_t));
+    }
+
+    return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult SDL_AppIterate(void *userdata) {
+  static char debug_buffer[64];
+  static float titlebar_update_time = 0.5f;
+
+  uint64_t now_ticks = SDL_GetTicks();
+  float delta_time = (now_ticks - last_ticks) / 1000.0f;  // in seconds
+  last_ticks = now_ticks;
+
+  if (titlebar_update_time >= 0.5f) {
+    sprintf(debug_buffer, "Raycaster - dt: %f, fps: %i", delta_time, (unsigned int)(1/delta_time));
+    SDL_SetWindowTitle(window, debug_buffer);
+    titlebar_update_time = 0.f;
+  } else {
+    titlebar_update_time += delta_time;
+  }
+
+  SDL_ClearSurface(window_surface, 0, 0, 0, 1.f);
+
+  process_camera_movement(delta_time);
+  renderer_draw(&rend, &cam);
+
+  SDL_BlitSurfaceScaled(surface, NULL, window_surface, NULL, SDL_SCALEMODE_NEAREST);
+  SDL_UpdateWindowSurface(window);
+
+  return SDL_APP_CONTINUE;
+}
+
+static void process_camera_movement(const float delta_time) {
+  if ((int)movement.forward != 0) {
+    camera_move(&cam, 256 * movement.forward * delta_time);
+  }
+
+  if ((int)movement.turn != 0) {
+    camera_rotate(&cam, 1.8f * movement.turn * delta_time);
+  }
+
+  if ((int)movement.raise != 0) {
+    cam.z += 64 * movement.raise * delta_time;
+  }
+}
+
+static void create_grid_level() {
+  const int w = 10;
+  const int h = 10;
+  const int size = 256;
+
+  register int i, x, y;
+
+  demo_level = malloc(sizeof(level_data) + w*h*sizeof(sector));
+  demo_level->sectors_count = w*h;
+
+  for (y = 0; y < h; ++y) {
+    for (x = 0; x < w; ++x) {
+      i = (y*w)+x;
+
+      sector_init(
+        &demo_level->sectors[i], 
+        0 + 8 * (rand() % 16),
+        480 - 16 * (rand() % 16),
+        LINEDEFS(
+          LDEF( /* Top */
+            .v0.point = vec2f_make(x*size, y*size),
+            .v1.point = vec2f_make(x*size + size, y*size),
+            .side_sector[LINEDEF_BACK] = (y > 0) ? &demo_level->sectors[i-w] : NULL
+          ),
+          LDEF( /* Right */
+            .v0.point = vec2f_make(x*size + size, y*size),
+            .v1.point = vec2f_make(x*size + size, y*size + size),
+            .side_sector[LINEDEF_BACK] = (x < w-1) ? &demo_level->sectors[i+1] : NULL
+          ),
+          LDEF( /* Bottom */
+            .v0.point = vec2f_make(x*size + size, y*size + size),
+            .v1.point = vec2f_make(x*size, y*size + size),
+            .side_sector[LINEDEF_BACK] = (y < h-1) ? &demo_level->sectors[i+w] : NULL
+          ),
+          LDEF( /* Left */
+            .v0.point = vec2f_make(x*size, y*size + size),
+            .v1.point = vec2f_make(x*size, y*size),
+            .side_sector[LINEDEF_BACK] = (x > 0) ? &demo_level->sectors[i-1] : NULL
+          )
+        )
+      );
+    }
+  }
+}
+
+static void create_demo_level() {
+  demo_level = malloc(sizeof(level_data) + 3*sizeof(sector));
+
+  demo_level->sectors_count = 3;
+
+  sector_init(
+    &demo_level->sectors[0], 
+    0,
+    160,
+    LINEDEFS(
+      LDEF(.v0.point = vec2f_make(0, 0), .v1.point = vec2f_make(400, 0), .side_sector[LINEDEF_BACK] = &demo_level->sectors[1] ),
+      LDEF(.v0.point = vec2f_make(400, 0), .v1.point = vec2f_make(400, 400) ),
+      LDEF(.v0.point = vec2f_make(400, 400), .v1.point = vec2f_make(200, 400), .side_sector[LINEDEF_BACK] = &demo_level->sectors[2] ),
+      LDEF(.v0.point = vec2f_make(200, 400), .v1.point = vec2f_make(0, 400) ),
+      LDEF(.v0.point = vec2f_make(0, 400), .v1.point = vec2f_make(0, 0) )
+    )
+  );
+
+  sector_init(
+    &demo_level->sectors[1], 
+    32,
+    96,
+    LINEDEFS(
+      LDEF(.v0.point = vec2f_make(0, 0), .v1.point = vec2f_make(400, 0), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
+      LDEF(.v0.point = vec2f_make(400, 0), .v1.point = vec2f_make(300, -200) ),
+      LDEF(.v0.point = vec2f_make(300, -200), .v1.point = vec2f_make(0, -100) ),
+      LDEF(.v0.point = vec2f_make(0, -100), .v1.point = vec2f_make(0, 0) )
+    )
+  );
+
+  sector_init(
+    &demo_level->sectors[2], 
+    -128,
+    96,
+    LINEDEFS(
+      LDEF(.v0.point = vec2f_make(400, 400), .v1.point = vec2f_make(200, 400), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
+      LDEF(.v0.point = vec2f_make(200, 400), .v1.point = vec2f_make(200, 800) ),
+      LDEF(.v0.point = vec2f_make(200, 800), .v1.point = vec2f_make(400, 800) ),
+      LDEF(.v0.point = vec2f_make(400, 800), .v1.point = vec2f_make(400, 400) )
+    )
+  );
+}
