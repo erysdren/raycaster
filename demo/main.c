@@ -137,21 +137,21 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
 
 static void process_camera_movement(const float delta_time) {
   if ((int)movement.forward != 0) {
-    camera_move(&cam, 256 * movement.forward * delta_time);
+    camera_move(&cam, 400 * movement.forward * delta_time);
   }
 
   if ((int)movement.turn != 0) {
-    camera_rotate(&cam, 1.8f * movement.turn * delta_time);
+    camera_rotate(&cam, 2.f * movement.turn * delta_time);
   }
 
   if ((int)movement.raise != 0) {
-    cam.z += 64 * movement.raise * delta_time;
+    cam.z += 88 * movement.raise * delta_time;
   }
 }
 
 static void create_grid_level() {
-  const int w = 32;
-  const int h = 32;
+  const int w = 28;
+  const int h = 28;
   const int size = 256;
 
   register int i, x, y, c, f;

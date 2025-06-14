@@ -131,10 +131,6 @@ static void check_sector_column(
   float intersectiond;
   linedef *line;
 
-  if ((int)top_limit == (int)bottom_limit) {
-    return;
-  }
-
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = &sect->linedefs[i];
 
@@ -199,6 +195,10 @@ static void draw_column(
 
     draw_ceiling_segment(this, info, sect, M_MAX(top_start_y-1, top_limit), top_limit);
     draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, bottom_limit), bottom_limit);
+
+    if ((int)top_end_y == (int)bottom_start_y) {
+      return;
+    }
 
     /* Render back sector */
     check_sector_column(this, info, back_sector, sect, top_end_y, bottom_start_y);
