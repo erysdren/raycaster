@@ -7,7 +7,7 @@
 typedef uint32_t pixel_type;
 typedef pixel_type* frame_buffer;
 
-#define RENDERER_DRAW_DISTANCE 4096.f
+#define RENDERER_DRAW_DISTANCE 10000.f
 
 typedef struct {
   frame_buffer buffer;

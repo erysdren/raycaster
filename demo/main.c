@@ -62,7 +62,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   surface = SDL_CreateSurfaceFrom(initial_width, initial_height, SDL_PIXELFORMAT_ARGB8888, rend.buffer, initial_width * sizeof(uint32_t));
 
-  // create_demo_level();
+  //create_demo_level();
   create_grid_level();
   camera_init(&cam, demo_level);
 
@@ -117,7 +117,7 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   last_ticks = now_ticks;
 
   if (titlebar_update_time >= 0.5f) {
-    sprintf(debug_buffer, "Raycaster - dt: %f, fps: %i", delta_time, (unsigned int)(1/delta_time));
+    sprintf(debug_buffer, "Raycaster ::: %dx%d , dt: %f, fps: %i", rend.buffer_size.x, rend.buffer_size.y, delta_time, (unsigned int)(1/delta_time));
     SDL_SetWindowTitle(window, debug_buffer);
     titlebar_update_time = 0.f;
   } else {
@@ -150,11 +150,11 @@ static void process_camera_movement(const float delta_time) {
 }
 
 static void create_grid_level() {
-  const int w = 10;
-  const int h = 10;
+  const int w = 32;
+  const int h = 32;
   const int size = 256;
 
-  register int i, x, y;
+  register int i, x, y, c, f;
 
   demo_level = malloc(sizeof(level_data) + w*h*sizeof(sector));
   demo_level->sectors_count = w*h;
@@ -163,10 +163,17 @@ static void create_grid_level() {
     for (x = 0; x < w; ++x) {
       i = (y*w)+x;
 
+      if (rand() % 20 == 5) {
+        c = f = 0;
+      } else {
+        f = 8 * (rand() % 16);
+        c = 1024 - 32 * (rand() % 24);
+      }
+
       sector_init(
         &demo_level->sectors[i], 
-        0 + 8 * (rand() % 16),
-        480 - 16 * (rand() % 16),
+        f,
+        c,
         LINEDEFS(
           LDEF( /* Top */
             .v0.point = vec2f_make(x*size, y*size),
@@ -202,7 +209,7 @@ static void create_demo_level() {
   sector_init(
     &demo_level->sectors[0], 
     0,
-    160,
+    144,
     LINEDEFS(
       LDEF(.v0.point = vec2f_make(0, 0), .v1.point = vec2f_make(400, 0), .side_sector[LINEDEF_BACK] = &demo_level->sectors[1] ),
       LDEF(.v0.point = vec2f_make(400, 0), .v1.point = vec2f_make(400, 400) ),
@@ -227,7 +234,7 @@ static void create_demo_level() {
   sector_init(
     &demo_level->sectors[2], 
     -128,
-    96,
+    256,
     LINEDEFS(
       LDEF(.v0.point = vec2f_make(400, 400), .v1.point = vec2f_make(200, 400), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
       LDEF(.v0.point = vec2f_make(200, 400), .v1.point = vec2f_make(200, 800) ),

@@ -131,6 +131,10 @@ static void check_sector_column(
   float intersectiond;
   linedef *line;
 
+  if ((int)top_limit == (int)bottom_limit) {
+    return;
+  }
+
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = &sect->linedefs[i];
 
@@ -173,7 +177,7 @@ static void draw_column(
     float end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, top_limit, bottom_limit);
 
     draw_wall_segment(this, info, line, start_y, end_y);
-    draw_ceiling_segment(this, info, sect, M_MAX(start_y-1, top_limit), top_limit);
+    draw_ceiling_segment(this, info, sect, M_CLAMP(start_y-1, top_limit, bottom_limit), top_limit);
     draw_floor_segment(this, info, sect, M_MIN(end_y+1, bottom_limit), bottom_limit);
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
@@ -197,7 +201,7 @@ static void draw_column(
     draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, bottom_limit), bottom_limit);
 
     /* Render back sector */
-    check_sector_column(this, info, back_sector, sect, M_MAX(top_limit, top_end_y), M_MIN(bottom_limit, bottom_start_y));
+    check_sector_column(this, info, back_sector, sect, top_end_y, bottom_start_y);
   }
 }
 
@@ -217,12 +221,10 @@ static void draw_wall_segment(
   register uint32_t c = line->color % 16;
 
   for (y = from; y <= to; ++y, p += this->buffer_size.x) {
-    // if (!*p) {
-      *p = 0xFF000000
-        | (debug_colors[c][0] << 16)
-        | (debug_colors[c][1] << 8)
-        | debug_colors[c][2];
-    //}
+    *p = 0xFF000000
+      | (debug_colors[c][0] << 16)
+      | (debug_colors[c][1] << 8)
+      | debug_colors[c][2];
   }
 }
 
@@ -243,12 +245,10 @@ static void draw_floor_segment(
   register uint32_t c = sect->color % 16;
 
   for (y = from; y <= to; ++y, p += this->buffer_size.x) {
-    if (!*p) {
-      *p = 0xFF000000
-        | (debug_colors_dark[c][0] << 16)
-        | (debug_colors_dark[c][1] << 8)
-        | debug_colors_dark[c][2];
-    }
+    *p = 0xFF000000
+      | (debug_colors_dark[c][0] << 16)
+      | (debug_colors_dark[c][1] << 8)
+      | debug_colors_dark[c][2];
   } 
 }
 
@@ -269,11 +269,9 @@ static void draw_ceiling_segment(
   register uint32_t c = sect->color % 16;
 
   for (y = from; y > to; --y, p -= this->buffer_size.x) {
-    if (!*p) {
-      *p = 0xFF000000
-        | (debug_colors_dark[c][0] << 16)
-        | (debug_colors_dark[c][1] << 8)
-        | debug_colors_dark[c][2];
-    }
+    *p = 0xFF000000
+      | (debug_colors_dark[c][0] << 16)
+      | (debug_colors_dark[c][1] << 8)
+      | debug_colors_dark[c][2];
   }
 }
