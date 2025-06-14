@@ -54,11 +54,11 @@ typedef struct {
   uint32_t column, half_h;
 } frame_info;
 
-static void check_sector_column(renderer*, frame_info*, sector *sect, sector *prev_sect);
+static void check_sector_column(renderer*, frame_info*, sector *sect, sector *prev_sect, float top_limit, float bottom_limit);
 static void draw_wall_segment(renderer*, frame_info*, linedef *line, uint32_t from, uint32_t to);
-static void draw_floor_segment(renderer*, frame_info*, sector *sect, uint32_t from);
-static void draw_ceiling_segment(renderer*, frame_info*, sector *sect, uint32_t to);
-static void draw_column(renderer*, frame_info*, sector *sect, sector *prev_sect, linedef *line, float planar_distance, float planar_distance_inv);
+static void draw_floor_segment(renderer*, frame_info*, sector *sect, uint32_t from, uint32_t to);
+static void draw_ceiling_segment(renderer*, frame_info*, sector *sect, uint32_t from, uint32_t to);
+static void draw_column(renderer*, frame_info*, sector *sect, sector *prev_sect, linedef *line, float planar_distance, float planar_distance_inv, float top_limit, float bottom_limit);
 
 void renderer_init(
   renderer *this,
@@ -111,7 +111,7 @@ void renderer_draw(
       camera->position.y + (ry * RENDERER_DRAW_DISTANCE)
     );
 
-    check_sector_column(this, &info, camera->in_sector, NULL);
+    check_sector_column(this, &info, camera->in_sector, NULL, 0.f, this->buffer_size.y-1);
   }
 }
 
@@ -121,7 +121,9 @@ static void check_sector_column(
   renderer *this,
   frame_info *info,
   sector *sect,
-  sector *prev_sect
+  sector *prev_sect,
+  float top_limit,
+  float bottom_limit
 ) {
   register size_t i;
   register float planar_distance, planar_distance_inv;
@@ -141,7 +143,8 @@ static void check_sector_column(
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
       planar_distance_inv = (1.f / planar_distance);
 
-      draw_column(this, info, sect, prev_sect, line, planar_distance, planar_distance_inv);
+      draw_column(this, info, sect, prev_sect, line, planar_distance, planar_distance_inv, top_limit, bottom_limit);
+      break;
     }
   }
 }
@@ -153,7 +156,9 @@ static void draw_column(
   sector *prev_sect,
   linedef *line,
   float planar_distance,
-  float planar_distance_inv
+  float planar_distance_inv,
+  float top_limit,
+  float bottom_limit
 ) {
   register const float depth_scale_factor = (info->unit_size * planar_distance_inv);
   register const float ceiling_z_scaled   = (sect->ceiling_height * depth_scale_factor);
@@ -164,35 +169,35 @@ static void draw_column(
 
   if (!back_sector || (back_sector && back_sector->floor_height == back_sector->ceiling_height)) {
     /* Draw a full wall */
-    float start_y = info->half_h - ceiling_z_scaled + view_z_scaled;
-    float end_y = info->half_h - floor_z_scaled + view_z_scaled;
+    float start_y = M_MAX(info->half_h - ceiling_z_scaled + view_z_scaled, top_limit);
+    float end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, top_limit, bottom_limit);
 
-    draw_wall_segment(this, info, line, M_MAX(start_y, 0), M_MIN(M_MAX(end_y, 0), this->buffer_size.y - 1));
-    draw_ceiling_segment(this, info, sect, M_MAX(start_y - 1, 0));
-    draw_floor_segment(this, info, sect, M_MIN(end_y + 1, this->buffer_size.y - 1));
+    draw_wall_segment(this, info, line, start_y, end_y);
+    draw_ceiling_segment(this, info, sect, M_MAX(start_y-1, top_limit), top_limit);
+    draw_floor_segment(this, info, sect, M_MIN(end_y+1, bottom_limit), bottom_limit);
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
     const float top_segment = M_MAX(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
     const float bottom_segment = M_MAX(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
 
-    float top_start_y = info->half_h - ceiling_z_scaled + view_z_scaled;
-    float top_end_y = top_start_y + top_segment;
-    float bottom_end_y = info->half_h - floor_z_scaled + view_z_scaled;
-    float bottom_start_y = bottom_end_y - bottom_segment;
+    float top_start_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled, top_limit, bottom_limit);
+    float top_end_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled + top_segment, top_limit, bottom_limit);
+    float bottom_end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, top_limit, bottom_limit);
+    float bottom_start_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled - bottom_segment, top_limit, bottom_limit);
 
     if (top_segment > 0) {
-      draw_wall_segment(this, info, line, M_MAX(top_start_y, 0), M_MIN(M_MAX(top_end_y, 0), this->buffer_size.y - 1));
+      draw_wall_segment(this, info, line, top_start_y, top_end_y);
     }
 
     if (bottom_segment > 0) {
-      draw_wall_segment(this, info, line, M_MAX(bottom_start_y, 0), M_MIN(M_MAX(bottom_end_y, 0), this->buffer_size.y - 1));
+      draw_wall_segment(this, info, line, bottom_start_y, bottom_end_y);
     }
 
-    draw_ceiling_segment(this, info, sect, M_MAX(top_start_y - 1, 0));
-    draw_floor_segment(this, info, sect, M_MIN(bottom_end_y + 1, this->buffer_size.y - 1));
+    draw_ceiling_segment(this, info, sect, M_MAX(top_start_y-1, top_limit), top_limit);
+    draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, bottom_limit), bottom_limit);
 
     /* Render back sector */
-    check_sector_column(this, info, back_sector, sect);
+    check_sector_column(this, info, back_sector, sect, M_MAX(top_limit, top_end_y), M_MIN(bottom_limit, bottom_start_y));
   }
 }
 
@@ -210,18 +215,14 @@ static void draw_wall_segment(
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
   register uint32_t c = line->color % 16;
-  register bool started = false;
 
   for (y = from; y <= to; ++y, p += this->buffer_size.x) {
-    if (!*p) {
-      started = true;
+    // if (!*p) {
       *p = 0xFF000000
         | (debug_colors[c][0] << 16)
         | (debug_colors[c][1] << 8)
         | debug_colors[c][2];
-    } else if (started) {
-      break;
-    }
+    //}
   }
 }
 
@@ -229,10 +230,11 @@ static void draw_floor_segment(
   renderer *this,
   frame_info *info,
   sector *sect,
-  uint32_t from
+  uint32_t from,
+  uint32_t to
 ) {
   /* Camera below the floor */
-  if (from == this->buffer_size.y - 1 || info->view_z < sect->floor_height) {
+  if (from == to || info->view_z < sect->floor_height) {
     return;
   }
 
@@ -240,14 +242,12 @@ static void draw_floor_segment(
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
   register uint32_t c = sect->color % 16;
 
-  for (y = from; y < this->buffer_size.y; ++y, p += this->buffer_size.x) {
+  for (y = from; y <= to; ++y, p += this->buffer_size.x) {
     if (!*p) {
       *p = 0xFF000000
         | (debug_colors_dark[c][0] << 16)
         | (debug_colors_dark[c][1] << 8)
         | debug_colors_dark[c][2];
-    } else {
-     break;
     }
   } 
 }
@@ -256,10 +256,11 @@ static void draw_ceiling_segment(
   renderer *this,
   frame_info *info,
   sector *sect,
-  uint32_t from
+  uint32_t from,
+  uint32_t to
 ) {
   /* Camera above the ceiling */
-  if (!from || info->view_z > sect->ceiling_height) {
+  if (from == to || info->view_z > sect->ceiling_height) {
     return;
   }
 
@@ -267,14 +268,12 @@ static void draw_ceiling_segment(
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
   register uint32_t c = sect->color % 16;
 
-  for (y = from; y >= 0; --y, p -= this->buffer_size.x) {
+  for (y = from; y > to; --y, p -= this->buffer_size.x) {
     if (!*p) {
       *p = 0xFF000000
         | (debug_colors_dark[c][0] << 16)
         | (debug_colors_dark[c][1] << 8)
         | debug_colors_dark[c][2];
-    } else {
-      break;
     }
   }
 }
