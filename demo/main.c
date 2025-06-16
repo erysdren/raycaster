@@ -65,8 +65,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
-  create_demo_level();
-  // create_grid_level();
+  // create_demo_level();
+  create_grid_level();
   camera_init(&cam, demo_level);
 
   last_ticks = SDL_GetTicks();

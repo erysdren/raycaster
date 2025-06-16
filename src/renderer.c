@@ -162,7 +162,7 @@ static void check_sector_column(
   register size_t i, hits_count = 0;
   register float planar_distance;
   vec2f intersection;
-  float intersectiond, sign[2];
+  float intersectiond;
   linedef *line;
   line_hit hits[16];
 
@@ -172,8 +172,6 @@ static void check_sector_column(
     this->counters.line_checks ++;
 
     if (math_lines_intersect(line->v0.point, line->v1.point, info->ray.start, info->ray.end, &intersection, &intersectiond)) {
-      // sign[0] = math_sign(line->v0.point, line->v1.point, info->ray.start);
-
       // float point_distance = math_length(vec2f_sub(intersection, info->ray.start));
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
       hits[hits_count++] = (line_hit) {
