@@ -53,6 +53,7 @@ typedef struct {
   float unit_size, view_z;
   float top_limit, bottom_limit;
   uint32_t column, half_h;
+  bool column_finished;
 } frame_info;
 
 typedef struct {
@@ -128,6 +129,7 @@ void renderer_draw(
 
     info.top_limit = 0.f;
     info.bottom_limit = this->buffer_size.y-1;
+    info.column_finished = false;
 
     check_sector_column(this, &info, camera->in_sector, NULL);
   }
@@ -165,10 +167,6 @@ static void check_sector_column(
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = &sect->linedefs[i];
 
-    if (prev_sect && line->side_sector[LINEDEF_BACK] == prev_sect) {
-      continue;
-    }
-
     if (math_lines_intersect(line->v0.point, line->v1.point, info->ray.start, info->ray.end, &intersection, &intersectiond)) {
       // float point_distance = math_length(vec2f_sub(intersection, info->ray.start));
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
@@ -176,14 +174,14 @@ static void check_sector_column(
         .point = intersection,
         .planar_distance = planar_distance,
         .planar_distance_inv = 1.f / planar_distance,
-        .line = line 
+        .line = line
       };
     }
   }
 
   sort_nearest(hits, hits_count);
 
-  for (i = 0; i < hits_count; ++i) {
+  for (i = 0; i < hits_count && !info->column_finished; ++i) {
     draw_column(this, info, sect, prev_sect, &hits[i]);
   }
 }
@@ -210,6 +208,8 @@ static void draw_column(
     draw_wall_segment(this, info, hit->line, start_y, end_y);
     draw_ceiling_segment(this, info, sect, info->top_limit, M_CLAMP(start_y, info->top_limit, info->bottom_limit));
     draw_floor_segment(this, info, sect, M_MIN(end_y+1, info->bottom_limit+1), info->bottom_limit+1);
+
+    info->column_finished = true;
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
     const float top_segment = M_MAX(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
@@ -235,11 +235,14 @@ static void draw_column(
     info->bottom_limit = bottom_start_y;
 
     if ((int)info->top_limit == (int)info->bottom_limit) {
+      info->column_finished = true;
       return;
     }
-
+    
     /* Render back sector */
-    check_sector_column(this, info, back_sector, sect);
+    if (back_sector != prev_sect) {
+      check_sector_column(this, info, back_sector, sect);
+    }
   }
 }
 

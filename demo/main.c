@@ -65,8 +65,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
-  // create_demo_level();
-  create_grid_level();
+  create_demo_level();
+  // create_grid_level();
   camera_init(&cam, demo_level);
 
   last_ticks = SDL_GetTicks();
@@ -153,10 +153,11 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
 
   SDL_UpdateTexture(texture, NULL, rend.buffer, rend.buffer_size.x*sizeof(pixel_type));
 
+  SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
+
   SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-  
   SDL_RenderDebugText(sdl_renderer, 4, 4, debug_buffer);
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 12, "Ceiling pixels: %d (%d cols)", rend.counters.ceiling_pixels, rend.counters.ceiling_columns);
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 20, "Wall pixels:    %d (%d cols)", rend.counters.wall_pixels, rend.counters.wall_columns);
@@ -234,9 +235,8 @@ static void create_grid_level() {
 }
 
 static void create_demo_level() {
-  demo_level = malloc(sizeof(level_data) + 3*sizeof(sector));
-
-  demo_level->sectors_count = 3;
+  demo_level = malloc(sizeof(level_data) + 5*sizeof(sector));
+  demo_level->sectors_count = 5;
 
   sector_init(
     &demo_level->sectors[0], 
@@ -245,9 +245,26 @@ static void create_demo_level() {
     LINEDEFS(
       LDEF(.v0.point = vec2f_make(0, 0), .v1.point = vec2f_make(400, 0), .side_sector[LINEDEF_BACK] = &demo_level->sectors[1] ),
       LDEF(.v0.point = vec2f_make(400, 0), .v1.point = vec2f_make(400, 400) ),
-      LDEF(.v0.point = vec2f_make(400, 400), .v1.point = vec2f_make(200, 400), .side_sector[LINEDEF_BACK] = &demo_level->sectors[2] ),
-      LDEF(.v0.point = vec2f_make(200, 400), .v1.point = vec2f_make(0, 400) ),
-      LDEF(.v0.point = vec2f_make(0, 400), .v1.point = vec2f_make(0, 0) )
+      LDEF(.v0.point = vec2f_make(400, 400), .v1.point = vec2f_make(200, 300), .side_sector[LINEDEF_BACK] = &demo_level->sectors[2] ),
+      LDEF(.v0.point = vec2f_make(200, 300), .v1.point = vec2f_make(0, 400) ),
+      LDEF(.v0.point = vec2f_make(0, 400), .v1.point = vec2f_make(0, 0) ),
+
+      LDEF(.v0.point = vec2f_make(50, 50), .v1.point = vec2f_make(50, 100), .side_sector[LINEDEF_BACK] = &demo_level->sectors[4] ),
+      LDEF(.v0.point = vec2f_make(50, 100), .v1.point = vec2f_make(100, 100), .side_sector[LINEDEF_BACK] = &demo_level->sectors[4] ),
+      LDEF(.v0.point = vec2f_make(100, 100), .v1.point = vec2f_make(100, 50), .side_sector[LINEDEF_BACK] = &demo_level->sectors[4] ),
+      LDEF(.v0.point = vec2f_make(100, 50), .v1.point = vec2f_make(50, 50), .side_sector[LINEDEF_BACK] = &demo_level->sectors[4] )
+    )
+  );
+
+  sector_init(
+    &demo_level->sectors[4], 
+    -128,
+    160,
+    LINEDEFS(
+      LDEF(.v0.point = vec2f_make(50, 50), .v1.point = vec2f_make(50, 100), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
+      LDEF(.v0.point = vec2f_make(50, 100), .v1.point = vec2f_make(100, 100), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
+      LDEF(.v0.point = vec2f_make(100, 100), .v1.point = vec2f_make(100, 50), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
+      LDEF(.v0.point = vec2f_make(100, 50), .v1.point = vec2f_make(50, 50), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] )
     )
   );
 
@@ -268,10 +285,39 @@ static void create_demo_level() {
     -128,
     256,
     LINEDEFS(
-      LDEF(.v0.point = vec2f_make(400, 400), .v1.point = vec2f_make(200, 400), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
-      LDEF(.v0.point = vec2f_make(200, 400), .v1.point = vec2f_make(200, 800) ),
-      LDEF(.v0.point = vec2f_make(200, 800), .v1.point = vec2f_make(400, 800) ),
-      LDEF(.v0.point = vec2f_make(400, 800), .v1.point = vec2f_make(400, 400) )
+      LDEF(.v0.point = vec2f_make(400, 400), .v1.point = vec2f_make(200, 300), .side_sector[LINEDEF_BACK] = &demo_level->sectors[0] ),
+      LDEF(.v0.point = vec2f_make(200, 300), .v1.point = vec2f_make(100, 1000) ),
+      LDEF(.v0.point = vec2f_make(100, 1000), .v1.point = vec2f_make(500, 1000) ),
+      LDEF(.v0.point = vec2f_make(500, 1000), .v1.point = vec2f_make(400, 400) ),
+
+      LDEF(.v0.point = vec2f_make(275, 500), .v1.point = vec2f_make(325, 500), .side_sector[LINEDEF_BACK] = &demo_level->sectors[3]  ),
+      LDEF(.v0.point = vec2f_make(325, 500), .v1.point = vec2f_make(325, 700), .side_sector[LINEDEF_BACK] = &demo_level->sectors[3]  ),
+      LDEF(.v0.point = vec2f_make(325, 700), .v1.point = vec2f_make(275, 700), .side_sector[LINEDEF_BACK] = &demo_level->sectors[3]  ),
+      LDEF(.v0.point = vec2f_make(275, 700), .v1.point = vec2f_make(275, 500), .side_sector[LINEDEF_BACK] = &demo_level->sectors[3]  )
+    )
+  );
+
+  /*sector_init(
+    &demo_level->sectors[3], 
+    0,
+    224,
+    LINEDEFS(
+      LDEF(.v0.point = vec2f_make(275, 500), .v1.point = vec2f_make(325, 500) ),
+      LDEF(.v0.point = vec2f_make(325, 500), .v1.point = vec2f_make(325, 700) ),
+      LDEF(.v0.point = vec2f_make(325, 700), .v1.point = vec2f_make(275, 700) ),
+      LDEF(.v0.point = vec2f_make(275, 700), .v1.point = vec2f_make(275, 500) )
+    )
+  );*/
+
+  sector_init(
+    &demo_level->sectors[3], 
+    0,
+    224,
+    LINEDEFS(
+      LDEF(.v0.point = vec2f_make(275, 500), .v1.point = vec2f_make(325, 500), .side_sector[LINEDEF_BACK] = &demo_level->sectors[2] ),
+      LDEF(.v0.point = vec2f_make(325, 500), .v1.point = vec2f_make(325, 700), .side_sector[LINEDEF_BACK] = &demo_level->sectors[2] ),
+      LDEF(.v0.point = vec2f_make(325, 700), .v1.point = vec2f_make(275, 700), .side_sector[LINEDEF_BACK] = &demo_level->sectors[2] ),
+      LDEF(.v0.point = vec2f_make(275, 700), .v1.point = vec2f_make(275, 500), .side_sector[LINEDEF_BACK] = &demo_level->sectors[2] )
     )
   );
 }
