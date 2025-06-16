@@ -109,6 +109,13 @@ void renderer_draw(
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
   info.view_z = camera->z;
 
+  this->counters.wall_pixels = 0;
+  this->counters.wall_columns = 0;
+  this->counters.ceiling_pixels = 0;
+  this->counters.ceiling_columns = 0;
+  this->counters.floor_pixels = 0;
+  this->counters.floor_columns = 0;
+
   for (x = 0; x < this->buffer_size.x; ++x) {
     cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
     rx = camera->direction.x + (camera->plane.x * cam_x);
@@ -202,7 +209,7 @@ static void draw_column(
 
     draw_wall_segment(this, info, hit->line, start_y, end_y);
     draw_ceiling_segment(this, info, sect, info->top_limit, M_CLAMP(start_y, info->top_limit, info->bottom_limit));
-    draw_floor_segment(this, info, sect, M_MIN(end_y+1, info->bottom_limit), info->bottom_limit);
+    draw_floor_segment(this, info, sect, M_MIN(end_y+1, info->bottom_limit+1), info->bottom_limit+1);
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
     const float top_segment = M_MAX(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
@@ -222,7 +229,7 @@ static void draw_column(
     }
 
     draw_ceiling_segment(this, info, sect, info->top_limit, M_MAX(top_start_y, info->top_limit));
-    draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, info->bottom_limit), info->bottom_limit);
+    draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, info->bottom_limit+1), info->bottom_limit+1);
 
     info->top_limit = top_end_y;
     info->bottom_limit = bottom_start_y;
@@ -247,6 +254,9 @@ static void draw_wall_segment(
     return;
   }
 
+  this->counters.wall_pixels += (to-from);
+  this->counters.wall_columns ++;
+
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
   register uint32_t *c = debug_colors[line->color % 16];
@@ -268,11 +278,14 @@ static void draw_floor_segment(
     return;
   }
 
+  this->counters.floor_pixels += (to-from);
+  this->counters.floor_columns ++;
+
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
   register uint32_t *c = debug_colors_dark[sect->color % 16];
 
-  for (y = from; y <= to; ++y, p += this->buffer_size.x) {
+  for (y = from; y < to; ++y, p += this->buffer_size.x) {
     *p = 0xFF000000 | (c[0] << 16) | (c[1] << 8) | c[2];
   } 
 }
@@ -288,6 +301,9 @@ static void draw_ceiling_segment(
   if (from == to || info->view_z > sect->ceiling_height) {
     return;
   }
+
+  this->counters.ceiling_pixels += (to-from);
+  this->counters.ceiling_columns ++;
 
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];

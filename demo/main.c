@@ -65,8 +65,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
-  create_demo_level();
-  // create_grid_level();
+  // create_demo_level();
+  create_grid_level();
   camera_init(&cam, demo_level);
 
   last_ticks = SDL_GetTicks();
@@ -113,18 +113,17 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
 SDL_AppResult SDL_AppIterate(void *userdata) {
   static char debug_buffer[64];
-  static float titlebar_update_time = 0.5f;
+  static float fps_update_timer = 0.5f;
 
   uint64_t now_ticks = SDL_GetTicks();
   float delta_time = (now_ticks - last_ticks) / 1000.0f;  // in seconds
   last_ticks = now_ticks;
 
-  if (titlebar_update_time >= 0.5f) {
-    sprintf(debug_buffer, "Raycaster ::: %dx%d @ %dx, dt: %f, fps: %i", rend.buffer_size.x, rend.buffer_size.y, scale, delta_time, (unsigned int)(1/delta_time));
-    SDL_SetWindowTitle(window, debug_buffer);
-    titlebar_update_time = 0.f;
+  if (fps_update_timer >= 0.5f) {
+    sprintf(debug_buffer, "%dx%d @ %dx, dt: %f, fps: %i", rend.buffer_size.x, rend.buffer_size.y, scale, delta_time, (unsigned int)(1/delta_time));
+    fps_update_timer = 0.f;
   } else {
-    titlebar_update_time += delta_time;
+    fps_update_timer += delta_time;
   }
 
   // SDL_ClearSurface(window_surface, 0, 0, 0, 1.f);
@@ -144,6 +143,13 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
 
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
+  SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+  
+  SDL_RenderDebugText(sdl_renderer, 4, 4, debug_buffer);
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, 12, "Ceiling pixels: %d (%d cols)", rend.counters.ceiling_pixels, rend.counters.ceiling_columns);
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, 20, "Wall pixels:    %d (%d cols)", rend.counters.wall_pixels, rend.counters.wall_columns);
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, 28, "Floor pixels:   %d (%d cols)", rend.counters.floor_pixels, rend.counters.floor_columns);
+
   SDL_RenderPresent(sdl_renderer);
 
   return SDL_APP_CONTINUE;

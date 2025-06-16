@@ -12,6 +12,15 @@ typedef pixel_type* frame_buffer;
 typedef struct {
   frame_buffer buffer;
   vec2u buffer_size;
+
+  struct {
+    uint32_t wall_pixels,
+             wall_columns,
+             ceiling_pixels,
+             ceiling_columns,
+             floor_pixels,
+             floor_columns;
+  } counters;
 } renderer;
 
 void renderer_init(renderer *this, vec2u size);
