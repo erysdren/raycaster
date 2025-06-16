@@ -17,9 +17,9 @@ static renderer rend;
 static camera cam;
 static level_data *demo_level = NULL;
 static uint64_t last_ticks;
-static const int scale = 1,
-                 initial_window_width = 1024,
+static const int initial_window_width = 1024,
                  initial_window_height = 768;
+static int scale = 1;
 
 static struct {
   float forward, turn, raise;
@@ -100,6 +100,18 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       
       if (event->key.key == SDLK_Q) { movement.raise = 0.f; }
       else if (event->key.key == SDLK_Z) { movement.raise = 0.f; }
+
+      if (event->key.key == SDLK_PLUS ||event->key.key == SDLK_MINUS) {
+        if (event->key.key == SDLK_PLUS) { scale += 1; }
+        else if (scale > 1) { scale -= 1; }
+        int w, h;
+        SDL_GetWindowSize(window, &w, &h);
+        printf("Resize buffer to %dx%d\n", w / scale, h / scale);
+        renderer_resize(&rend, VEC2U(w / scale, h / scale));
+        SDL_DestroyTexture(texture);
+        texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
+        SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+      }
     } else if (event->type == SDL_EVENT_WINDOW_RESIZED) {
       printf("Resize buffer to %dx%d\n", event->window.data1 / scale, event->window.data2 / scale);
       renderer_resize(&rend, VEC2U(event->window.data1 / scale, event->window.data2 / scale));
