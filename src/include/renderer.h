@@ -19,7 +19,8 @@ typedef struct {
              ceiling_pixels,
              ceiling_columns,
              floor_pixels,
-             floor_columns;
+             floor_columns,
+             line_checks;
   } counters;
 } renderer;
 

@@ -116,6 +116,7 @@ void renderer_draw(
   this->counters.ceiling_columns = 0;
   this->counters.floor_pixels = 0;
   this->counters.floor_columns = 0;
+  this->counters.line_checks = 0;
 
   for (x = 0; x < this->buffer_size.x; ++x) {
     cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
@@ -166,6 +167,8 @@ static void check_sector_column(
 
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = &sect->linedefs[i];
+
+    this->counters.line_checks ++;
 
     if (math_lines_intersect(line->v0.point, line->v1.point, info->ray.start, info->ray.end, &intersection, &intersectiond)) {
       // float point_distance = math_length(vec2f_sub(intersection, info->ray.start));
