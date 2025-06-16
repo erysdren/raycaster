@@ -51,15 +51,22 @@ typedef struct {
   vec2f near_left;
   vec2f near_right;
   float unit_size, view_z;
-  float *top_limit, *bottom_limit;
+  float top_limit, bottom_limit;
   uint32_t column, half_h;
 } frame_info;
+
+typedef struct {
+  vec2f point;
+  float planar_distance,
+        planar_distance_inv;
+  linedef *line;
+} line_hit;
 
 static void check_sector_column(renderer*, frame_info*, sector *sect, sector *prev_sect);
 static void draw_wall_segment(renderer*, frame_info*, linedef *line, uint32_t from, uint32_t to);
 static void draw_floor_segment(renderer*, frame_info*, sector *sect, uint32_t from, uint32_t to);
 static void draw_ceiling_segment(renderer*, frame_info*, sector *sect, uint32_t from, uint32_t to);
-static void draw_column(renderer*, frame_info*, sector *sect, sector *prev_sect, linedef *line, float planar_distance, float planar_distance_inv);
+static void draw_column(renderer*, frame_info*, sector *sect, sector *prev_sect, line_hit const *hit);
 
 void renderer_init(
   renderer *this,
@@ -90,7 +97,6 @@ void renderer_draw(
 ) {
   register uint32_t x;
   register float cam_x, rx, ry;
-  float top_limit, bottom_limit;
   frame_info info;
 
   assert(this->buffer);
@@ -102,8 +108,6 @@ void renderer_draw(
   info.half_h = this->buffer_size.y >> 1;
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
   info.view_z = camera->z;
-  info.top_limit = &top_limit;
-  info.bottom_limit = &bottom_limit;
 
   for (x = 0; x < this->buffer_size.x; ++x) {
     cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
@@ -115,8 +119,8 @@ void renderer_draw(
       camera->position.y + (ry * RENDERER_DRAW_DISTANCE)
     );
 
-    top_limit = 0.f;
-    bottom_limit = this->buffer_size.y-1;
+    info.top_limit = 0.f;
+    info.bottom_limit = this->buffer_size.y-1;
 
     check_sector_column(this, &info, camera->in_sector, NULL);
   }
@@ -124,17 +128,32 @@ void renderer_draw(
 
 /* ----- */
 
+void sort_nearest(line_hit *arr, int n) {
+  register int i, j;
+  register line_hit hit;
+  for (i = 1; i < n; ++i) {
+    hit = arr[i];
+    j = i-1;
+    while (j >= 0 && arr[j].planar_distance > hit.planar_distance) {
+      arr[j+1] = arr[j];
+      j = j-1;
+    }
+    arr[j+1] = hit;
+  }
+}
+
 static void check_sector_column(
   renderer *this,
   frame_info *info,
   sector *sect,
   sector *prev_sect
 ) {
-  register size_t i;
-  register float planar_distance, planar_distance_inv;
+  register size_t i, hits_count = 0;
+  register float planar_distance;
   vec2f intersection;
   float intersectiond;
   linedef *line;
+  line_hit hits[16];
 
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = &sect->linedefs[i];
@@ -146,11 +165,19 @@ static void check_sector_column(
     if (math_lines_intersect(line->v0.point, line->v1.point, info->ray.start, info->ray.end, &intersection, &intersectiond)) {
       // float point_distance = math_length(vec2f_sub(intersection, info->ray.start));
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
-      planar_distance_inv = (1.f / planar_distance);
-
-      draw_column(this, info, sect, prev_sect, line, planar_distance, planar_distance_inv);
-      break;
+      hits[hits_count++] = (line_hit) {
+        .point = intersection,
+        .planar_distance = planar_distance,
+        .planar_distance_inv = 1.f / planar_distance,
+        .line = line 
+      };
     }
+  }
+
+  sort_nearest(hits, hits_count);
+
+  for (i = 0; i < hits_count; ++i) {
+    draw_column(this, info, sect, prev_sect, &hits[i]);
   }
 }
 
@@ -159,50 +186,48 @@ static void draw_column(
   frame_info *info,
   sector *sect,
   sector *prev_sect,
-  linedef *line,
-  float planar_distance,
-  float planar_distance_inv
+  line_hit const *hit
 ) {
-  register const float depth_scale_factor = (info->unit_size * planar_distance_inv);
+  register const float depth_scale_factor = (info->unit_size * hit->planar_distance_inv);
   register const float ceiling_z_scaled   = (sect->ceiling_height * depth_scale_factor);
   register const float floor_z_scaled     = (sect->floor_height * depth_scale_factor);
   register const float view_z_scaled      = (info->view_z * depth_scale_factor);
 
-  sector *back_sector = line->side_sector[LINEDEF_BACK];
+  sector *back_sector = hit->line->side_sector[LINEDEF_BACK];
 
   if (!back_sector || (back_sector && back_sector->floor_height == back_sector->ceiling_height)) {
     /* Draw a full wall */
-    float start_y = M_MAX(info->half_h - ceiling_z_scaled + view_z_scaled, *info->top_limit);
-    float end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, *info->top_limit, *info->bottom_limit);
+    float start_y = M_MAX(info->half_h - ceiling_z_scaled + view_z_scaled, info->top_limit);
+    float end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, info->top_limit, info->bottom_limit);
 
-    draw_wall_segment(this, info, line, start_y, end_y);
-    draw_ceiling_segment(this, info, sect, *info->top_limit, M_CLAMP(start_y, *info->top_limit, *info->bottom_limit));
-    draw_floor_segment(this, info, sect, M_MIN(end_y+1, *info->bottom_limit), *info->bottom_limit);
+    draw_wall_segment(this, info, hit->line, start_y, end_y);
+    draw_ceiling_segment(this, info, sect, info->top_limit, M_CLAMP(start_y, info->top_limit, info->bottom_limit));
+    draw_floor_segment(this, info, sect, M_MIN(end_y+1, info->bottom_limit), info->bottom_limit);
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
     const float top_segment = M_MAX(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
     const float bottom_segment = M_MAX(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
 
-    float top_start_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled, *info->top_limit, *info->bottom_limit);
-    float top_end_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled + top_segment, *info->top_limit, *info->bottom_limit);
-    float bottom_end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, *info->top_limit, *info->bottom_limit);
-    float bottom_start_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled - bottom_segment, *info->top_limit, *info->bottom_limit);
+    float top_start_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled, info->top_limit, info->bottom_limit);
+    float top_end_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled + top_segment, info->top_limit, info->bottom_limit);
+    float bottom_end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, info->top_limit, info->bottom_limit);
+    float bottom_start_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled - bottom_segment, info->top_limit, info->bottom_limit);
 
     if (top_segment > 0) {
-      draw_wall_segment(this, info, line, top_start_y, top_end_y);
+      draw_wall_segment(this, info, hit->line, top_start_y, top_end_y);
     }
 
     if (bottom_segment > 0) {
-      draw_wall_segment(this, info, line, bottom_start_y, bottom_end_y);
+      draw_wall_segment(this, info, hit->line, bottom_start_y, bottom_end_y);
     }
 
-    draw_ceiling_segment(this, info, sect, *info->top_limit, M_MAX(top_start_y, *info->top_limit));
-    draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, *info->bottom_limit), *info->bottom_limit);
+    draw_ceiling_segment(this, info, sect, info->top_limit, M_MAX(top_start_y, info->top_limit));
+    draw_floor_segment(this, info, sect, M_MIN(bottom_end_y+1, info->bottom_limit), info->bottom_limit);
 
-    *info->top_limit = top_end_y;
-    *info->bottom_limit = bottom_start_y;
+    info->top_limit = top_end_y;
+    info->bottom_limit = bottom_start_y;
 
-    if ((int)*info->top_limit == (int)*info->bottom_limit) {
+    if ((int)info->top_limit == (int)info->bottom_limit) {
       return;
     }
 
@@ -224,13 +249,10 @@ static void draw_wall_segment(
 
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
-  register uint32_t c = line->color % 16;
+  register uint32_t *c = debug_colors[line->color % 16];
 
   for (y = from; y <= to; ++y, p += this->buffer_size.x) {
-    *p = 0xFF000000
-      | (debug_colors[c][0] << 16)
-      | (debug_colors[c][1] << 8)
-      | debug_colors[c][2];
+    *p = 0xFF000000 | (c[0] << 16) | (c[1] << 8) | c[2];
   }
 }
 
@@ -248,13 +270,10 @@ static void draw_floor_segment(
 
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
-  register uint32_t c = sect->color % 16;
+  register uint32_t *c = debug_colors_dark[sect->color % 16];
 
   for (y = from; y <= to; ++y, p += this->buffer_size.x) {
-    *p = 0xFF000000
-      | (debug_colors_dark[c][0] << 16)
-      | (debug_colors_dark[c][1] << 8)
-      | debug_colors_dark[c][2];
+    *p = 0xFF000000 | (c[0] << 16) | (c[1] << 8) | c[2];
   } 
 }
 
@@ -272,12 +291,9 @@ static void draw_ceiling_segment(
 
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
-  register uint32_t c = sect->color % 16;
+  register uint32_t *c = debug_colors_dark[sect->color % 16];
 
   for (y = from; y < to; ++y, p += this->buffer_size.x) {
-    *p = 0xFF000000
-      | (debug_colors_dark[c][0] << 16)
-      | (debug_colors_dark[c][1] << 8)
-      | debug_colors_dark[c][2];
+    *p = 0xFF000000 | (c[0] << 16) | (c[1] << 8) | c[2];
   }
 }

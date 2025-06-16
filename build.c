@@ -95,7 +95,7 @@ int main(int argc, char **argv)
       "-Wall",
       "-Wfatal-errors",
       "-g",
-      "-pg",
+      // "-pg", /* Profile */
       "-no-pie",
       
       "-I"SRC_FOLDER,

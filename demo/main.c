@@ -65,8 +65,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
-  // create_demo_level();
-  create_grid_level();
+  create_demo_level();
+  // create_grid_level();
   camera_init(&cam, demo_level);
 
   last_ticks = SDL_GetTicks();
@@ -132,17 +132,17 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   process_camera_movement(delta_time);
   renderer_draw(&rend, &cam);
 
-
-  void* pixels;
+  /*void* pixels;
   int pitch;
 
-  /*if (SDL_LockTexture(texture, NULL, &pixels, &pitch)) {
+  if (SDL_LockTexture(texture, NULL, &pixels, &pitch)) {
     memcpy(pixels, rend.buffer, rend.buffer_size.y*pitch);
     SDL_UnlockTexture(texture);
   }*/
 
   SDL_UpdateTexture(texture, NULL, rend.buffer, rend.buffer_size.x*sizeof(pixel_type));
 
+  SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
   SDL_RenderPresent(sdl_renderer);
 
