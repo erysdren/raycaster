@@ -38,6 +38,7 @@ static void find_current_sector(camera *this) {
 
   for (i = 0; i < this->level->sectors_count; ++i) {
     if (&this->level->sectors[i] == this->in_sector) { continue; }
+    // printf("Check sector %d\n", i);
     if (sector_point_inside(&this->level->sectors[i], this->position)) {
       this->in_sector = (sector *)&this->level->sectors[i];
       printf("Camera entered sector: %d\n", i);

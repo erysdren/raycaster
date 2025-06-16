@@ -7,11 +7,6 @@
 
 struct sector;
 
-typedef enum linedef_side {
-  LINEDEF_FRONT,
-  LINEDEF_BACK
-} linedef_side;
-
 typedef struct {
   vertex v0,
          v1;

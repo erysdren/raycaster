@@ -76,6 +76,7 @@ int main(int argc, char **argv)
       DEPS_FOLDER"unity/extras/fixture/src/fixture.c",
       SRC_FOLDER"renderer.c",
       SRC_FOLDER"camera.c",
+      SRC_FOLDER"level_data.c",
       TESTS_FOLDER"main.c",
       TESTS_FOLDER"math.c",
       TESTS_FOLDER"sector.c",
@@ -111,6 +112,7 @@ int main(int argc, char **argv)
       DEMO_FOLDER"main.c",
       SRC_FOLDER"renderer.c",
       SRC_FOLDER"camera.c",
+      SRC_FOLDER"level_data.c",
 
       /* Linked libraries */
       DEPS_FOLDER""SDL3_FOLDER"lib/libSDL3.dll.a",
