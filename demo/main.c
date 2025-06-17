@@ -39,7 +39,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     "Software Rendering Example",
     initial_window_width,
     initial_window_height,
-    SDL_WINDOW_RESIZABLE,
+    SDL_WINDOW_RESIZABLE /*| SDL_WINDOW_FULLSCREEN*/,
     &window,
     &sdl_renderer
   );

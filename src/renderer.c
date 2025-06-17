@@ -61,7 +61,8 @@ typedef struct {
 typedef struct {
   vec2f point;
   float planar_distance,
-        planar_distance_inv;
+        planar_distance_inv,
+        point_distance;
   linedef *line;
   sector* back_sector;
 } line_hit;
@@ -236,12 +237,12 @@ static void check_sector_column(
     this->counters.line_checks ++;
 
     if (math_lines_intersect(line->v0->point, line->v1->point, info->ray.start, info->ray.end, &intersection, &intersectiond)) {
-      // float point_distance = math_length(vec2f_sub(intersection, info->ray.start));
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
       hits[hits_count++] = (line_hit) {
         .point = intersection,
         .planar_distance = planar_distance,
         .planar_distance_inv = 1.f / planar_distance,
+        .point_distance = math_length(vec2f_sub(intersection, info->ray.start)),
         .line = line,
         .back_sector = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0]
       };

@@ -58,6 +58,7 @@ int main(int argc, char **argv)
       "-std=gnu99",
       "-Wall",
       "-Wfatal-errors",
+      // "-msse",
       
       "-I"SRC_FOLDER,
       "-I"SRC_FOLDER"include",
@@ -95,9 +96,13 @@ int main(int argc, char **argv)
       "-std=gnu99",
       "-Wall",
       "-Wfatal-errors",
+      // "-msse",
       "-g",
-      // "-pg", /* Profile */
+      // "-pg", /* For profiling */
       "-no-pie",
+      "-ffast-math",
+      "-funroll-loops",
+      // "-O3",
       
       "-I"SRC_FOLDER,
       "-I"SRC_FOLDER"include",
