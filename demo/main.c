@@ -162,7 +162,7 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 12, "Ceiling pixels: %d (%d cols)", rend.counters.ceiling_pixels, rend.counters.ceiling_columns);
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 20, "Wall pixels:    %d (%d cols)", rend.counters.wall_pixels, rend.counters.wall_columns);
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 28, "Floor pixels:   %d (%d cols)", rend.counters.floor_pixels, rend.counters.floor_columns);
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, 36, "Line checks:    %d", rend.counters.line_checks);
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, 36, "Line checks:    %d / vis: %d (%d visible)", rend.counters.line_checks, rend.counters.line_visibility_checks, rend.counters.visible_lines);
 
   SDL_RenderPresent(sdl_renderer);
 

@@ -12,6 +12,7 @@ typedef pixel_type* frame_buffer;
 typedef struct {
   frame_buffer buffer;
   vec2u buffer_size;
+  uint32_t tick;
 
   struct {
     uint32_t wall_pixels,
@@ -20,7 +21,9 @@ typedef struct {
              ceiling_columns,
              floor_pixels,
              floor_columns,
-             line_checks;
+             line_checks,
+             line_visibility_checks,
+             visible_lines;
   } counters;
 } renderer;
 

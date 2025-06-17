@@ -18,6 +18,7 @@ typedef struct sector {
   linedef *linedefs[MAX_SECTOR_LINEDEFS];
   size_t linedefs_count;
   uint32_t color;
+  uint32_t last_visibility_check_tick;
 } sector;
 
 M_INLINED bool sector_point_inside(const sector *this, vec2f point) {

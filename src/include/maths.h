@@ -61,8 +61,50 @@ M_INLINED bool math_lines_intersect(
   return true;
 }
 
+M_INLINED bool math_point_in_triangle(vec2f point, vec2f v0, vec2f v1, vec2f v2) {
+  register float d0 = math_sign(point, v0, v1), d1 = math_sign(point, v1, v2), d2 = math_sign(point, v2, v0);
+  return !(((d0 < 0) || (d1 < 0) || (d2 < 0)) && ((d0 > 0) || (d1 > 0) || (d2 > 0)));
+}
+
 M_INLINED float math_line_segment_point_distance(vec2f a, vec2f b, vec2f point) {
   return fabs(math_cross(vec2f_sub(b, a), vec2f_sub(a, point))) / math_length(vec2f_sub(b, a));
 }
+
+
+// Helper: orientation of triplet (p, q, r)
+// Returns: 0 = colinear, 1 = clockwise, 2 = counterclockwise
+M_INLINED int orientation(vec2f p, vec2f q, vec2f r) {
+    float val = (q.y - p.y) * (r.x - q.x) -
+                (q.x - p.x) * (r.y - q.y);
+    if (val == 0) return 0;              // colinear
+    return (val > 0) ? 1 : 2;            // clockwise or counterclockwise
+}
+
+// Helper: check if point r lies on segment pq
+M_INLINED int onSegment(vec2f p, vec2f q, vec2f r) {
+    return r.x <= fmax(p.x, q.x) && r.x >= fmin(p.x, q.x) &&
+           r.y <= fmax(p.y, q.y) && r.y >= fmin(p.y, q.y);
+}
+
+// Main function: checks if segments p1p2 and q1q2 intersect
+M_INLINED int segmentsIntersect(vec2f p1, vec2f p2, vec2f q1, vec2f q2) {
+    int o1 = orientation(p1, p2, q1);
+    int o2 = orientation(p1, p2, q2);
+    int o3 = orientation(q1, q2, p1);
+    int o4 = orientation(q1, q2, p2);
+
+    // General case
+    if (o1 != o2 && o3 != o4)
+        return 1;
+
+    // Special cases (colinear)
+    if (o1 == 0 && onSegment(p1, p2, q1)) return 1;
+    if (o2 == 0 && onSegment(p1, p2, q2)) return 1;
+    if (o3 == 0 && onSegment(q1, q2, p1)) return 1;
+    if (o4 == 0 && onSegment(q1, q2, p2)) return 1;
+
+    return 0; // No intersection
+}
+
 
 #endif

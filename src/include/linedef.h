@@ -12,6 +12,7 @@ typedef struct {
          v1;
   struct sector *side_sector[2];
   uint32_t color;
+  uint32_t last_visible_tick;
 } linedef;
 
 #endif

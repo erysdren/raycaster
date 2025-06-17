@@ -48,8 +48,10 @@ typedef struct {
     vec2f start,
           end;
   } ray;
-  vec2f near_left;
-  vec2f near_right;
+  vec2f near_left,
+        near_right,
+        far_left,
+        far_right;
   float unit_size, view_z;
   float top_limit, bottom_limit;
   uint32_t column, half_h;
@@ -64,6 +66,7 @@ typedef struct {
   sector* back_sector;
 } line_hit;
 
+static void check_sector_visibility(renderer*, frame_info *, sector *sect);
 static void check_sector_column(renderer*, frame_info*, sector *sect, sector *prev_sect);
 static void draw_wall_segment(renderer*, frame_info*, linedef *line, uint32_t from, uint32_t to);
 static void draw_floor_segment(renderer*, frame_info*, sector *sect, uint32_t from, uint32_t to);
@@ -103,9 +106,13 @@ void renderer_draw(
 
   assert(this->buffer);
   memset(this->buffer, 0, this->buffer_size.x * this->buffer_size.y * sizeof(pixel_type));
+  
+  this->tick++;
 
   info.near_left = vec2f_sub(camera->position, camera->plane),
   info.near_right = vec2f_add(camera->position, camera->plane);
+  info.far_left = vec2f_add(camera->position, vec2f_mul(vec2f_sub(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
+  info.far_right = vec2f_add(camera->position, vec2f_mul(vec2f_add(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.ray.start = camera->position;
   info.half_h = this->buffer_size.y >> 1;
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
@@ -118,6 +125,8 @@ void renderer_draw(
   this->counters.floor_pixels = 0;
   this->counters.floor_columns = 0;
   this->counters.line_checks = 0;
+  this->counters.line_visibility_checks = 0;
+  this->counters.visible_lines = 0;
 
   for (x = 0; x < this->buffer_size.x; ++x) {
     cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
@@ -139,7 +148,34 @@ void renderer_draw(
 
 /* ----- */
 
-void sort_nearest(line_hit *arr, int n) {
+static void check_sector_visibility(
+  renderer *this,
+  frame_info *info,
+  sector *sect
+) {
+  register size_t i;
+  linedef *line;
+
+  for (i = 0; i < sect->linedefs_count; ++i) {
+    line = sect->linedefs[i];
+
+    if (line->last_visible_tick == this->tick) {
+      continue;
+    }
+
+    this->counters.line_visibility_checks ++;
+
+    if ( math_point_in_triangle(line->v0.point, info->ray.start, info->far_left, info->far_right)
+      || math_point_in_triangle(line->v1.point, info->ray.start, info->far_left, info->far_right)
+      || segmentsIntersect(line->v0.point, line->v1.point, info->ray.start, info->far_left)
+      || segmentsIntersect(line->v0.point, line->v1.point, info->ray.start, info->far_right)) {
+      this->counters.visible_lines ++;
+      line->last_visible_tick = this->tick;
+    }
+  }
+}
+
+M_INLINED void sort_nearest(line_hit *arr, int n) {
   register int i, j;
   register line_hit hit;
   for (i = 1; i < n; ++i) {
@@ -166,8 +202,16 @@ static void check_sector_column(
   linedef *line;
   line_hit hits[16];
 
+  if (sect->last_visibility_check_tick != this->tick) {
+    check_sector_visibility(this, info, sect);
+  }
+
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
+
+    if (line->last_visible_tick != this->tick) {
+      continue;
+    }
 
     this->counters.line_checks ++;
 

@@ -75,8 +75,15 @@ TEST(math, sign) {
   TEST_ASSERT(s2 == 0);
 }
 
+TEST(math, point_in_triangle) {
+  TEST_ASSERT_TRUE(math_point_in_triangle(VEC2F(0, 0), VEC2F(0, -5), VEC2F(-5, 5), VEC2F(5, 5)));
+  TEST_ASSERT_TRUE(math_point_in_triangle(VEC2F(1, 3), VEC2F(0, -5), VEC2F(-5, 5), VEC2F(5, 5)));
+  TEST_ASSERT_FALSE(math_point_in_triangle(VEC2F(0, -6), VEC2F(0, -5), VEC2F(-5, 5), VEC2F(5, 5)));
+}
+
 TEST_GROUP_RUNNER(math) {
   RUN_TEST_CASE(math, lines_intersect);
   RUN_TEST_CASE(math, line_segment_point_distance);
   RUN_TEST_CASE(math, sign);
+  RUN_TEST_CASE(math, point_in_triangle);
 }

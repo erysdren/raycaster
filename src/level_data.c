@@ -77,9 +77,9 @@ static sector* add_sector(level_data *level, polygon *poly) {
 }
 
 level_data* map_data_build(map_data *this) {
-  register size_t i, j, k;
+  register size_t i, j, k, new_count;
   sector *front, *back;
-  sector back_copy;
+  // sector back_copy;
   linedef *line;
 
   printf("Building level ...\n");
@@ -100,17 +100,20 @@ level_data* map_data_build(map_data *this) {
     for (j = 0; j < level->sectors_count; ++j) {
       front = &level->sectors[j];
       if (back == front) { continue; }
-      back_copy = *back;
+      new_count = back->linedefs_count;
       for (k = 0; k < front->linedefs_count; ++k) {
         line = front->linedefs[k];
-        if (line->side_sector[0] != back && line->side_sector[1] != back && sector_point_inside(&back_copy, line->v0.point) && sector_point_inside(&back_copy, line->v1.point)) {
+        if (sector_point_inside(back, line->v0.point) && sector_point_inside(back, line->v1.point)) {
           printf(" Add linedef (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", (int)line->v0.point.x, (int)line->v0.point.y, (int)line->v1.point.x, (int)line->v1.point.y, j, i);
           line->side_sector[1] = back;
-          back->linedefs[back->linedefs_count++] = line;
+          back->linedefs[new_count++] = line;
         }
       }
+      back->linedefs_count = new_count;
     }
   }
+
+  printf("DONE!\n");
 
   return level;
 }
