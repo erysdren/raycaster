@@ -8,7 +8,7 @@ void camera_init(camera *this, level_data *level) {
   this->level = level;
   this->fov = 0.9;
   this->z = 64;
-  this->position = vec2f_make(200, 200);
+  this->position = vec2f_make(300, 200);
   this->direction = vec2f_make(1, 0);
   this->plane = vec2f_make(0.f * this->fov, -1.f * this->fov);
 

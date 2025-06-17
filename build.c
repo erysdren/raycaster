@@ -98,6 +98,7 @@ int main(int argc, char **argv)
       "-g",
       // "-pg", /* Profile */
       "-no-pie",
+      "-O2",
       
       "-I"SRC_FOLDER,
       "-I"SRC_FOLDER"include",

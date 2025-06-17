@@ -244,9 +244,16 @@ static void create_demo_level() {
 
   map_data_add_polygon(map, -32, 160, VERTICES(
     VEC2F(50, 50),
-    VEC2F(50, 100),
-    VEC2F(200, 100),
+    VEC2F(50, 200),
+    VEC2F(200, 200),
     VEC2F(200, 50)
+  ));
+
+  map_data_add_polygon(map, 128, 128, VERTICES(
+    VEC2F(100, 100),
+    VEC2F(125, 100),
+    VEC2F(125, 125),
+    VEC2F(100, 125)
   ));
 
   map_data_add_polygon(map, 32, 96, VERTICES(
