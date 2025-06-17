@@ -23,7 +23,10 @@ typedef struct {
              floor_columns,
              line_checks,
              line_visibility_checks,
-             visible_lines;
+             visible_lines,
+             vertex_visibility_checks,
+             visible_vertices,
+             sectors_visited;
   } counters;
 } renderer;
 

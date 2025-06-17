@@ -127,6 +127,9 @@ void renderer_draw(
   this->counters.line_checks = 0;
   this->counters.line_visibility_checks = 0;
   this->counters.visible_lines = 0;
+  this->counters.vertex_visibility_checks = 0;
+  this->counters.visible_vertices = 0;
+  this->counters.sectors_visited = 0;
 
   for (x = 0; x < this->buffer_size.x; ++x) {
     cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
@@ -167,12 +170,18 @@ static void check_sector_visibility(
 
     if (line->v0->last_visibility_check_tick != this->tick) {
       line->v0->last_visibility_check_tick = this->tick;
-      line->v0->visible = math_point_in_triangle(line->v0->point, info->ray.start, info->far_left, info->far_right);
+      this->counters.vertex_visibility_checks ++;
+      if ((line->v0->visible = math_point_in_triangle(line->v0->point, info->ray.start, info->far_left, info->far_right))) {
+        this->counters.visible_vertices ++;
+      }
     }
 
     if (line->v1->last_visibility_check_tick != this->tick) {
       line->v1->last_visibility_check_tick = this->tick;
-      line->v1->visible = math_point_in_triangle(line->v1->point, info->ray.start, info->far_left, info->far_right);
+      this->counters.vertex_visibility_checks ++;
+      if ((line->v1->visible = math_point_in_triangle(line->v1->point, info->ray.start, info->far_left, info->far_right))) {
+        this->counters.visible_vertices ++;
+      }
     }
 
     if (line->v0->visible || line->v1->visible
@@ -212,6 +221,8 @@ static void check_sector_column(
   line_hit hits[16];
 
   if (sect->last_visibility_check_tick != this->tick) {
+    this->counters.sectors_visited ++;
+    sect->last_visibility_check_tick = this->tick;
     check_sector_visibility(this, info, sect);
   }
 
@@ -219,7 +230,7 @@ static void check_sector_column(
     line = sect->linedefs[i];
 
     if (line->last_visible_tick != this->tick) {
-      // continue;
+      continue;
     }
 
     this->counters.line_checks ++;
