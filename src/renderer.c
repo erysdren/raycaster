@@ -56,7 +56,6 @@ typedef struct {
         far_right;
   float unit_size, view_z;
   uint32_t half_h;
-  bool column_finished;
 } frame_info;
 
 /* Column-specific data */
@@ -125,7 +124,7 @@ void renderer_draw(
   renderer *this,
   camera *camera
 ) {
-  register uint32_t x;
+  uint32_t x;
   frame_info info;
 
   assert(this->buffer);
@@ -237,7 +236,7 @@ static void check_sector_visibility(
 
 M_INLINED void sort_nearest(line_hit *arr, int n) {
   register int i, j;
-  register line_hit hit;
+  line_hit hit;
   for (i = 1; i < n; ++i) {
     hit = arr[i];
     j = i-1;
@@ -256,8 +255,9 @@ static void check_sector_column(
   sector *sect,
   sector *prev_sect
 ) {
-  register size_t i, hits_count = 0;
-  register float planar_distance;
+  size_t i;
+  size_t hits_count = 0;
+  float planar_distance;
   vec2f intersection;
   float intersectiond;
   linedef *line;
@@ -287,7 +287,7 @@ static void check_sector_column(
 
   sort_nearest(hits, hits_count);
 
-  for (i = 0; i < hits_count && !info->column_finished; ++i) {
+  for (i = 0; i < hits_count && !column->finished; ++i) {
     draw_column(this, info, column, sect, prev_sect, &hits[i]);
   }
 }
