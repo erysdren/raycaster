@@ -67,9 +67,14 @@ typedef struct {
   sector* back_sector;
 } line_hit;
 
+#define POSTERIZATION_STEPS 8
+
+static const float POSTERIZATION_STEP_DISTANCE = RENDERER_DRAW_DISTANCE / POSTERIZATION_STEPS;
+static const float POSTERIZATION_STEP_LIGHT_CHANGE = 1.f / POSTERIZATION_STEPS;
+
 static void check_sector_visibility(renderer*, frame_info *, sector *sect);
 static void check_sector_column(renderer*, frame_info*, sector *sect, sector *prev_sect);
-static void draw_wall_segment(renderer*, frame_info*, linedef *line, uint32_t from, uint32_t to);
+static void draw_wall_segment(renderer*, frame_info*, const line_hit *hit, uint32_t from, uint32_t to);
 static void draw_floor_segment(renderer*, frame_info*, sector *sect, uint32_t from, uint32_t to);
 static void draw_ceiling_segment(renderer*, frame_info*, sector *sect, uint32_t from, uint32_t to);
 static void draw_column(renderer*, frame_info*, sector *sect, sector *prev_sect, line_hit const *hit);
@@ -275,7 +280,7 @@ static void draw_column(
     float start_y = M_MAX(info->half_h - ceiling_z_scaled + view_z_scaled, info->top_limit);
     float end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, info->top_limit, info->bottom_limit);
 
-    draw_wall_segment(this, info, hit->line, start_y, end_y);
+    draw_wall_segment(this, info, hit, start_y, end_y);
     draw_ceiling_segment(this, info, sect, info->top_limit, M_CLAMP(start_y, info->top_limit, info->bottom_limit));
     draw_floor_segment(this, info, sect, M_MIN(end_y+1, info->bottom_limit+1), info->bottom_limit+1);
 
@@ -291,11 +296,11 @@ static void draw_column(
     float bottom_start_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled - bottom_segment, info->top_limit, info->bottom_limit);
 
     if (top_segment > 0) {
-      draw_wall_segment(this, info, hit->line, top_start_y, top_end_y);
+      draw_wall_segment(this, info, hit, top_start_y, top_end_y);
     }
 
     if (bottom_segment > 0) {
-      draw_wall_segment(this, info, hit->line, bottom_start_y, bottom_end_y);
+      draw_wall_segment(this, info, hit, bottom_start_y, bottom_end_y);
     }
 
     draw_ceiling_segment(this, info, sect, info->top_limit, M_MAX(top_start_y, info->top_limit));
@@ -319,7 +324,7 @@ static void draw_column(
 static void draw_wall_segment(
   renderer *this,
   frame_info *info,
-  linedef *line,
+  const line_hit *hit,
   uint32_t from,
   uint32_t to
 ) {
@@ -332,10 +337,14 @@ static void draw_wall_segment(
 
   register uint32_t y;
   register uint32_t *p = &this->buffer[from * this->buffer_size.x + info->column];
-  register uint32_t *c = debug_colors[line->color % 16];
+  register uint32_t *c = debug_colors[hit->line->color % 16];
+  register const float light = M_MAX(0.f, 1.0f - (int)(hit->point_distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
+  register uint32_t r = M_MAX(0, (uint8_t)(c[0] * light)) << 16;
+  register uint32_t g = M_MAX(0, (uint8_t)(c[1] * light)) << 8;
+  register uint32_t b = M_MAX(0, (uint8_t)(c[2] * light));
 
   for (y = from; y <= to; ++y, p += this->buffer_size.x) {
-    *p = 0xFF000000 | (c[0] << 16) | (c[1] << 8) | c[2];
+    *p = 0xFF000000|r|g|b;
   }
 }
 

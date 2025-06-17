@@ -98,7 +98,7 @@ int main(int argc, char **argv)
       "-Wfatal-errors",
       // "-msse",
       "-g",
-      // "-pg", /* For profiling */
+      // "-pg", /* For GPROF */
       "-no-pie",
       "-ffast-math",
       "-funroll-loops",
