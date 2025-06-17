@@ -165,10 +165,10 @@ static void check_sector_visibility(
 
     this->counters.line_visibility_checks ++;
 
-    if ( math_point_in_triangle(line->v0.point, info->ray.start, info->far_left, info->far_right)
-      || math_point_in_triangle(line->v1.point, info->ray.start, info->far_left, info->far_right)
-      || segmentsIntersect(line->v0.point, line->v1.point, info->ray.start, info->far_left)
-      || segmentsIntersect(line->v0.point, line->v1.point, info->ray.start, info->far_right)) {
+    if ( math_point_in_triangle(line->v0->point, info->ray.start, info->far_left, info->far_right)
+      || math_point_in_triangle(line->v1->point, info->ray.start, info->far_left, info->far_right)
+      || segmentsIntersect(line->v0->point, line->v1->point, info->ray.start, info->far_left)
+      || segmentsIntersect(line->v0->point, line->v1->point, info->ray.start, info->far_right)) {
       this->counters.visible_lines ++;
       line->last_visible_tick = this->tick;
     }
@@ -210,12 +210,12 @@ static void check_sector_column(
     line = sect->linedefs[i];
 
     if (line->last_visible_tick != this->tick) {
-      continue;
+      // continue;
     }
 
     this->counters.line_checks ++;
 
-    if (math_lines_intersect(line->v0.point, line->v1.point, info->ray.start, info->ray.end, &intersection, &intersectiond)) {
+    if (math_lines_intersect(line->v0->point, line->v1->point, info->ray.start, info->ray.end, &intersection, &intersectiond)) {
       // float point_distance = math_length(vec2f_sub(intersection, info->ray.start));
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
       hits[hits_count++] = (line_hit) {

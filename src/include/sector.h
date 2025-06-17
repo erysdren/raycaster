@@ -29,22 +29,20 @@ M_INLINED bool sector_point_inside(const sector *this, vec2f point) {
   for (i = 0; i < this->linedefs_count; ++i) {
     line = this->linedefs[i];
 
-    if (line->v0.point.y <= point.y) {
-      if (line->v1.point.y > point.y) {
-        if (math_sign(line->v0.point, line->v1.point, point) > 0) {
+    if (line->v0->point.y <= point.y) {
+      if (line->v1->point.y > point.y) {
+        if (math_sign(line->v0->point, line->v1->point, point) > 0) {
           ++wn;
         }
       }
     } else {
-      if (line->v1.point.y <= point.y) {
-        if (math_sign(line->v0.point, line->v1.point, point) < 0) {
+      if (line->v1->point.y <= point.y) {
+        if (math_sign(line->v0->point, line->v1->point, point) < 0) {
           --wn;
         }
       }
     }
   }
-
-  // printf("  sector wn = %d\n", wn);
 
   return wn==1 || wn==-1;
 }

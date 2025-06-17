@@ -65,8 +65,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
-  // create_demo_level();
-  create_grid_level();
+  create_demo_level();
+  // create_grid_level();
   camera_init(&cam, demo_level);
 
   last_ticks = SDL_GetTicks();
@@ -205,10 +205,10 @@ static void create_grid_level() {
       }
 
       map_data_add_polygon(map, f, c, VERTICES(
-        VERTEX(x*size, y*size),
-        VERTEX(x*size + size, y*size),
-        VERTEX(x*size + size, y*size + size),
-        VERTEX(x*size, y*size + size)
+        VEC2F(x*size, y*size),
+        VEC2F(x*size + size, y*size),
+        VEC2F(x*size + size, y*size + size),
+        VEC2F(x*size, y*size + size)
       ));
     }
   }
@@ -223,39 +223,39 @@ static void create_demo_level() {
   map->polygons_count = 0;
 
   map_data_add_polygon(map, 0, 144, VERTICES(
-    VERTEX(0, 0),
-    VERTEX(400, 0),
-    VERTEX(400, 400),
-    VERTEX(200, 300),
-    VERTEX(0, 400)
+    VEC2F(0, 0),
+    VEC2F(400, 0),
+    VEC2F(400, 400),
+    VEC2F(200, 300),
+    VEC2F(0, 400)
   ));
 
   map_data_add_polygon(map, -32, 160, VERTICES(
-    VERTEX(50, 50),
-    VERTEX(50, 100),
-    VERTEX(200, 100),
-    VERTEX(200, 50)
+    VEC2F(50, 50),
+    VEC2F(50, 100),
+    VEC2F(200, 100),
+    VEC2F(200, 50)
   ));
 
   map_data_add_polygon(map, 32, 96, VERTICES(
-    VERTEX(0, 0),
-    VERTEX(400, 0),
-    VERTEX(300, -200),
-    VERTEX(0, -100)
+    VEC2F(0, 0),
+    VEC2F(400, 0),
+    VEC2F(300, -200),
+    VEC2F(0, -100)
   ));
 
   map_data_add_polygon(map, -128, 256, VERTICES(
-    VERTEX(400, 400),
-    VERTEX(200, 300),
-    VERTEX(100, 1000),
-    VERTEX(500, 1000)
+    VEC2F(400, 400),
+    VEC2F(200, 300),
+    VEC2F(100, 1000),
+    VEC2F(500, 1000)
   ));
 
   map_data_add_polygon(map, 0, 224, VERTICES(
-    VERTEX(275, 500),
-    VERTEX(325, 500),
-    VERTEX(325, 700),
-    VERTEX(275, 700)
+    VEC2F(275, 500),
+    VEC2F(325, 500),
+    VEC2F(325, 700),
+    VEC2F(275, 700)
   ));
 
   demo_level = map_data_build(map);

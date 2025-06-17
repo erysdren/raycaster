@@ -3,13 +3,10 @@
 
 #include "vertex.h"
 
-#define LDEF(...) ((linedef) { __VA_ARGS__ })
-
 struct sector;
 
 typedef struct {
-  vertex v0,
-         v1;
+  vertex *v0, *v1;
   struct sector *side_sector[2];
   uint32_t color;
   uint32_t last_visible_tick;
