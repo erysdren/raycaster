@@ -9,6 +9,8 @@
   #include <omp.h>
 #endif
 
+#define MAX_SECTOR_HISTORY 32
+
 static uint32_t debug_colors[16][3] = {
   { 195, 235, 233 },
   { 123, 45, 67 },
@@ -60,10 +62,11 @@ typedef struct {
 
 /* Column-specific data */
 typedef struct {
+  const sector *sector_history[MAX_SECTOR_HISTORY];
   vec2f ray_end,
         ray_direction;
   float top_limit, bottom_limit;
-  uint32_t index;
+  uint32_t index, sector_depth;
   bool finished;
   struct {
     uint32_t wall_pixels,
@@ -91,11 +94,11 @@ static const float POSTERIZATION_STEP_DISTANCE = RENDERER_DRAW_DISTANCE / POSTER
 static const float POSTERIZATION_STEP_LIGHT_CHANGE = 1.f / POSTERIZATION_STEPS;
 
 static void check_sector_visibility(renderer*, const frame_info*, sector *sect);
-static void check_sector_column(renderer*, const frame_info*, column_info*, const sector *sect, const sector *prev_sect);
+static void check_sector_column(renderer*, const frame_info*, column_info*, const sector*);
 static void draw_wall_segment(renderer*, const frame_info*, column_info*, const line_hit *hit, uint32_t from, uint32_t to);
 static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector *sect, uint32_t from, uint32_t to);
 static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector *sect, uint32_t from, uint32_t to);
-static void draw_column(renderer*, const frame_info*, column_info*, const sector *sect, const sector *prev_sect, line_hit const *);
+static void draw_column(renderer*, const frame_info*, column_info*, const sector*, line_hit const *);
 
 void renderer_init(
   renderer *this,
@@ -171,12 +174,13 @@ void renderer_draw(
       ),
       .ray_direction = VEC2F(rx, ry),
       .index = x,
+      .sector_depth = 0,
       .top_limit = 0.f,
       .bottom_limit = this->buffer_size.y - 1,
       .finished = false
     };
 
-    check_sector_column(this, &info, &column, camera->in_sector, NULL);
+    check_sector_column(this, &info, &column, camera->in_sector);
   }
 }
 
@@ -252,8 +256,7 @@ static void check_sector_column(
   renderer *this,
   const frame_info *info,
   column_info *column,
-  const sector *sect,
-  const sector *prev_sect
+  const sector *sect
 ) {
   register size_t i;
   size_t hits_count = 0;
@@ -262,6 +265,18 @@ static void check_sector_column(
   float intersectiond;
   linedef *line;
   line_hit hits[16];
+
+  if (column->sector_depth == MAX_SECTOR_HISTORY) {
+    return;
+  }
+
+  for (i = 0; i < column->sector_depth; ++i) {
+    if (column->sector_history[i] == sect) {
+      return;
+    }
+  }
+
+  column->sector_history[column->sector_depth++] = sect;
 
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
@@ -288,7 +303,7 @@ static void check_sector_column(
   sort_nearest(hits, hits_count);
 
   for (i = 0; i < hits_count && !column->finished; ++i) {
-    draw_column(this, info, column, sect, prev_sect, &hits[i]);
+    draw_column(this, info, column, sect, &hits[i]);
   }
 }
 
@@ -297,7 +312,6 @@ static void draw_column(
   const frame_info *info,
   column_info *column,
   const sector *sect,
-  const sector *prev_sect,
   line_hit const *hit
 ) {
   register const float depth_scale_factor = info->unit_size * hit->planar_distance_inv;
@@ -349,9 +363,7 @@ static void draw_column(
     }
     
     /* Render back sector */
-    if (back_sector != prev_sect) {
-      check_sector_column(this, info, column, back_sector, sect);
-    }
+    check_sector_column(this, info, column, back_sector);
   }
 }
 
