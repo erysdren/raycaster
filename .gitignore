@@ -2,3 +2,4 @@ build.exe
 *.old
 bin/
 deps/SDL3*
+dev/
