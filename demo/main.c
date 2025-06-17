@@ -65,8 +65,20 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
 
-  create_demo_level();
-  // create_grid_level();
+  int i;
+  int level = 0;
+
+  for (i = 1; i < argc; ++i) {
+    if (!strcmp(argv[i], "-level")) {
+      level = atoi(argv[i+1]);
+    }
+  }
+
+  switch (level) {
+  case 1: create_grid_level(); break;
+  default: create_demo_level(); break;
+  }
+ 
   camera_init(&cam, demo_level);
 
   last_ticks = SDL_GetTicks();
@@ -190,15 +202,13 @@ static void create_grid_level() {
   const int h = 24;
   const int size = 256;
 
-  register int i, x, y, c, f;
+  register int x, y, c, f;
 
   map_data *map = malloc(sizeof(map_data));
   map->polygons_count = 0;
 
   for (y = 0; y < h; ++y) {
     for (x = 0; x < w; ++x) {
-      i = (y*w)+x;
-
       if (rand() % 20 == 5) {
         c = f = 0;
       } else {
