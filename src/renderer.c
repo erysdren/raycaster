@@ -85,17 +85,17 @@ typedef struct {
   sector* back_sector;
 } line_hit;
 
-#define POSTERIZATION_STEPS 8
+#define POSTERIZATION_STEPS 16
 
 static const float POSTERIZATION_STEP_DISTANCE = RENDERER_DRAW_DISTANCE / POSTERIZATION_STEPS;
 static const float POSTERIZATION_STEP_LIGHT_CHANGE = 1.f / POSTERIZATION_STEPS;
 
 static void check_sector_visibility(renderer*, const frame_info*, sector *sect);
-static void check_sector_column(renderer*, const frame_info*, column_info*, sector *sect, sector *prev_sect);
+static void check_sector_column(renderer*, const frame_info*, column_info*, const sector *sect, const sector *prev_sect);
 static void draw_wall_segment(renderer*, const frame_info*, column_info*, const line_hit *hit, uint32_t from, uint32_t to);
-static void draw_floor_segment(renderer*, const frame_info*, column_info*, sector *sect, uint32_t from, uint32_t to);
-static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, sector *sect, uint32_t from, uint32_t to);
-static void draw_column(renderer*, const frame_info*, column_info*, sector *sect, sector *prev_sect, line_hit const *);
+static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector *sect, uint32_t from, uint32_t to);
+static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector *sect, uint32_t from, uint32_t to);
+static void draw_column(renderer*, const frame_info*, column_info*, const sector *sect, const sector *prev_sect, line_hit const *);
 
 void renderer_init(
   renderer *this,
@@ -252,10 +252,10 @@ static void check_sector_column(
   renderer *this,
   const frame_info *info,
   column_info *column,
-  sector *sect,
-  sector *prev_sect
+  const sector *sect,
+  const sector *prev_sect
 ) {
-  size_t i;
+  register size_t i;
   size_t hits_count = 0;
   float planar_distance;
   vec2f intersection;
@@ -296,8 +296,8 @@ static void draw_column(
   renderer *this,
   const frame_info *info,
   column_info *column,
-  sector *sect,
-  sector *prev_sect,
+  const sector *sect,
+  const sector *prev_sect,
   line_hit const *hit
 ) {
   register const float depth_scale_factor = info->unit_size * hit->planar_distance_inv;
@@ -387,7 +387,7 @@ static void draw_floor_segment(
   renderer *this,
   const frame_info *info,
   column_info *column,
-  sector *sect,
+  const sector *sect,
   uint32_t from,
   uint32_t to
 ) {
@@ -412,7 +412,7 @@ static void draw_ceiling_segment(
   renderer *this,
   const frame_info *info,
   column_info *column,
-  sector *sect,
+  const sector *sect,
   uint32_t from,
   uint32_t to
 ) {
