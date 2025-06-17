@@ -5,6 +5,12 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define PARALLEL_RENDERING
+
+#ifdef PARALLEL_RENDERING
+  #include <omp.h>
+#endif
+
 static uint32_t debug_colors[16][3] = {
   { 195, 235, 233 },
   { 123, 45, 67 },
@@ -52,7 +58,7 @@ typedef struct {
         near_right,
         far_left,
         far_right;
-  float unit_size, view_z;
+  float unit_size, view_z, rx, ry;
   float top_limit, bottom_limit;
   uint32_t column, half_h;
   bool column_finished;
@@ -107,7 +113,6 @@ void renderer_draw(
   camera *camera
 ) {
   register uint32_t x;
-  register float cam_x, rx, ry;
   frame_info info;
 
   assert(this->buffer);
@@ -137,14 +142,19 @@ void renderer_draw(
   this->counters.visible_vertices = 0;
   this->counters.sectors_visited = 0;
 
+  check_sector_visibility(this, &info, camera->in_sector);
+
+#ifdef PARALLEL_RENDERING
+  #pragma omp parallel for simd firstprivate(info) shared(this)
+#endif
   for (x = 0; x < this->buffer_size.x; ++x) {
-    cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
-    rx = camera->direction.x + (camera->plane.x * cam_x);
-    ry = camera->direction.y + (camera->plane.y * cam_x);
+    float cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
+    info.rx = camera->direction.x + (camera->plane.x * cam_x);
+    info.ry = camera->direction.y + (camera->plane.y * cam_x);
     info.column = x;
     info.ray.end = vec2f_make(
-      camera->position.x + (rx * RENDERER_DRAW_DISTANCE),
-      camera->position.y + (ry * RENDERER_DRAW_DISTANCE)
+      camera->position.x + (info.rx * RENDERER_DRAW_DISTANCE),
+      camera->position.y + (info.ry * RENDERER_DRAW_DISTANCE)
     );
 
     info.top_limit = 0.f;
@@ -164,6 +174,10 @@ static void check_sector_visibility(
 ) {
   register size_t i;
   linedef *line;
+  sector *back_sector;
+
+  sect->last_visibility_check_tick = this->tick;
+  this->counters.sectors_visited ++;
 
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
@@ -195,6 +209,12 @@ static void check_sector_visibility(
       || segmentsIntersect(line->v0->point, line->v1->point, info->ray.start, info->far_right)) {
       this->counters.visible_lines ++;
       line->last_visible_tick = this->tick;
+
+      back_sector = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0];
+
+      if (back_sector && back_sector->last_visibility_check_tick != this->tick) {
+        check_sector_visibility(this, info, back_sector);
+      }
     }
   }
 }
@@ -225,12 +245,6 @@ static void check_sector_column(
   float intersectiond;
   linedef *line;
   line_hit hits[16];
-
-  if (sect->last_visibility_check_tick != this->tick) {
-    this->counters.sectors_visited ++;
-    sect->last_visibility_check_tick = this->tick;
-    check_sector_visibility(this, info, sect);
-  }
 
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
@@ -268,17 +282,19 @@ static void draw_column(
   sector *prev_sect,
   line_hit const *hit
 ) {
-  register const float depth_scale_factor = (info->unit_size * hit->planar_distance_inv);
-  register const float ceiling_z_scaled   = (sect->ceiling_height * depth_scale_factor);
-  register const float floor_z_scaled     = (sect->floor_height * depth_scale_factor);
-  register const float view_z_scaled      = (info->view_z * depth_scale_factor);
+  register const float depth_scale_factor = info->unit_size * hit->planar_distance_inv;
+  register const float ceiling_z_scaled   = sect->ceiling_height * depth_scale_factor;
+  register const float floor_z_scaled     = sect->floor_height * depth_scale_factor;
+  register const float view_z_scaled      = info->view_z * depth_scale_factor;
+  register const float ceiling_z_local    = info->half_h - ceiling_z_scaled + view_z_scaled;
+  register const float floor_z_local      = info->half_h - floor_z_scaled + view_z_scaled;
 
   sector *back_sector = hit->back_sector;
 
   if (!back_sector || (back_sector && back_sector->floor_height == back_sector->ceiling_height)) {
     /* Draw a full wall */
-    float start_y = M_MAX(info->half_h - ceiling_z_scaled + view_z_scaled, info->top_limit);
-    float end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, info->top_limit, info->bottom_limit);
+    float start_y = M_MAX(ceiling_z_local, info->top_limit);
+    float end_y = M_CLAMP(floor_z_local, info->top_limit, info->bottom_limit);
 
     draw_wall_segment(this, info, hit, start_y, end_y);
     draw_ceiling_segment(this, info, sect, info->top_limit, M_CLAMP(start_y, info->top_limit, info->bottom_limit));
@@ -290,10 +306,10 @@ static void draw_column(
     const float top_segment = M_MAX(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
     const float bottom_segment = M_MAX(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
 
-    float top_start_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled, info->top_limit, info->bottom_limit);
-    float top_end_y = M_CLAMP(info->half_h - ceiling_z_scaled + view_z_scaled + top_segment, info->top_limit, info->bottom_limit);
-    float bottom_end_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled, info->top_limit, info->bottom_limit);
-    float bottom_start_y = M_CLAMP(info->half_h - floor_z_scaled + view_z_scaled - bottom_segment, info->top_limit, info->bottom_limit);
+    float top_start_y = M_CLAMP(ceiling_z_local, info->top_limit, info->bottom_limit);
+    float top_end_y = M_CLAMP(ceiling_z_local + top_segment, info->top_limit, info->bottom_limit);
+    float bottom_end_y = M_CLAMP(floor_z_local, info->top_limit, info->bottom_limit);
+    float bottom_start_y = M_CLAMP(floor_z_local - bottom_segment, info->top_limit, info->bottom_limit);
 
     if (top_segment > 0) {
       draw_wall_segment(this, info, hit, top_start_y, top_end_y);
@@ -344,7 +360,7 @@ static void draw_wall_segment(
   register uint32_t b = M_MAX(0, (uint8_t)(c[2] * light));
 
   for (y = from; y <= to; ++y, p += this->buffer_size.x) {
-    *p = 0xFF000000|r|g|b;
+    *p = 0xFF000000 | r | g | b;
   }
 }
 

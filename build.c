@@ -58,7 +58,6 @@ int main(int argc, char **argv)
       "-std=gnu99",
       "-Wall",
       "-Wfatal-errors",
-      // "-msse",
       
       "-I"SRC_FOLDER,
       "-I"SRC_FOLDER"include",
@@ -83,7 +82,8 @@ int main(int argc, char **argv)
       TESTS_FOLDER"sector.c",
 
       /* Linked libraries */
-      "-lm"
+      "-lm",
+      "-fopenmp"
     );
 
     if (!nob_cmd_run_sync_and_reset(&cmd)) return 1;
@@ -96,7 +96,6 @@ int main(int argc, char **argv)
       "-std=gnu99",
       "-Wall",
       "-Wfatal-errors",
-      // "-msse",
       "-g",
       // "-pg", /* For GPROF */
       "-no-pie",
@@ -121,7 +120,8 @@ int main(int argc, char **argv)
 
       /* Linked libraries */
       DEPS_FOLDER""SDL3_FOLDER"lib/libSDL3.dll.a",
-      "-lm"
+      "-lm",
+      "-fopenmp"
     );
 
     if (!nob_cmd_run_sync_and_reset(&cmd)) return 1;
