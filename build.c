@@ -109,6 +109,7 @@ int main(int argc, char **argv)
       "-I"DEPS_FOLDER""SDL3_FOLDER"include",
       
       "-DDEBUG",
+      "-DPARALLEL_RENDERING", /* Uses OpenMP to render the screen columns in parallel */
 
       "-o", BIN_FOLDER"demo",
 

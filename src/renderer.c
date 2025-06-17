@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define PARALLEL_RENDERING
-
 #ifdef PARALLEL_RENDERING
   #include <omp.h>
 #endif
