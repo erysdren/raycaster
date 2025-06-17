@@ -5,6 +5,8 @@
 
 typedef struct {
   vec2f point;
+  uint32_t last_visibility_check_tick;
+  bool visible;
 } vertex;
 
 #endif

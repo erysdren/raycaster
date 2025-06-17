@@ -165,8 +165,17 @@ static void check_sector_visibility(
 
     this->counters.line_visibility_checks ++;
 
-    if ( math_point_in_triangle(line->v0->point, info->ray.start, info->far_left, info->far_right)
-      || math_point_in_triangle(line->v1->point, info->ray.start, info->far_left, info->far_right)
+    if (line->v0->last_visibility_check_tick != this->tick) {
+      line->v0->last_visibility_check_tick = this->tick;
+      line->v0->visible = math_point_in_triangle(line->v0->point, info->ray.start, info->far_left, info->far_right);
+    }
+
+    if (line->v1->last_visibility_check_tick != this->tick) {
+      line->v1->last_visibility_check_tick = this->tick;
+      line->v1->visible = math_point_in_triangle(line->v1->point, info->ray.start, info->far_left, info->far_right);
+    }
+
+    if (line->v0->visible || line->v1->visible
       || segmentsIntersect(line->v0->point, line->v1->point, info->ray.start, info->far_left)
       || segmentsIntersect(line->v0->point, line->v1->point, info->ray.start, info->far_right)) {
       this->counters.visible_lines ++;
