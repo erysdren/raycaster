@@ -174,6 +174,7 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 12, "Line vis checks: %d (%d visible)", rend.counters.line_visibility_checks, rend.counters.visible_lines);
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 20, "Vertex checks:   %d (%d visible)", rend.counters.vertex_visibility_checks, rend.counters.visible_vertices);
   SDL_RenderDebugTextFormat(sdl_renderer, 4, 28, "Sectors visited: %d", rend.counters.sectors_visited);
+  SDL_RenderDebugText(sdl_renderer, 4, 44, "WASD - move & turn, Q - raise, Z - lower");
 
   SDL_RenderPresent(sdl_renderer);
 

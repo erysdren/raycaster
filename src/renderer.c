@@ -9,7 +9,7 @@
   #include <omp.h>
 #endif
 
-#define MAX_SECTOR_HISTORY 32
+#define MAX_SECTOR_HISTORY 64
 
 static uint32_t debug_colors[16][3] = {
   { 195, 235, 233 },
@@ -78,6 +78,7 @@ typedef struct {
         point_distance;
   linedef *line;
   sector* back_sector;
+  uint8_t light_steps;
 } line_hit;
 
 #define POSTERIZATION_STEPS 16
@@ -247,7 +248,7 @@ static void check_sector_column(
 ) {
   register size_t i;
   size_t hits_count = 0;
-  float planar_distance;
+  float planar_distance, point_distance;
   vec2f intersection;
   float intersectiond;
   linedef *line;
@@ -275,14 +276,17 @@ static void check_sector_column(
     // column->counters.line_checks ++;
 
     if (math_lines_intersect(line->v0->point, line->v1->point, info->ray_start, column->ray_end, &intersection, &intersectiond)) {
+      point_distance = math_length(vec2f_sub(intersection, info->ray_start));
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
+
       hits[hits_count++] = (line_hit) {
         .point = intersection,
         .planar_distance = planar_distance,
         .planar_distance_inv = 1.f / planar_distance,
-        .point_distance = math_length(vec2f_sub(intersection, info->ray_start)),
+        .point_distance = point_distance,
         .line = line,
-        .back_sector = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0]
+        .back_sector = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0],
+        .light_steps = (uint8_t)(point_distance / POSTERIZATION_STEP_DISTANCE)
       };
     }
   }
@@ -371,7 +375,7 @@ static void draw_wall_segment(
   register uint32_t y;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors[hit->line->color % 16];
-  register const float light = M_MAX(0.f, 1.0f - (int)(hit->point_distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
+  register const float light = M_MAX(0.f, 1.0f - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
   register uint32_t r = M_MAX(0, (uint8_t)(c[0] * light)) << 16;
   register uint32_t g = M_MAX(0, (uint8_t)(c[1] * light)) << 8;
   register uint32_t b = M_MAX(0, (uint8_t)(c[2] * light));
