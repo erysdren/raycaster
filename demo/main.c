@@ -35,11 +35,23 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return -1;
   }
 
+  int i;
+  int level = 0;
+  bool fullscreen = false;
+
+  for (i = 1; i < argc; ++i) {
+    if (!strcmp(argv[i], "-level")) {
+      level = atoi(argv[i+1]);
+    } else if (!strcmp(argv[i], "-f") || !strcmp(argv[i], "-fullscreen")) {
+      fullscreen = true;
+    }
+  }
+
   SDL_CreateWindowAndRenderer(
     "Software Rendering Example",
     initial_window_width,
     initial_window_height,
-    SDL_WINDOW_RESIZABLE /*| SDL_WINDOW_FULLSCREEN*/,
+    SDL_WINDOW_RESIZABLE | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0),
     &window,
     &sdl_renderer
   );
@@ -64,15 +76,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   if (!texture) return -1;
 
   SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
-
-  int i;
-  int level = 0;
-
-  for (i = 1; i < argc; ++i) {
-    if (!strcmp(argv[i], "-level")) {
-      level = atoi(argv[i+1]);
-    }
-  }
 
   switch (level) {
   case 1: create_demo_level(); break;

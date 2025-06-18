@@ -321,7 +321,7 @@ static void draw_column(
 
     draw_wall_segment(info, column, hit, start_y, end_y);
     draw_ceiling_segment(info, column, sect, column->top_limit, M_CLAMP(start_y, column->top_limit, column->bottom_limit));
-    draw_floor_segment(info, column, sect, M_MIN(end_y+1, column->bottom_limit+1), column->bottom_limit+1);
+    draw_floor_segment(info, column, sect, M_MIN(end_y, column->bottom_limit)+1, column->bottom_limit+1);
 
     column->finished = true;
   } else {
@@ -343,7 +343,7 @@ static void draw_column(
     }
 
     draw_ceiling_segment(info, column, sect, column->top_limit, M_MAX(top_start_y, column->top_limit));
-    draw_floor_segment(info, column, sect, M_MIN(bottom_end_y+1, column->bottom_limit+1), column->bottom_limit+1);
+    draw_floor_segment(info, column, sect, M_MIN(bottom_end_y, column->bottom_limit)+1, column->bottom_limit+1);
 
     column->top_limit = top_end_y;
     column->bottom_limit = bottom_start_y;
