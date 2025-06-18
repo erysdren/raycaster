@@ -15,14 +15,7 @@ typedef struct {
   uint32_t tick;
 
   struct {
-    uint32_t wall_pixels,
-             wall_columns,
-             ceiling_pixels,
-             ceiling_columns,
-             floor_pixels,
-             floor_columns,
-             line_checks,
-             line_visibility_checks,
+    uint32_t line_visibility_checks,
              visible_lines,
              vertex_visibility_checks,
              visible_vertices,

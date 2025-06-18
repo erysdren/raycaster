@@ -122,7 +122,8 @@ int main(int argc, char **argv)
       /* Linked libraries */
       DEPS_FOLDER""SDL3_FOLDER"lib/libSDL3.dll.a",
       "-lm",
-      "-fopenmp"
+      "-fopenmp",
+      "-fopenmp-simd"
     );
 
     if (!nob_cmd_run_sync_and_reset(&cmd)) return 1;
