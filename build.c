@@ -101,7 +101,7 @@ int main(int argc, char **argv)
       "-no-pie",
       "-ffast-math",
       "-funroll-loops",
-      // "-O3", /* Disable this when PARALLEL_RENDERING is enabled. Seems to trash perf? */
+      "-O3",
       
       "-I"SRC_FOLDER,
       "-I"SRC_FOLDER"include",
