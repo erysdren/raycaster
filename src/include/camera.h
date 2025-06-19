@@ -16,5 +16,6 @@ typedef struct {
 void camera_init(camera *this, level_data *level);
 void camera_move(camera *this, float movement);
 void camera_rotate(camera *this, float rotation);
+void camera_set_fov(camera*, float);
 
 #endif

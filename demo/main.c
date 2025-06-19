@@ -17,6 +17,7 @@ static renderer rend;
 static camera cam;
 static level_data *demo_level = NULL;
 static uint64_t last_ticks;
+static float delta_time;
 static const int initial_window_width = 1024,
                  initial_window_height = 768;
 static int scale = 1;
@@ -106,15 +107,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       
       if (event->key.key == SDLK_Q) { movement.raise = 1.f; }
       else if (event->key.key == SDLK_Z) { movement.raise = -1.f; }
-    } else if (event->type == SDL_EVENT_KEY_UP) {
-      if (event->key.key == SDLK_W) { movement.forward = 0.f; }
-      else if (event->key.key == SDLK_S) { movement.forward = 0.f; }
-      
-      if (event->key.key == SDLK_A) { movement.turn = 0.f; }
-      else if (event->key.key == SDLK_D) { movement.turn = 0.f; }
-      
-      if (event->key.key == SDLK_Q) { movement.raise = 0.f; }
-      else if (event->key.key == SDLK_Z) { movement.raise = 0.f; }
 
       if (event->key.key == SDLK_PLUS ||event->key.key == SDLK_MINUS) {
         if (event->key.key == SDLK_PLUS) { scale += 1; }
@@ -127,6 +119,21 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
         SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
       }
+
+      if (event->key.key == SDLK_P) {
+        camera_set_fov(&cam, M_MAX(0.1f, cam.fov-1.8*delta_time));
+      } else if (event->key.key == SDLK_O) {
+        camera_set_fov(&cam, M_MIN(4.0f, cam.fov+1.8*delta_time));
+      }
+    } else if (event->type == SDL_EVENT_KEY_UP) {
+      if (event->key.key == SDLK_W) { movement.forward = 0.f; }
+      else if (event->key.key == SDLK_S) { movement.forward = 0.f; }
+      
+      if (event->key.key == SDLK_A) { movement.turn = 0.f; }
+      else if (event->key.key == SDLK_D) { movement.turn = 0.f; }
+      
+      if (event->key.key == SDLK_Q) { movement.raise = 0.f; }
+      else if (event->key.key == SDLK_Z) { movement.raise = 0.f; }
     } else if (event->type == SDL_EVENT_WINDOW_RESIZED) {
       printf("Resize buffer to %dx%d\n", event->window.data1 / scale, event->window.data2 / scale);
       renderer_resize(&rend, VEC2U(event->window.data1 / scale, event->window.data2 / scale));
@@ -143,7 +150,7 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   static float fps_update_timer = 0.5f;
 
   uint64_t now_ticks = SDL_GetTicks();
-  float delta_time = (now_ticks - last_ticks) / 1000.0f;  // in seconds
+  delta_time = (now_ticks - last_ticks) / 1000.0f;  // in seconds
   last_ticks = now_ticks;
 
   if (fps_update_timer >= 0.5f) {
@@ -182,6 +189,8 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   SDL_RenderDebugText(sdl_renderer, 4, 60, "[Z] - Go down");
   SDL_RenderDebugText(sdl_renderer, 4, 68, "[+] - Increase scale factor");
   SDL_RenderDebugText(sdl_renderer, 4, 76, "[-] - Decrease scale factor");
+  SDL_RenderDebugText(sdl_renderer, 4, 84, "[O] - Zoom out");
+  SDL_RenderDebugText(sdl_renderer, 4, 92, "[P] - Zoom in");
 
   SDL_RenderPresent(sdl_renderer);
 

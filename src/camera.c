@@ -33,6 +33,11 @@ void camera_rotate(camera *this, float rotation) {
   this->plane.y = (oldPlaneX * sin(rotation)) + (this->plane.y * cos(rotation));
 }
 
+void camera_set_fov(camera *this, float fov) {
+  this->fov = fov;
+  this->plane = vec2f_make(this->direction.y*fov, -this->direction.x*fov);
+}
+
 static void find_current_sector(camera *this) {
   register size_t i;
 
