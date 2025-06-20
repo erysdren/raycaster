@@ -124,6 +124,8 @@ level_data* map_data_build(map_data *this) {
       
       for (k = 0; k < front->linedefs_count; ++k) {
         line = front->linedefs[k];
+
+        if (line->side_sector[0] && line->side_sector[1]) { continue; }
         
         if (sector_point_inside(back, line->v0->point) && sector_point_inside(back, line->v1->point)) {
           printf(" Add linedef [%d] (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, j, i);
