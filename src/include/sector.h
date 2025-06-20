@@ -8,17 +8,15 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MAX_SECTOR_LINEDEFS 32
-
 #define LINEDEFS(...) M_NARG(__VA_ARGS__), (linedef[]) { __VA_ARGS__ }
 
 typedef struct sector {
   int32_t floor_height,
           ceiling_height;
-  linedef *linedefs[MAX_SECTOR_LINEDEFS];
   size_t linedefs_count;
   uint32_t color;
   uint32_t last_visibility_check_tick;
+  linedef **linedefs;
 } sector;
 
 M_INLINED bool sector_point_inside(const sector *this, vec2f point) {

@@ -28,6 +28,7 @@ static struct {
 
 static void create_demo_level();
 static void create_grid_level();
+static void create_big_one();
 static void process_camera_movement(const float delta_time);
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -80,6 +81,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
   switch (level) {
   case 1: create_demo_level(); break;
+  case 2: create_big_one(); break;
   default: create_grid_level(); break;
   }
  
@@ -296,5 +298,44 @@ static void create_demo_level() {
 
   demo_level = map_data_build(map);
 
+  free(map);
+}
+
+static void create_big_one() {
+  map_data *map = malloc(sizeof(map_data));
+  map->polygons_count = 0;
+
+  map_data_add_polygon(map, 0, 2048, VERTICES(
+    VEC2F(0, 0),
+    VEC2F(6000, 0),
+    VEC2F(6000, 6000),
+    VEC2F(0, 6000)
+  ));
+
+  const int w = 20;
+  const int h = 20;
+  const int size = 200;
+
+  register int x, y, c, f;
+
+  for (y = 0; y < h; ++y) {
+    for (x = 0; x < w; ++x) {
+      if (rand() % 20 == 5) {
+        c = f = 0;
+      } else {
+        f = 256 + 8 * (rand() % 16);
+        c = 1440 - 32 * (rand() % 24);
+      }
+
+      map_data_add_polygon(map, f, c, VERTICES(
+        VEC2F(1000+x*size,        1000+y*size),
+        VEC2F(1000+x*size + size, 1000+y*size),
+        VEC2F(1000+x*size + size, 1000+y*size + size),
+        VEC2F(1000+x*size,        1000+y*size + size)
+      ));
+    }
+  }
+
+  demo_level = map_data_build(map);
   free(map);
 }

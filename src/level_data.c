@@ -51,7 +51,7 @@ static linedef* get_linedef(level_data *level, sector *sect, vertex *v0, vertex 
 
     if ((line->v0 == v0 && line->v1 == v1) || (line->v0 == v1 && line->v1 == v0)) {
       line->side_sector[1] = sect;
-      printf("\t\t\tRe-use linedef: (%d,%d) <-> (%d,%d) (Color: %d)\n", (int)v0->point.x, (int)v0->point.y, (int)v1->point.x, (int)v1->point.y, line->color);
+      printf("\t\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", line, (int)v0->point.x, (int)v0->point.y, (int)v1->point.x, (int)v1->point.y, line->color);
       return line;
     }
   }
@@ -63,13 +63,17 @@ static linedef* get_linedef(level_data *level, sector *sect, vertex *v0, vertex 
     .color = linedef_color++
   };
 
-  printf("\t\t\tNew linedef: (%d,%d) <-> (%d,%d) (Color: %d)\n", (int)v0->point.x, (int)v0->point.y, (int)v1->point.x, (int)v1->point.y, linedef_color-1);
+  printf("\t\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", &level->linedefs[level->linedefs_count], (int)v0->point.x, (int)v0->point.y, (int)v1->point.x, (int)v1->point.y, linedef_color-1);
 
   return &level->linedefs[level->linedefs_count++];
 }
 
-static linedef* add_linedef(level_data *level, sector *sect, vec2f v0, vec2f v1) {
-  linedef *line = get_linedef(level, sect, get_vertex(level, v0), get_vertex(level, v1));
+static linedef* add_linedef(level_data *level, sector *sect, linedef *line) {
+  if (sect->linedefs_count) {
+    sect->linedefs = realloc(sect->linedefs, sizeof(linedef*) * (sect->linedefs_count+1));
+  } else {
+    sect->linedefs = malloc(sizeof(linedef*));
+  }
   sect->linedefs[sect->linedefs_count++] = line;
   return line;
 }
@@ -77,18 +81,20 @@ static linedef* add_linedef(level_data *level, sector *sect, vec2f v0, vec2f v1)
 static sector* add_sector(level_data *level, polygon *poly) {
   register size_t i;
 
-  printf("\t\tNew sector:\n");
-
   sector *sect = &level->sectors[level->sectors_count++];
+
+  printf("\t\tNew sector (0x%p):\n", sect);
+
   sect->floor_height = poly->floor_height;
   sect->ceiling_height = poly->ceiling_height;
   sect->color = sector_color++;
+  sect->linedefs = NULL;
+  sect->linedefs_count = 0;
 
   for (i = 0; i < poly->vertices_count-1; ++i) {
-    add_linedef(level, sect, poly->vertices[i], poly->vertices[i+1]);
+    add_linedef(level, sect, get_linedef(level, sect, get_vertex(level, poly->vertices[i]), get_vertex(level, poly->vertices[i+1])));
   }
-
-  add_linedef(level, sect, poly->vertices[poly->vertices_count-1], poly->vertices[0]);
+  add_linedef(level, sect, get_linedef(level, sect, get_vertex(level, poly->vertices[poly->vertices_count-1]), get_vertex(level, poly->vertices[0])));
 
   return sect;
 }
@@ -98,13 +104,13 @@ level_data* map_data_build(map_data *this) {
   sector *front, *back;
   linedef *line;
 
-  printf("Building level ...\n");
-  printf("\t1. Creating sectors (from %d polys) ...\n", this->polygons_count);
-
   level_data *level = malloc(sizeof(level_data));
   level->sectors_count = 0;
   level->linedefs_count = 0;
   level->vertices_count = 0;
+
+  printf("Building level (0x%p) ...\n", level);
+  printf("\t1. Creating sectors (from %d polys) ...\n", this->polygons_count);
 
   for (i = 0; i < this->polygons_count; ++i) {
     add_sector(level, &this->polygons[i]);
@@ -130,6 +136,7 @@ level_data* map_data_build(map_data *this) {
         if (sector_point_inside(back, line->v0->point) && sector_point_inside(back, line->v1->point)) {
           printf(" Add linedef [%d] (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, j, i);
           line->side_sector[1] = back;
+          back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
         }
       }
