@@ -3,7 +3,7 @@
 A simple sector and linedef based raycaster written in C.
 
 ## Motivation
-Once upon a time when taking part a gamejam event I wrote a little [pseudo-3D RPG](https://eigen.itch.io/sunless-isle) that fit on a 64x64 screen. It started out as a standard raycaster experiment following [Lode's tutorial](https://lodev.org/cgtutor/raycasting.html) (most well known on the subject probably) but I decided to try and replace regular grid map with lines instead. So instead of checking collisions and intersections *optimally*, you do the opposite and find all lines the ray intersects and draw them in order. The upside is that you can have varying heights of walls and walls behind each other. This project follows that idea but has a bunch of improvements, although the underlying algorithm is still not optimal, since you have to find a lot of line intersections for each column instead of doing what DOOM does, for example. BUT the benefit is a lot simpler code to follow and modify, so yeah.. pros and cons.
+Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D RPG](https://eigen.itch.io/sunless-isle) that fit on a 64x64 screen. It started out as a standard raycaster experiment following [Lode's tutorial](https://lodev.org/cgtutor/raycasting.html) (most well known on the subject probably) but I decided to try and replace regular grid map with lines instead. So instead of checking collisions and intersections *optimally*, you do the opposite and find all lines the ray intersects and draw them in order. The upside is that you can have varying heights of walls and walls behind each other. This project follows that idea but has a bunch of improvements, although the underlying algorithm is still not optimal, since you have to find a lot of line intersections for each column instead of doing what DOOM does, for example. BUT the benefit is a lot simpler code to follow and modify, so yeah.. pros and cons.
 
 ## Features
 * Basic sector and linedef handling
@@ -18,6 +18,7 @@ Once upon a time when taking part a gamejam event I wrote a little [pseudo-3D RP
 ![image](https://github.com/user-attachments/assets/94be15ab-71d8-4956-b850-2ef8935f49d4)
 ![image](https://github.com/user-attachments/assets/6a2ae674-7da7-49c7-9dc1-e59675c8c460)
 ![image](https://github.com/user-attachments/assets/fef181fa-d4b3-49cd-9148-dcaed470c521)
+![image](https://github.com/user-attachments/assets/efa23ea1-6aa5-4a62-80fa-9f82e6a642fe)
 
 ## More details
 The general concept is to have **sectors** that define floor and ceiling height (and light in the future) and where each sector has some **linedefs** which can have a reference to the sector behind it. You start drawing from the sector the camera is currently in --- for each column you check that sector's visible linedefs for intersections and sort them by distance. If the linedef has no back sector, you draw a full wall segment and terminate that column. If there is a back sector, you draw an upper and lower wall segments based on the floor and ceiling height difference compared to current sector, and then move on the sector behind and repeat. You keep track of sectors that have been visited in each column to avoid cycling.
