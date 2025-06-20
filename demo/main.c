@@ -121,9 +121,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       }
 
       if (event->key.key == SDLK_P) {
-        camera_set_fov(&cam, M_MAX(0.1f, cam.fov-1.8*delta_time));
+        camera_set_fov(&cam, M_MAX(0.1f, cam.fov*(1.0-delta_time*3)));
       } else if (event->key.key == SDLK_O) {
-        camera_set_fov(&cam, M_MIN(4.0f, cam.fov+1.8*delta_time));
+        camera_set_fov(&cam, M_MIN(4.0f, cam.fov*(1.0+delta_time*3)));
       }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W) { movement.forward = 0.f; }
@@ -153,8 +153,8 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   delta_time = (now_ticks - last_ticks) / 1000.0f;  // in seconds
   last_ticks = now_ticks;
 
-  if (fps_update_timer >= 0.5f) {
-    sprintf(debug_buffer, "%dx%d @ %dx, dt: %f, fps: %i", rend.buffer_size.x, rend.buffer_size.y, scale, delta_time, (unsigned int)(1/delta_time));
+  if (fps_update_timer >= 0.25f) {
+    sprintf(debug_buffer, "%dx%d @ %dx, dt: %f, FPS: %i", rend.buffer_size.x, rend.buffer_size.y, scale, delta_time, (unsigned int)(1/delta_time));
     fps_update_timer = 0.f;
   } else {
     fps_update_timer += delta_time;
@@ -179,18 +179,21 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
 
+  int y = 4, h = 10;
+
   SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-  SDL_RenderDebugText(sdl_renderer, 4, 4, debug_buffer);
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, 12, "Line vis checks: %d (%d visible)", rend.counters.line_visibility_checks, rend.counters.visible_lines);
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, 20, "Vertex checks:   %d (%d visible)", rend.counters.vertex_visibility_checks, rend.counters.visible_vertices);
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, 28, "Sectors visited: %d", rend.counters.sectors_visited);
-  SDL_RenderDebugText(sdl_renderer, 4, 44, "[WASD] - Move & turn");
-  SDL_RenderDebugText(sdl_renderer, 4, 52, "[Q] - Go up");
-  SDL_RenderDebugText(sdl_renderer, 4, 60, "[Z] - Go down");
-  SDL_RenderDebugText(sdl_renderer, 4, 68, "[+] - Increase scale factor");
-  SDL_RenderDebugText(sdl_renderer, 4, 76, "[-] - Decrease scale factor");
-  SDL_RenderDebugText(sdl_renderer, 4, 84, "[O] - Zoom out");
-  SDL_RenderDebugText(sdl_renderer, 4, 92, "[P] - Zoom in");
+  SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "CAMERA pos: (%.1f, %.1f, %.1f), dir: (%.3f, %.3f), plane: (%.3f, %.3f), FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Line vis checks: %d (%d visible)", rend.counters.line_visibility_checks, rend.counters.visible_lines); y+=h;
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Vertex checks:   %d (%d visible)", rend.counters.vertex_visibility_checks, rend.counters.visible_vertices); y+=h;
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Sectors visited: %d", rend.counters.sectors_visited); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[Q] - Go up"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[Z] - Go down"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[+] - Increase scale factor"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[-] - Decrease scale factor"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[O] - Zoom out"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[P] - Zoom in"); y+=h;
 
   SDL_RenderPresent(sdl_renderer);
 
