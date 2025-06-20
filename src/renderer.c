@@ -77,7 +77,7 @@ typedef struct {
         planar_distance_inv,
         point_distance;
   linedef *line;
-  sector* back_sector;
+  sector *back_sector;
   uint8_t light_steps;
 } line_hit;
 
@@ -316,12 +316,12 @@ static void draw_column(
 
   if (!back_sector || (back_sector && back_sector->floor_height == back_sector->ceiling_height)) {
     /* Draw a full wall */
-    float start_y = M_MAX(ceiling_z_local, column->top_limit);
-    float end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
+    const float start_y = M_MAX(ceiling_z_local, column->top_limit);
+    const float end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
 
     draw_wall_segment(info, column, hit, start_y, end_y);
-    draw_ceiling_segment(info, column, sect, column->top_limit, M_CLAMP(start_y, column->top_limit, column->bottom_limit));
-    draw_floor_segment(info, column, sect, M_MIN(end_y, column->bottom_limit)+1, column->bottom_limit+1);
+    draw_ceiling_segment(info, column, sect, column->top_limit, M_MIN(start_y, column->bottom_limit));
+    draw_floor_segment(info, column, sect, end_y+1, column->bottom_limit+1);
 
     column->finished = true;
   } else {
@@ -329,10 +329,10 @@ static void draw_column(
     const float top_segment = M_MAX(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
     const float bottom_segment = M_MAX(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
 
-    float top_start_y = M_CLAMP(ceiling_z_local, column->top_limit, column->bottom_limit);
-    float top_end_y = M_CLAMP(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit);
-    float bottom_end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
-    float bottom_start_y = M_CLAMP(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
+    const float top_start_y = M_CLAMP(ceiling_z_local, column->top_limit, column->bottom_limit);
+    const float top_end_y = M_CLAMP(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit);
+    const float bottom_end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
+    const float bottom_start_y = M_CLAMP(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
 
     if (top_segment > 0) {
       draw_wall_segment(info, column, hit, top_start_y, top_end_y);
