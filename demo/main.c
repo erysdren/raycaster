@@ -29,6 +29,7 @@ static struct {
 static void create_demo_level();
 static void create_grid_level();
 static void create_big_one();
+static void create_semi_intersecting_sectors();
 static void process_camera_movement(const float delta_time);
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -82,6 +83,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   switch (level) {
   case 1: create_demo_level(); break;
   case 2: create_big_one(); break;
+  case 3: create_semi_intersecting_sectors(); break;
   default: create_grid_level(); break;
   }
  
@@ -335,6 +337,28 @@ static void create_big_one() {
       ));
     }
   }
+
+  demo_level = map_data_build(map);
+  free(map);
+}
+
+static void create_semi_intersecting_sectors() {
+  map_data *map = malloc(sizeof(map_data));
+  map->polygons_count = 0;
+
+  map_data_add_polygon(map, 0, 128, 0.5f, VERTICES(
+    VEC2F(0, 0),
+    VEC2F(500, 0),
+    VEC2F(500, 500),
+    VEC2F(0, 500)
+  ));
+
+  map_data_add_polygon(map, 32, 256, 1.0f, VERTICES(
+    VEC2F(250, 250),
+    VEC2F(750, 250),
+    VEC2F(750, 350),
+    VEC2F(250, 350)
+  ));
 
   demo_level = map_data_build(map);
   free(map);
