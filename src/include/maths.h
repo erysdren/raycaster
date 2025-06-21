@@ -36,17 +36,24 @@ M_INLINED bool math_lines_intersect(
   register const vec2f BA = vec2f_sub(B, A);
   register const vec2f DC = vec2f_sub(D, C);
   register const vec2f AC = vec2f_sub(A, C);
-  register float denom = 1.f / (DC.y*BA.x - DC.x*BA.y);
+
+  register float cross = math_cross(BA, DC);
+
+  if (fabsf(cross) < 1e-6f) {
+    return false;
+  }
+
+  register float denom = 1.f / cross;
   register float uA, uB;
 
   // calculate the direction of the lines
-  uB = (BA.x*AC.y - BA.y*AC.x) * denom;
+  uB = math_cross(BA, AC) * denom;
 
   if (uB < 0.f || uB > 1.f) {
     return false;
   }
 
-  uA = (DC.x*AC.y - DC.y*AC.x) * denom;
+  uA = math_cross(DC, AC) * denom;
 
   if (uA < 0.f || uA > 1.f) {
     return false;

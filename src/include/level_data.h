@@ -19,7 +19,7 @@ typedef struct {
 
 typedef struct {
   size_t vertices_count;
-  vec2f vertices[16];
+  vec2f vertices[32];
   int32_t floor_height,
           ceiling_height;
   float light;
