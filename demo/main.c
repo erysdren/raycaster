@@ -360,6 +360,27 @@ static void create_semi_intersecting_sectors() {
     VEC2F(250, 350)
   ));
 
+  map_data_add_polygon(map, 56, 96, 1.0f, VERTICES(
+    VEC2F(240, 240),
+    VEC2F(260, 240),
+    VEC2F(260, 260),
+    VEC2F(240, 260)
+  ));
+
+  map_data_add_polygon(map, 16, 88, 1.0f, VERTICES(
+    VEC2F(240, 340),
+    VEC2F(260, 340),
+    VEC2F(260, 360),
+    VEC2F(240, 360)
+  ));
+
+  map_data_add_polygon(map, -128, 96, 1.f, VERTICES(
+    VEC2F(-100, 100),
+    VEC2F(100, 100),
+    VEC2F(100, -100),
+    VEC2F(-100, -100)
+  ));
+
   demo_level = map_data_build(map);
   free(map);
 }

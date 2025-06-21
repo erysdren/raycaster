@@ -1,5 +1,8 @@
 #include "level_data.h"
 #include <stdio.h>
+#include <float.h>
+
+#define VEC2F_EQUAL(A, B) (fabsf(A.x-B.x)<=FLT_EPSILON&&fabsf(A.y-B.y)<=FLT_EPSILON) 
 
 /* Just for debbuging for now */
 static uint32_t linedef_color = 0, sector_color = 0;
@@ -36,23 +39,67 @@ M_INLINED bool poly_contains_point(polygon *poly, vec2f point) {
   return false;
 }
 
-M_INLINED void poly_insert_point(polygon *poly, size_t index, vec2f point) {
-  register size_t i;
-  for (i = poly->vertices_count; i > index; --i) {
-    printf("Moving vertex %d to %d\n", i-1, i);
-    poly->vertices[i] = poly->vertices[i-1];
+M_INLINED bool poly_point_inside(polygon *this, vec2f point) {
+  register int i, wn = 0;
+  vec2f v0, v1;
+
+  /* Winding number algorithm */
+  for (i = 0; i < this->vertices_count; ++i) {
+    v0 = this->vertices[i];
+    v1 = this->vertices[(i+1)%this->vertices_count];
+
+    if (v0.y <= point.y) {
+      if (v1.y > point.y) {
+        if (math_sign(v0, v1, point) > 0) {
+          ++wn;
+        }
+      }
+    } else {
+      if (v1.y <= point.y) {
+        if (math_sign(v0, v1, point) < 0) {
+          --wn;
+        }
+      }
+    }
   }
-  poly->vertices_count ++;
-  printf("Inserting (%d,%d) at %d\n", (int)point.x, (int)point.y, index);
-  poly->vertices[index] = point;
+
+  return wn==1 || wn==-1;
+}
+
+
+M_INLINED void poly_insert_point(polygon *poly, vec2f point, /* between */ vec2f v0, vec2f v1) {
+  register size_t i,j;
+
+  for (i = 0; i < poly->vertices_count; ++i) {
+    if ((VEC2F_EQUAL(poly->vertices[i], v0) && VEC2F_EQUAL(poly->vertices[(i+1)%poly->vertices_count], v1)) || (VEC2F_EQUAL(poly->vertices[i], v1) && VEC2F_EQUAL(poly->vertices[(i+1)%poly->vertices_count], v0))) {
+      printf("\t\t\tInsert (%d,%d) between (%d,%d) and (%d,%d)\n", (int)point.x, (int)point.y, (int)v0.x, (int)v0.y, (int)v1.x, (int)v1.y);
+      for (j = poly->vertices_count; j > i; --j) {
+        poly->vertices[j] = poly->vertices[j-1];
+      }
+      poly->vertices_count ++;
+      poly->vertices[i+1] = point;
+      return;
+    }
+  }
+
 }
 
 /* SECTOR UTILS */
 
-M_INLINED bool sector_contains_vertex(sector *this, vertex *v) {
+M_INLINED bool sector_contains_vertex(sector *this, vertex *v, size_t linedefs_count) {
+  register size_t i;
+  for (i = 0; i < (linedefs_count ? linedefs_count : this->linedefs_count); ++i) {
+    if (this->linedefs[i]->v0 == v || this->linedefs[i]->v1 == v) {
+      return true;
+    }
+  }
+  return false;
+}
+
+M_INLINED bool sector_connects(sector *this, vertex *v0, vertex *v1) {
   register size_t i;
   for (i = 0; i < this->linedefs_count; ++i) {
-    if (this->linedefs[i]->v0 == v || this->linedefs[i]->v1 == v) {
+    if ((this->linedefs[i]->v0 == v0 && this->linedefs[i]->v1 == v1) || (this->linedefs[i]->v0 == v1 && this->linedefs[i]->v1 == v0)) {
       return true;
     }
   }
@@ -63,6 +110,8 @@ M_INLINED void sector_remove_linedef(sector *this, linedef *line) {
   register size_t i,j;
   for (i = 0; i < this->linedefs_count; ++i) {
     if (this->linedefs[i] == line) {
+      // if (line->side_sector[0] == this) { line->side_sector[0] = NULL; }
+      // else if (line->side_sector[1] == this) { line->side_sector[1] = NULL; }
       this->linedefs_count--;
       for (j = i; j < this->linedefs_count; ++j) {
         this->linedefs[j] = this->linedefs[j+1];
@@ -110,6 +159,7 @@ static linedef* get_linedef(level_data *level, sector *sect, vertex *v0, vertex 
     .v0 = v0,
     .v1 = v1,
     .side_sector[0] = sect,
+    .side_sector[1] = 0,
     .color = linedef_color++
   };
 
@@ -146,11 +196,13 @@ static sector* add_sector(level_data *level, polygon *poly) {
     add_linedef(level, sect, get_linedef(level, sect, get_vertex(level, poly->vertices[i]), get_vertex(level, poly->vertices[(i+1)%poly->vertices_count])));
   }
 
+  printf("\t\t\tCount: %d\n", sect->linedefs_count);
+
   return sect;
 }
 
 level_data* map_data_build(map_data *this) {
-  register size_t i, j, vi, vj, k, new_count, i_added, j_added;
+  int i, j, k, vi, vj, new_count;
   vec2f v0, v1, v2, v3, intersection;
   sector *front, *back;
   linedef *line;
@@ -172,8 +224,8 @@ level_data* map_data_build(map_data *this) {
       poly_i = this->polygons[i];
       poly_j = this->polygons[j];
 
-      for (vi = 0, i_added = 0; vi < this->polygons[i].vertices_count; ++vi) {
-        for (vj = 0, j_added = 0; vj < this->polygons[j].vertices_count; ++vj) {
+      for (vi = 0; vi < this->polygons[i].vertices_count; ++vi) {
+        for (vj = 0; vj < this->polygons[j].vertices_count; ++vj) {
           v0 = this->polygons[i].vertices[vi];
           v1 = this->polygons[i].vertices[(vi+1) % this->polygons[i].vertices_count];
           v2 = this->polygons[j].vertices[vj];
@@ -185,7 +237,7 @@ level_data* map_data_build(map_data *this) {
           }
 
           if (math_lines_intersect(v0, v1, v2, v3, &intersection, NULL)) {
-            printf("\t\tSector %d line [%d](%d,%d) <-> [%d](%d,%d) intersects with sector %d line [%d](%d,%d) <-> [%d](%d,%d) at (%d,%d)\n",
+            printf("\t\tSector %d line %d (%d,%d) <-> [%d](%d,%d) intersects with sector %d line %d (%d,%d) <-> [%d](%d,%d) at (%d,%d)\n",
               i,
               vi,
               (int)v0.x, (int)v0.y,
@@ -200,11 +252,11 @@ level_data* map_data_build(map_data *this) {
             );
 
             if (!poly_contains_point(&poly_i, intersection)) {
-              poly_insert_point(&poly_i, vi+1+(i_added++), intersection);
+              poly_insert_point(&poly_i, intersection, v0, v1);
             }
 
             if (!poly_contains_point(&poly_j, intersection)) {
-              poly_insert_point(&poly_j, vj+1+(j_added++), intersection);
+              poly_insert_point(&poly_j, intersection, v2, v3);
             }
           }
         }
@@ -221,39 +273,61 @@ level_data* map_data_build(map_data *this) {
     add_sector(level, &this->polygons[i]);
   }
 
-  printf("\t3. Link contained sectors ...\n");
+  printf("\t3. Remove invalid lines ...\n");
 
   for (i = 0; i < level->sectors_count; ++i) {
-    back = &level->sectors[i];
+    front = &level->sectors[i];
 
     for (j = 0; j < level->sectors_count; ++j) {
-      front = &level->sectors[j];
+      back = &level->sectors[j];
+      
+      if (back == front) { continue; }
+
+      for (k = 0; k < front->linedefs_count; ++k) {
+        line = front->linedefs[k];
+
+        if (sector_contains_vertex(back, line->v0, 0) && sector_contains_vertex(back, line->v1, 0) && !sector_connects(back, line->v0, line->v1)) {
+          printf("\t\tWill remove invalid line %d (%d,%d) <-> (%d,%d) from sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, i);
+          sector_remove_linedef(front, line);
+          k--;
+        } else if (((sector_point_inside(back, line->v0->point) && !sector_contains_vertex(back, line->v0, 0)) || (sector_point_inside(back, line->v1->point) && !sector_contains_vertex(back, line->v1, 0))) && j > i) {
+          printf("\t\tWill remove dangling line %d (%d,%d) <-> (%d,%d) from sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, i);
+          sector_remove_linedef(front, line);
+          k--;
+        }
+      }
+    }
+  }
+
+  printf("\t4. Link contained sectors ...\n");
+
+  for (j = 0; j < level->sectors_count; ++j) {
+    front = &level->sectors[j];
+
+    for (i = level->sectors_count - 1; i >= 0; --i) {
+      back = &level->sectors[i];
       
       if (back == front) { continue; }
 
       new_count = back->linedefs_count;
-      
+
       for (k = 0; k < front->linedefs_count; ++k) {
         line = front->linedefs[k];
 
         if (line->side_sector[0] && line->side_sector[1]) { continue; }
-        if (sector_contains_vertex(back, line->v0) && sector_contains_vertex(back, line->v1)) {
-          if (line->side_sector[1] != back) {
-            printf("Remove line? (%d,%d) <-> (%d,%d)\n", (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y);
-            sector_remove_linedef(front, line);
-            k--;
-          }
-          continue;
-        }
+        if (sector_connects(back, line->v0, line->v1)) { continue; }
 
-        if (sector_point_inside(back, line->v0->point) && sector_point_inside(back, line->v1->point)) {
-          printf("\t\tAdd contained linedef [%d] (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, j, i);
+        if (poly_point_inside(&this->polygons[i], line->v0->point) && poly_point_inside(&this->polygons[i], line->v1->point)) {
+          printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, j, i);
           line->side_sector[1] = back;
           back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
-        } else if ((sector_contains_vertex(back, line->v0) && sector_point_inside(back, line->v1->point))
-          || (sector_contains_vertex(back, line->v1) && sector_point_inside(back, line->v0->point))) {
-          printf("\t\tAdd partial linedef [%d] (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, j, i);
+        } else if ((
+             (sector_contains_vertex(back, line->v0, 0) && poly_point_inside(&this->polygons[i], line->v1->point))
+          || (sector_contains_vertex(back, line->v1, 0) && poly_point_inside(&this->polygons[i], line->v0->point))
+          ) && j > i
+        ) {
+          printf("\t\tAdd partial linedef %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, j, i);
           line->side_sector[1] = back;
           back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
@@ -261,23 +335,8 @@ level_data* map_data_build(map_data *this) {
       }
 
       back->linedefs_count = new_count;
-
-      /*for (k = 0; k < front->linedefs_count; ++k) {
-        line = front->linedefs[k];
-
-        if (line->side_sector[0] && line->side_sector[1]) { continue; }
-        if (sector_contains_vertex(back, line->v0) && sector_contains_vertex(back, line->v1)) { continue; }
-
-        if (sector_contains_vertex(back, line->v0) && sector_contains_vertex(back, line->v1) && sector_contains_vertex(back, line->v0))
-      }*/
     }
   }
-
-  /*printf("\t4. Remove invalid linedefs ...\n");
-
-  for (i = 0; i < level->sectors_count; ++i) {
-    sect = &level->sectors[i];
-  }*/
 
   printf("DONE!\n");
 
