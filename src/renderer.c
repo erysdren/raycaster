@@ -490,7 +490,7 @@ static void draw_ceiling_segment(
   register uint32_t r, g, b;
   register float light, distance;
 
-  for (y = from, yz = info->half_h - from; y < to; ++y, p += column->buffer_stride) {
+  for (y = from, yz = info->half_h - from - 1; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz--]) / column->theta;
     light = M_MAX(0.f, 1.0f - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
