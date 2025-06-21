@@ -20,6 +20,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 ![image](https://github.com/user-attachments/assets/6a2ae674-7da7-49c7-9dc1-e59675c8c460)
 ![image](https://github.com/user-attachments/assets/fef181fa-d4b3-49cd-9148-dcaed470c521)
 ![image](https://github.com/user-attachments/assets/d8273d82-c590-4c58-a8dd-3c396a5b1353)
+![image](https://github.com/user-attachments/assets/2dd0107c-3aca-4c2f-8cbf-b8003d274dfd)
 
 ## More details
 The general concept is to have **sectors** that define floor and ceiling height (and light in the future) and where each sector has some **linedefs** which can have a reference to the sector behind it. You start drawing from the sector the camera is currently in --- for each column you check that sector's visible linedefs for intersections and sort them by distance. If the linedef has no back sector, you draw a full wall segment and terminate that column. If there is a back sector, you draw an upper and lower wall segments based on the floor and ceiling height difference compared to current sector, and then move on the sector behind and repeat. You keep track of sectors that have been visited in each column to avoid cycling.
