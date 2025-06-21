@@ -8,12 +8,13 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 ## Features
 * Basic sector and linedef handling
 * Basic level construction: define some polygons and automatically build the sectors
+* Sector lighting with distance falloff for walls, floors and ceilings
 * Uses OpenMP to render columns in parallel (optional)
 
 ## Unfeatures
 * Texturing
 * Sprites
-* Lighting
+* ~Lighting~
 
 ![image](https://github.com/user-attachments/assets/94be15ab-71d8-4956-b850-2ef8935f49d4)
 ![image](https://github.com/user-attachments/assets/6a2ae674-7da7-49c7-9dc1-e59675c8c460)
