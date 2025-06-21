@@ -9,6 +9,10 @@
   #include <omp.h>
 #endif
 
+#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+  #include <xmmintrin.h>
+#endif
+
 #define MAX_SECTOR_HISTORY 64
 
 static uint32_t debug_colors[16][3] = {
@@ -455,18 +459,28 @@ static void draw_floor_segment(
   register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors_dark[sect->color % 16];
-  register uint32_t r, g, b;
   register float light, distance;
+
+#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+  int32_t temp[4];
+#else
+  register uint32_t r, g, b;
+#endif
 
   for (y = from, yz = from - info->half_h; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz++]) / column->theta;
     light = M_MAX(0.f, 1.0f - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
+#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+    __m128i result_i32 = _mm_cvtps_epi32(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)));
+    _mm_storeu_si128((__m128i*)temp, result_i32);
+    *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
+#else
     r = M_MAX(0, (uint8_t)(c[0] * light)) << 16;
     g = M_MAX(0, (uint8_t)(c[1] * light)) << 8;
     b = M_MAX(0, (uint8_t)(c[2] * light));
-    
     *p = 0xFF000000 | r | g | b;
+#endif
   } 
 }
 
@@ -487,17 +501,27 @@ static void draw_ceiling_segment(
   register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors_dark[sect->color % 16];
-  register uint32_t r, g, b;
   register float light, distance;
+
+#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+  int32_t temp[4];
+#else
+  register uint32_t r, g, b;
+#endif
 
   for (y = from, yz = info->half_h - from - 1; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz--]) / column->theta;
     light = M_MAX(0.f, 1.0f - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
+#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+    __m128i result_i32 = _mm_cvtps_epi32(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)));
+    _mm_storeu_si128((__m128i*)temp, result_i32);
+    *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
+#else
     r = M_MAX(0, (uint8_t)(c[0] * light)) << 16;
     g = M_MAX(0, (uint8_t)(c[1] * light)) << 8;
     b = M_MAX(0, (uint8_t)(c[2] * light));
-    
     *p = 0xFF000000 | r | g | b;
+#endif
   }
 }
