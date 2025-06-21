@@ -11,6 +11,7 @@ typedef pixel_type* frame_buffer;
 
 typedef struct {
   frame_buffer buffer;
+  float *depth_values;
   vec2u buffer_size;
   uint32_t tick;
 

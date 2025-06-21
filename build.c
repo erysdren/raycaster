@@ -122,6 +122,8 @@ int main(int argc, char **argv)
       /* Linked libraries */
       DEPS_FOLDER""SDL3_FOLDER"lib/libSDL3.dll.a",
       "-lm",
+      "-msse2",
+      "-mfpmath=sse",
       "-fopenmp",
       "-fopenmp-simd"
     );

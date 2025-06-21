@@ -65,7 +65,7 @@ typedef struct {
   const sector *sector_history[MAX_SECTOR_HISTORY];
   vec2f ray_end,
         ray_direction;
-  float top_limit, bottom_limit;
+  float theta, top_limit, bottom_limit;
   uint32_t index, sector_depth, buffer_stride;
   pixel_type *buffer_start;
   bool finished;
@@ -89,9 +89,17 @@ static const float POSTERIZATION_STEP_LIGHT_CHANGE = 1.f / POSTERIZATION_STEPS;
 static void check_sector_visibility(renderer*, const frame_info*, sector *sect);
 static void check_sector_column(renderer*, const frame_info*, column_info*, const sector*);
 static void draw_wall_segment(const frame_info*, column_info*, const line_hit *hit, uint32_t from, uint32_t to);
-static void draw_floor_segment(const frame_info*, column_info*, const sector *sect, uint32_t from, uint32_t to);
-static void draw_ceiling_segment(const frame_info*, column_info*, const sector *sect, uint32_t from, uint32_t to);
+static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector *sect, float, uint32_t from, uint32_t to);
+static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector *sect, float, uint32_t from, uint32_t to);
 static void draw_column(renderer*, const frame_info*, column_info*, const sector*, line_hit const *);
+
+M_INLINED void init_depth_values(renderer *this) {
+  register size_t y, h = (this->buffer_size.y>>1);
+  this->depth_values = malloc(h*sizeof(float));
+  for (y = 0; y < h; ++y) {
+    this->depth_values[y] = !y ? 1.f : 1.f / (y);
+  }
+}
 
 void renderer_init(
   renderer *this,
@@ -99,6 +107,7 @@ void renderer_init(
 ) {
   this->buffer_size = size;
   this->buffer = malloc(size.x * size.y * sizeof(pixel_type));
+  init_depth_values(this);
 }
 
 void renderer_resize(
@@ -107,6 +116,8 @@ void renderer_resize(
 ) {
   this->buffer_size = new_size;
   this->buffer = realloc(this->buffer, new_size.x * new_size.y * sizeof(pixel_type));
+  free(this->depth_values);
+  init_depth_values(this);
 }
 
 void renderer_destroy(renderer *this) {
@@ -150,18 +161,21 @@ void renderer_draw(
 #endif
   for (x = 0; x < this->buffer_size.x; ++x) {
     const float cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
-    const float rx = camera->direction.x + (camera->plane.x * cam_x);
-    const float ry = camera->direction.y + (camera->plane.y * cam_x);
+    const vec2f ray = VEC2F(
+      camera->direction.x + (camera->plane.x * cam_x),
+      camera->direction.y + (camera->plane.y * cam_x)
+    );
 
     column_info column = (column_info) {
       .ray_end = VEC2F(
-        camera->position.x + (rx * RENDERER_DRAW_DISTANCE),
-        camera->position.y + (ry * RENDERER_DRAW_DISTANCE)
+        camera->position.x + (ray.x * RENDERER_DRAW_DISTANCE),
+        camera->position.y + (ray.y * RENDERER_DRAW_DISTANCE)
       ),
-      .ray_direction = VEC2F(rx, ry),
+      .ray_direction = ray,
       .index = x,
       .sector_depth = 0,
       .buffer_stride = this->buffer_size.x,
+      .theta = math_dot2(camera->direction, ray) / math_length(ray),
       .top_limit = 0.f,
       .bottom_limit = this->buffer_size.y - 1,
       .buffer_start = &this->buffer[x],
@@ -276,8 +290,9 @@ static void check_sector_column(
     // column->counters.line_checks ++;
 
     if (math_lines_intersect(line->v0->point, line->v1->point, info->ray_start, column->ray_end, &intersection, &intersectiond)) {
-      point_distance = math_length(vec2f_sub(intersection, info->ray_start));
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
+      // point_distance = math_length(vec2f_sub(intersection, info->ray_start));
+      point_distance = planar_distance / column->theta;
 
       hits[hits_count++] = (line_hit) {
         .point = intersection,
@@ -319,9 +334,33 @@ static void draw_column(
     const float start_y = M_MAX(ceiling_z_local, column->top_limit);
     const float end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
 
-    draw_wall_segment(info, column, hit, start_y, end_y);
-    draw_ceiling_segment(info, column, sect, column->top_limit, M_MIN(start_y, column->bottom_limit));
-    draw_floor_segment(info, column, sect, end_y+1, column->bottom_limit+1);
+    draw_wall_segment(
+      info,
+      column,
+      hit,
+      start_y,
+      end_y
+    );
+
+    draw_ceiling_segment(
+      this,
+      info,
+      column,
+      sect,
+      (sect->ceiling_height - info->view_z) * info->unit_size,
+      column->top_limit,
+      M_MIN(start_y, column->bottom_limit)
+    );
+
+    draw_floor_segment(
+      this,
+      info,
+      column,
+      sect,
+      (info->view_z - sect->floor_height) * info->unit_size,
+      end_y+1,
+      column->bottom_limit+1
+    );
 
     column->finished = true;
   } else {
@@ -342,8 +381,25 @@ static void draw_column(
       draw_wall_segment(info, column, hit, bottom_start_y, bottom_end_y);
     }
 
-    draw_ceiling_segment(info, column, sect, column->top_limit, M_MAX(top_start_y, column->top_limit));
-    draw_floor_segment(info, column, sect, M_MIN(bottom_end_y, column->bottom_limit)+1, column->bottom_limit+1);
+    draw_ceiling_segment(
+      this,
+      info,
+      column,
+      sect,
+      (sect->ceiling_height - info->view_z) * info->unit_size,
+      column->top_limit,
+      M_MAX(top_start_y, column->top_limit)
+    );
+    
+    draw_floor_segment(
+      this,
+      info,
+      column,
+      sect,
+      (info->view_z - sect->floor_height) * info->unit_size,
+      M_MIN(bottom_end_y, column->bottom_limit)+1,
+      column->bottom_limit+1
+    );
 
     column->top_limit = top_end_y;
     column->bottom_limit = bottom_start_y;
@@ -369,9 +425,6 @@ static void draw_wall_segment(
     return;
   }
 
-  // column->counters.wall_pixels += (to-from);
-  // column->counters.wall_columns ++;
-
   register uint32_t y;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors[hit->line->color % 16];
@@ -386,9 +439,11 @@ static void draw_wall_segment(
 }
 
 static void draw_floor_segment(
+  renderer *this,
   const frame_info *info,
   column_info *column,
   const sector *sect,
+  float distance_from_view,
   uint32_t from,
   uint32_t to
 ) {
@@ -397,22 +452,30 @@ static void draw_floor_segment(
     return;
   }
 
-  // column->counters.floor_pixels += (to-from);
-  // column->counters.floor_columns ++;
-
-  register uint32_t y;
+  register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors_dark[sect->color % 16];
+  register uint32_t r, g, b;
+  register float light, distance;
 
-  for (y = from; y < to; ++y, p += column->buffer_stride) {
-    *p = 0xFF000000 | (c[0] << 16) | (c[1] << 8) | c[2];
+  for (y = from, yz = from - info->half_h; y < to; ++y, p += column->buffer_stride) {
+    distance = (distance_from_view * this->depth_values[yz++]) / column->theta;
+    light = M_MAX(0.f, 1.0f - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
+
+    r = M_MAX(0, (uint8_t)(c[0] * light)) << 16;
+    g = M_MAX(0, (uint8_t)(c[1] * light)) << 8;
+    b = M_MAX(0, (uint8_t)(c[2] * light));
+    
+    *p = 0xFF000000 | r | g | b;
   } 
 }
 
 static void draw_ceiling_segment(
+  renderer *this,
   const frame_info *info,
   column_info *column,
   const sector *sect,
+  float distance_from_view,
   uint32_t from,
   uint32_t to
 ) {
@@ -421,14 +484,20 @@ static void draw_ceiling_segment(
     return;
   }
 
-  // column->counters.ceiling_pixels += (to-from);
-  // column->counters.ceiling_columns ++;
-
-  register uint32_t y;
+  register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors_dark[sect->color % 16];
+  register uint32_t r, g, b;
+  register float light, distance;
 
-  for (y = from; y < to; ++y, p += column->buffer_stride) {
-    *p = 0xFF000000 | (c[0] << 16) | (c[1] << 8) | c[2];
+  for (y = from, yz = info->half_h - from; y < to; ++y, p += column->buffer_stride) {
+    distance = (distance_from_view * this->depth_values[yz--]) / column->theta;
+    light = M_MAX(0.f, 1.0f - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
+
+    r = M_MAX(0, (uint8_t)(c[0] * light)) << 16;
+    g = M_MAX(0, (uint8_t)(c[1] * light)) << 8;
+    b = M_MAX(0, (uint8_t)(c[2] * light));
+    
+    *p = 0xFF000000 | r | g | b;
   }
 }

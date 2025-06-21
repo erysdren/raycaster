@@ -12,6 +12,10 @@ M_INLINED float math_dot(vec2f v) {
   return (v.x * v.x + v.y * v.y);
 }
 
+M_INLINED float math_dot2(vec2f a, vec2f b) {
+  return (a.x * b.x + a.y * b.y);
+}
+
 M_INLINED float math_length(vec2f v) {
   return sqrtf(math_dot(v));
 }
