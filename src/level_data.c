@@ -4,7 +4,7 @@
 /* Just for debbuging for now */
 static uint32_t linedef_color = 0, sector_color = 0;
 
-void map_data_add_polygon(map_data *this, int32_t floor_height, int32_t ceiling_height, size_t vertices_count, vec2f vertices[]) {
+void map_data_add_polygon(map_data *this, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[]) {
   register size_t i;
 
   printf("Add polygon (%d vertices) [%d, %d]:\n", vertices_count, floor_height, ceiling_height);
@@ -12,7 +12,8 @@ void map_data_add_polygon(map_data *this, int32_t floor_height, int32_t ceiling_
   this->polygons[this->polygons_count] = (polygon) {
     .vertices_count = vertices_count,
     .floor_height = floor_height,
-    .ceiling_height = ceiling_height
+    .ceiling_height = ceiling_height,
+    .light = light
   };
   memcpy(this->polygons[this->polygons_count].vertices, vertices, vertices_count * sizeof(vec2f));
 
@@ -87,6 +88,7 @@ static sector* add_sector(level_data *level, polygon *poly) {
 
   sect->floor_height = poly->floor_height;
   sect->ceiling_height = poly->ceiling_height;
+  sect->light = poly->light;
   sect->color = sector_color++;
   sect->linedefs = NULL;
   sect->linedefs_count = 0;

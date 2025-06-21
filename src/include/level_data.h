@@ -22,6 +22,7 @@ typedef struct {
   vec2f vertices[16];
   int32_t floor_height,
           ceiling_height;
+  float light;
 } polygon;
 
 typedef struct {
@@ -29,7 +30,7 @@ typedef struct {
   polygon polygons[2048];
 } map_data;
 
-void map_data_add_polygon(map_data*, int32_t floor_height, int32_t ceiling_height, size_t vertices_count, vec2f vertices[]);
+void map_data_add_polygon(map_data*, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[]);
 level_data* map_data_build(map_data*);
 
 #endif

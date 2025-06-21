@@ -235,7 +235,7 @@ static void create_grid_level() {
         c = 1024 - 32 * (rand() % 24);
       }
 
-      map_data_add_polygon(map, f, c, VERTICES(
+      map_data_add_polygon(map, f, c, 1.f, VERTICES(
         VEC2F(x*size, y*size),
         VEC2F(x*size + size, y*size),
         VEC2F(x*size + size, y*size + size),
@@ -253,7 +253,7 @@ static void create_demo_level() {
   map_data *map = malloc(sizeof(map_data));
   map->polygons_count = 0;
 
-  map_data_add_polygon(map, 0, 144, VERTICES(
+  map_data_add_polygon(map, 0, 144, 1.f, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(400, 400),
@@ -261,35 +261,35 @@ static void create_demo_level() {
     VEC2F(0, 400)
   ));
 
-  map_data_add_polygon(map, -32, 160, VERTICES(
+  map_data_add_polygon(map, -32, 160, 1.f, VERTICES(
     VEC2F(50, 50),
     VEC2F(50, 200),
     VEC2F(200, 200),
     VEC2F(200, 50)
   ));
 
-  map_data_add_polygon(map, 128, 128, VERTICES(
+  map_data_add_polygon(map, 128, 128, 1.f, VERTICES(
     VEC2F(100, 100),
     VEC2F(125, 100),
     VEC2F(125, 125),
     VEC2F(100, 125)
   ));
 
-  map_data_add_polygon(map, 32, 96, VERTICES(
+  map_data_add_polygon(map, 32, 96, 1.f, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(300, -200),
     VEC2F(0, -100)
   ));
 
-  map_data_add_polygon(map, -128, 256, VERTICES(
+  map_data_add_polygon(map, -128, 256, 0.25f, VERTICES(
     VEC2F(400, 400),
     VEC2F(200, 300),
     VEC2F(100, 1000),
     VEC2F(500, 1000)
   ));
 
-  map_data_add_polygon(map, 0, 224, VERTICES(
+  map_data_add_polygon(map, 0, 224, 1.f, VERTICES(
     VEC2F(275, 500),
     VEC2F(325, 500),
     VEC2F(325, 700),
@@ -305,7 +305,7 @@ static void create_big_one() {
   map_data *map = malloc(sizeof(map_data));
   map->polygons_count = 0;
 
-  map_data_add_polygon(map, 0, 2048, VERTICES(
+  map_data_add_polygon(map, 0, 2048, 0.75f, VERTICES(
     VEC2F(0, 0),
     VEC2F(6000, 0),
     VEC2F(6000, 6000),
@@ -327,7 +327,7 @@ static void create_big_one() {
         c = 1440 - 32 * (rand() % 24);
       }
 
-      map_data_add_polygon(map, f, c, VERTICES(
+      map_data_add_polygon(map, f, c, 1.f, VERTICES(
         VEC2F(1000+x*size,        1000+y*size),
         VEC2F(1000+x*size + size, 1000+y*size),
         VEC2F(1000+x*size + size, 1000+y*size + size),
