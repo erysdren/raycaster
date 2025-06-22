@@ -25,7 +25,7 @@ M_INLINED int32_t math_sign(vec2f p0, vec2f p1, vec2f point) {
   return (int32_t)((p1.x - p0.x) * (point.y - p0.y) - (point.x - p0.x) * (p1.y - p0.y));
 }
 
-M_INLINED bool math_lines_intersect(
+M_INLINED bool math_find_line_intersection(
   vec2f A,
   vec2f B,
   vec2f C,
@@ -81,39 +81,34 @@ M_INLINED float math_line_segment_point_distance(vec2f a, vec2f b, vec2f point) 
   return fabs(math_cross(vec2f_sub(b, a), vec2f_sub(a, point))) / math_length(vec2f_sub(b, a));
 }
 
-
-// Helper: orientation of triplet (p, q, r)
-// Returns: 0 = colinear, 1 = clockwise, 2 = counterclockwise
-M_INLINED int orientation(vec2f p, vec2f q, vec2f r) {
-    float val = math_sign(q, r, p); // (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
-    if (val == 0) return 0;              // colinear
-    return (val > 0) ? 1 : 2;            // clockwise or counterclockwise
+M_INLINED bool math_point_on_line_segment(vec2f p, vec2f q, vec2f r) {
+  return r.x <= M_MAX(p.x, q.x) && r.x >= M_MIN(p.x, q.x) && r.y <= M_MAX(p.y, q.y) && r.y >= M_MIN(p.y, q.y);
 }
 
-// Helper: check if point r lies on segment pq
-M_INLINED int onSegment(vec2f p, vec2f q, vec2f r) {
-    return r.x <= M_MAX(p.x, q.x) && r.x >= M_MIN(p.x, q.x) &&
-           r.y <= M_MAX(p.y, q.y) && r.y >= M_MIN(p.y, q.y);
+M_INLINED int _math_orientation(vec2f p, vec2f q, vec2f r) {
+  const float val = math_sign(q, r, p);
+  if (fabsf(val) < 1e-6f) { return 0; }
+  return (val > 0) ? 1 : 2;
 }
 
-// Main function: checks if segments p1p2 and q1q2 intersect
-M_INLINED int segmentsIntersect(vec2f p1, vec2f p2, vec2f q1, vec2f q2) {
-    register int o1 = orientation(p1, p2, q1);
-    register int o2 = orientation(p1, p2, q2);
-    register int o3 = orientation(q1, q2, p1);
-    register int o4 = orientation(q1, q2, p2);
+M_INLINED bool math_line_segments_intersect(vec2f p1, vec2f p2, vec2f q1, vec2f q2) {
+    int o1 = _math_orientation(p1, p2, q1);
+    int o2 = _math_orientation(p1, p2, q2);
+    int o3 = _math_orientation(q1, q2, p1);
+    int o4 = _math_orientation(q1, q2, p2);
 
     // General case
-    if (o1 != o2 && o3 != o4)
-        return 1;
+    if (o1 != o2 && o3 != o4) {
+      return true;
+    }
 
     // Special cases (colinear)
-    if (o1 == 0 && onSegment(p1, p2, q1)) return 1;
-    if (o2 == 0 && onSegment(p1, p2, q2)) return 1;
-    if (o3 == 0 && onSegment(q1, q2, p1)) return 1;
-    if (o4 == 0 && onSegment(q1, q2, p2)) return 1;
+    if (o1 == 0 && math_point_on_line_segment(p1, p2, q1)) { return true; }
+    if (o2 == 0 && math_point_on_line_segment(p1, p2, q2)) { return true; }
+    if (o3 == 0 && math_point_on_line_segment(q1, q2, p1)) { return true; }
+    if (o4 == 0 && math_point_on_line_segment(q1, q2, p2)) { return true; }
 
-    return 0; // No intersection
+    return false;
 }
 
 

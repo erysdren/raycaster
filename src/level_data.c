@@ -236,7 +236,7 @@ level_data* map_data_build(map_data *this) {
             continue;
           }
 
-          if (math_lines_intersect(v0, v1, v2, v3, &intersection, NULL)) {
+          if (math_find_line_intersection(v0, v1, v2, v3, &intersection, NULL)) {
             printf("\t\tSector %d line %d (%d,%d) <-> [%d](%d,%d) intersects with sector %d line %d (%d,%d) <-> [%d](%d,%d) at (%d,%d)\n",
               i,
               vi,

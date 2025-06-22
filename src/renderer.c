@@ -230,8 +230,8 @@ static void check_sector_visibility(
     }
 
     if (line->v0->visible || line->v1->visible
-      || segmentsIntersect(line->v0->point, line->v1->point, info->ray_start, info->far_left)
-      || segmentsIntersect(line->v0->point, line->v1->point, info->ray_start, info->far_right)) {
+      || math_line_segments_intersect(line->v0->point, line->v1->point, info->ray_start, info->far_left)
+      || math_line_segments_intersect(line->v0->point, line->v1->point, info->ray_start, info->far_right)) {
       this->counters.visible_lines ++;
       line->last_visible_tick = this->tick;
 
@@ -293,7 +293,7 @@ static void check_sector_column(
 
     // column->counters.line_checks ++;
 
-    if (math_lines_intersect(line->v0->point, line->v1->point, info->ray_start, column->ray_end, &intersection, &intersectiond)) {
+    if (math_find_line_intersection(line->v0->point, line->v1->point, info->ray_start, column->ray_end, &intersection, &intersectiond)) {
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
       // point_distance = math_length(vec2f_sub(intersection, info->ray_start));
       point_distance = planar_distance / column->theta;

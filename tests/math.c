@@ -15,7 +15,7 @@ TEST(math, lines_intersect) {
   vec2f r;
   float d;
 
-  if (math_lines_intersect(
+  if (math_find_line_intersection(
     vec2f_make(0, 5),
     vec2f_make(10, 5),
     vec2f_make(5, 0),
@@ -29,7 +29,7 @@ TEST(math, lines_intersect) {
     TEST_FAIL_MESSAGE("Lines should have intersected");
   }
 
-  if (math_lines_intersect(
+  if (math_find_line_intersection(
     vec2f_make(5, 10),
     vec2f_make(5, 0),
     vec2f_make(0, 0),
@@ -43,7 +43,7 @@ TEST(math, lines_intersect) {
     TEST_FAIL_MESSAGE("Lines should have intersected");
   }
 
-  if (math_lines_intersect(
+  if (math_find_line_intersection(
     vec2f_make(0, 0),
     vec2f_make(10, 0),
     vec2f_make(15, -10),
@@ -54,7 +54,7 @@ TEST(math, lines_intersect) {
     TEST_FAIL_MESSAGE("Lines should not have intersected");
   }
 
-  if (math_lines_intersect(VEC2F(0,0), VEC2F(256,0), VEC2F(512,0), VEC2F(768,0), &r, &d)) {
+  if (math_find_line_intersection(VEC2F(0,0), VEC2F(256,0), VEC2F(512,0), VEC2F(768,0), &r, &d)) {
     TEST_FAIL_MESSAGE("Lines should not have intersected");
   }
 }
