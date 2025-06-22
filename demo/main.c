@@ -129,6 +129,18 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
       } else if (event->key.key == SDLK_O) {
         camera_set_fov(&cam, M_MIN(4.0f, cam.fov*(1.0+delta_time*3)));
       }
+
+      if (event->key.key == SDLK_HOME) {
+        cam.in_sector->ceiling_height += 2;
+      } else if (event->key.key == SDLK_END) {
+        cam.in_sector->ceiling_height = M_MAX(cam.in_sector->floor_height, cam.in_sector->ceiling_height - 2);
+      }
+
+      if (event->key.key == SDLK_PAGEUP) {
+        cam.in_sector->floor_height = M_MIN(cam.in_sector->ceiling_height, cam.in_sector->floor_height + 2);
+      } else if (event->key.key == SDLK_PAGEDOWN) {
+        cam.in_sector->floor_height -= 2;
+      }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W) { movement.forward = 0.f; }
       else if (event->key.key == SDLK_S) { movement.forward = 0.f; }
@@ -188,16 +200,16 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
   SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "CAMERA pos: (%.1f, %.1f, %.1f), dir: (%.3f, %.3f), plane: (%.3f, %.3f), FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
+  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", cam.in_sector); y+=h;
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Line vis checks: %d (%d visible)", rend.counters.line_visibility_checks, rend.counters.visible_lines); y+=h;
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Vertex checks:   %d (%d visible)", rend.counters.vertex_visibility_checks, rend.counters.visible_vertices); y+=h;
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Sectors visited: %d", rend.counters.sectors_visited); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[Q] - Go up"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[Z] - Go down"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[+] - Increase scale factor"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[-] - Decrease scale factor"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[O] - Zoom out"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[P] - Zoom in"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[+ -] - Increase/decrease scale factor"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[O P] - Zoom out/in"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[Home End] - Raise/lower sector ceiling"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
 
   SDL_RenderPresent(sdl_renderer);
 
