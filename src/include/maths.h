@@ -81,8 +81,8 @@ M_INLINED float math_line_segment_point_distance(vec2f a, vec2f b, vec2f point) 
   return fabs(math_cross(vec2f_sub(b, a), vec2f_sub(a, point))) / math_length(vec2f_sub(b, a));
 }
 
-M_INLINED bool math_point_on_line_segment(vec2f p, vec2f q, vec2f r) {
-  return r.x <= M_MAX(p.x, q.x) && r.x >= M_MIN(p.x, q.x) && r.y <= M_MAX(p.y, q.y) && r.y >= M_MIN(p.y, q.y);
+M_INLINED bool math_point_on_line_segment(vec2f point, vec2f p, vec2f q) {
+  return point.x <= M_MAX(p.x, q.x) && point.x >= M_MIN(p.x, q.x) && point.y <= M_MAX(p.y, q.y) && point.y >= M_MIN(p.y, q.y);
 }
 
 M_INLINED int _math_orientation(vec2f p, vec2f q, vec2f r) {
@@ -103,10 +103,10 @@ M_INLINED bool math_line_segments_intersect(vec2f p1, vec2f p2, vec2f q1, vec2f 
     }
 
     // Special cases (colinear)
-    if (o1 == 0 && math_point_on_line_segment(p1, p2, q1)) { return true; }
-    if (o2 == 0 && math_point_on_line_segment(p1, p2, q2)) { return true; }
-    if (o3 == 0 && math_point_on_line_segment(q1, q2, p1)) { return true; }
-    if (o4 == 0 && math_point_on_line_segment(q1, q2, p2)) { return true; }
+    if (o1 == 0 && math_point_on_line_segment(q1, p1, p2)) { return true; }
+    if (o2 == 0 && math_point_on_line_segment(q2, p1, p2)) { return true; }
+    if (o3 == 0 && math_point_on_line_segment(q1, q1, q2)) { return true; }
+    if (o4 == 0 && math_point_on_line_segment(q2, q1, q2)) { return true; }
 
     return false;
 }

@@ -179,7 +179,7 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
 
   SDL_UpdateTexture(texture, NULL, rend.buffer, rend.buffer_size.x*sizeof(pixel_type));
 
-  SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+  SDL_SetRenderDrawColor(sdl_renderer, 255, 0, 255, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
 
@@ -353,6 +353,13 @@ static void create_semi_intersecting_sectors() {
     VEC2F(0, 500)
   ));
 
+  map_data_add_polygon(map, 32, 96, 1.f, VERTICES(
+    VEC2F(0, 200),
+    VEC2F(50, 200),
+    VEC2F(50, 400),
+    VEC2F(0, 400)
+  ));
+
   map_data_add_polygon(map, 32, 256, 1.0f, VERTICES(
     VEC2F(250, 250),
     VEC2F(750, 250),
@@ -374,7 +381,7 @@ static void create_semi_intersecting_sectors() {
     VEC2F(240, 360)
   ));
 
-  map_data_add_polygon(map, -128, 96, 1.f, VERTICES(
+  map_data_add_polygon(map, -128, 96, 0.25f, VERTICES(
     VEC2F(-100, 100),
     VEC2F(100, 100),
     VEC2F(100, -100),

@@ -81,7 +81,6 @@ M_INLINED void poly_insert_point(polygon *poly, vec2f point, /* between */ vec2f
       return;
     }
   }
-
 }
 
 /* SECTOR UTILS */
@@ -120,6 +119,18 @@ M_INLINED void sector_remove_linedef(sector *this, linedef *line) {
       return;
     }
   }
+}
+
+M_INLINED polygon* map_data_poly_at_point(map_data *this, vec2f point) {
+  register size_t i = 0;
+
+  for (i = 0; i < this->polygons_count; ++i) {
+    if (poly_point_inside(&this->polygons[i], point)) {
+      return &this->polygons[i];
+    }
+  }
+
+  return NULL;
 }
 
 /* FIND a vertex at given point OR CREATE a new one */
@@ -196,8 +207,6 @@ static sector* add_sector(level_data *level, polygon *poly) {
     add_linedef(level, sect, get_linedef(level, sect, get_vertex(level, poly->vertices[i]), get_vertex(level, poly->vertices[(i+1)%poly->vertices_count])));
   }
 
-  printf("\t\t\tCount: %d\n", sect->linedefs_count);
-
   return sect;
 }
 
@@ -236,17 +245,41 @@ level_data* map_data_build(map_data *this) {
             continue;
           }
 
-          if (math_find_line_intersection(v0, v1, v2, v3, &intersection, NULL)) {
-            printf("\t\tSector %d line %d (%d,%d) <-> [%d](%d,%d) intersects with sector %d line %d (%d,%d) <-> [%d](%d,%d) at (%d,%d)\n",
+          bool skip_intersection_check = false;
+
+          if (math_point_on_line_segment(v0, v2, v3) && !poly_contains_point(&poly_j, v0)) {
+            printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", i, vi, (int)v0.x, (int)v0.y, (int)v2.x, (int)v2.y, (int)v3.x, (int)v3.y, j);
+            poly_insert_point(&poly_j, v0,   v2, v3);
+            skip_intersection_check = true;
+          }
+
+          if (math_point_on_line_segment(v1, v2, v3) && !poly_contains_point(&poly_j, v1)) {
+            printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", i, vi, (int)v1.x, (int)v1.y, (int)v2.x, (int)v2.y, (int)v3.x, (int)v3.y, j);
+            poly_insert_point(&poly_j, v1,   v2, v3);
+            skip_intersection_check = true;
+          }
+
+          if (math_point_on_line_segment(v2, v0, v1) && !poly_contains_point(&poly_i, v2)) {
+            printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", j, vj, (int)v2.x, (int)v2.y, (int)v0.x, (int)v0.y, (int)v1.x, (int)v1.y, i);
+            poly_insert_point(&poly_i, v2,   v0, v1);
+            skip_intersection_check = true;
+          }
+
+          if (math_point_on_line_segment(v3, v0, v1) && !poly_contains_point(&poly_i, v3)) {
+            printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", j, vj, (int)v3.x, (int)v3.y, (int)v0.x, (int)v0.y, (int)v1.x, (int)v1.y, i);
+            poly_insert_point(&poly_i, v3,   v0, v1);
+            skip_intersection_check = true;
+          }
+
+          if (!skip_intersection_check && math_find_line_intersection(v0, v1, v2, v3, &intersection, NULL)) {
+            printf("\t\tSector %d line %d (%d,%d) <-> (%d,%d) intersects with sector %d line %d (%d,%d) <-> (%d,%d) at (%d,%d)\n",
               i,
               vi,
               (int)v0.x, (int)v0.y,
-              (vi+1) % this->polygons[i].vertices_count,
               (int)v1.x, (int)v1.y,
               j,
               vj,
               (int)v2.x, (int)v2.y,
-              (vj+1) % this->polygons[j].vertices_count,
               (int)v3.x, (int)v3.y,
               (int)intersection.x, (int)intersection.y
             );
@@ -294,6 +327,27 @@ level_data* map_data_build(map_data *this) {
           printf("\t\tWill remove dangling line %d (%d,%d) <-> (%d,%d) from sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, i);
           sector_remove_linedef(front, line);
           k--;
+        } else if (sector_connects(back, line->v0, line->v1) && i > j) {
+          vec2f line_center = vec2f_mul(vec2f_add(line->v0->point, line->v1->point), 0.5f);
+          vec2f line_dir = vec2f_sub(line->v0->point, line->v1->point);
+          line_dir = vec2f_div(line_dir, math_length(line_dir));
+
+          vec2f facing_0 = VEC2F(-line_dir.y, line_dir.x);
+          vec2f facing_1 = VEC2F(line_dir.y, -line_dir.x);
+
+          /*
+           * If either side of the line is empty (no sector) this linedef faces 2 sectors.
+           * Later sector will be front facing and the line will be removed from the other sector.
+           */
+          if (line->side_sector[0] && line->side_sector[1] && (map_data_poly_at_point(this, vec2f_add(line_center, facing_0)) == NULL || map_data_poly_at_point(this, vec2f_add(line_center, facing_1)) == NULL)) {
+            printf("\t\tShared line (%d,%d) <-> (%d,%d) between sectors %d and %d\n", (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, i, j);
+            printf("\t\t  is empty of one side. Removing from sector %d\n", j);
+            // Linedef will be removed from 'back' later on
+            line->side_sector[0] = front;
+            line->side_sector[1] = NULL;
+          }
+
+          continue;
         }
       }
     }
@@ -316,7 +370,7 @@ level_data* map_data_build(map_data *this) {
 
         if (line->side_sector[0] && line->side_sector[1]) { continue; }
         if (sector_connects(back, line->v0, line->v1)) { continue; }
-
+        
         if (poly_point_inside(&this->polygons[i], line->v0->point) && poly_point_inside(&this->polygons[i], line->v1->point)) {
           printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, j, i);
           line->side_sector[1] = back;
@@ -335,6 +389,22 @@ level_data* map_data_build(map_data *this) {
       }
 
       back->linedefs_count = new_count;
+    }
+  }
+
+  printf("\t5. Final cleanup ...\n");
+
+  for (i = 0; i < level->sectors_count; ++i) {
+    front = &level->sectors[i];
+
+    for (k = 0; k < front->linedefs_count; ++k) {
+      line = front->linedefs[k];
+
+      if (line->side_sector[0] != front && line->side_sector[1] == NULL) {
+        printf("\t\tRemoving old linedef %d (%d,%d) <-> (%d,%d) from sector %d\n", k, (int)line->v0->point.x, (int)line->v0->point.y, (int)line->v1->point.x, (int)line->v1->point.y, i);
+        sector_remove_linedef(front, line);
+        k--;
+      }
     }
   }
 
