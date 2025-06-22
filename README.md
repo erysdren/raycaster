@@ -6,15 +6,15 @@ A simple sector and linedef based raycaster written in C.
 Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D RPG](https://eigen.itch.io/sunless-isle) that fit on a 64x64 screen. It started out as a standard raycaster experiment following [Lode's tutorial](https://lodev.org/cgtutor/raycasting.html) (most well known on the subject probably) but I decided to try and replace regular grid map with lines instead. So instead of checking collisions and intersections *optimally*, you do the opposite and find all lines the ray intersects and draw them in order. The upside is that you can have varying heights of walls and walls behind each other. This project follows that idea but has a bunch of improvements, although the underlying algorithm is still not optimal, since you have to find a lot of line intersections for each column instead of doing what DOOM does, for example. BUT the benefit is a lot simpler code to follow and modify, so yeah.. pros and cons.
 
 ## Features
-* Basic sector and linedef handling
-* Basic level construction: define some polygons and automatically build the sectors
-* Sector lighting with distance falloff for walls, floors and ceilings
-* Uses OpenMP to render columns in parallel (optional)
+* :black_square_button: Basic sector and linedef handling
+* 🚧 Basic level construction: define some polygons and automatically build the sectors
+* 💡 Sector lighting with distance falloff for walls, floors and ceilings
+* :dash: Uses OpenMP to render columns in parallel = fast (optional)
 
 ## Unfeatures
-* Texturing
-* Sprites
-* ~Lighting~
+* 🧱 Texturing
+* 🌲 Sprites
+* 🪞 Maybe portals?
 
 ![image](https://github.com/user-attachments/assets/94be15ab-71d8-4956-b850-2ef8935f49d4)
 ![image](https://github.com/user-attachments/assets/6a2ae674-7da7-49c7-9dc1-e59675c8c460)
