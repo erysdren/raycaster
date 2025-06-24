@@ -33,7 +33,8 @@ linedef* sector_add_linedef(sector *sect, linedef *line)
   return line;
 }
 
-void sector_remove_linedef(sector *this, linedef *line) {
+void sector_remove_linedef(sector *this, linedef *line)
+{
   register size_t i,j;
   for (i = 0; i < this->linedefs_count; ++i) {
     if (this->linedefs[i] == line) {
@@ -42,6 +43,8 @@ void sector_remove_linedef(sector *this, linedef *line) {
         this->linedefs[j] = this->linedefs[j+1];
       }
       this->linedefs = realloc(this->linedefs, sizeof(linedef*) * this->linedefs_count);
+      if (line->side_sector[0] == this) { line->side_sector[0] = NULL; }
+      else if (line->side_sector[1] == this) { line->side_sector[1] = NULL; }
       return;
     }
   }
