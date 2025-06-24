@@ -15,6 +15,7 @@ typedef struct polygon {
 
 bool polygon_vertices_contains_point(polygon*, vec2f);
 bool polygon_is_point_inside(polygon*, vec2f);
+bool polygon_overlaps_polygon(polygon*, polygon*);
 void polygon_insert_point(polygon*, vec2f, vec2f, vec2f);
 
 #endif

@@ -202,31 +202,17 @@ static void map_builder_step_remove_invalid_lines(map_builder *this, level_data 
           sector_remove_linedef(front, line);
           k--;
         } else if (sector_connects_vertices(back, line->v0, line->v1) && i > j) {
-          vec2f line_center = vec2f_mul(vec2f_add(line->v0->point, line->v1->point), 0.5f);
-          vec2f line_dir = vec2f_sub(line->v0->point, line->v1->point);
-          line_dir = vec2f_div(line_dir, math_length(line_dir));
-
-          vec2f facing_0 = VEC2F(-line_dir.y, line_dir.x);
-          vec2f facing_1 = VEC2F(line_dir.y, -line_dir.x);
-
-          polygon *sides[2] = {
-            map_builder_polygon_at_point(this, vec2f_add(line_center, facing_0)),
-            map_builder_polygon_at_point(this, vec2f_add(line_center, facing_1))
-          };
-
           /*
-           * If either side of the line is not 'front' or 'back', this linedef shares a front face in 2 sectors.
-           * Later (newer) sector will be front facing and the line will be removed from the other sector.
+           * Line is front-facing 2 sectors when they share a linedef and polygons intersect.
+           * If so, remove the linedef from the older/bottom-most sector.
            */
-          if ((sides[0] != &this->polygons[i] && sides[0] != &this->polygons[j]) || (sides[1] != &this->polygons[i] && sides[1] != &this->polygons[j])) {
+          if (polygon_overlaps_polygon(&this->polygons[j], &this->polygons[i])) {
             M_DEBUG(printf("\t\tShared line (%d,%d) <-> (%d,%d) between sectors %d and %d\n", XY(line->v0->point), XY(line->v1->point), i, j));
             M_DEBUG(printf("\t\t  Removing from sector %d\n", j));
             // Linedef will be removed from 'back' later on
             line->side_sector[0] = front;
             line->side_sector[1] = NULL;
           }
-
-          continue;
         }
       }
     }

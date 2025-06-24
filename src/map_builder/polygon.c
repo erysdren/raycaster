@@ -41,6 +41,21 @@ bool polygon_is_point_inside(polygon *this, vec2f point) {
   return wn == 1 || wn == -1;
 }
 
+bool polygon_overlaps_polygon(polygon *this, polygon *other) {
+  size_t i;
+
+  for (i = 0; i < other->vertices_count; ++i) {
+    if (polygon_vertices_contains_point(this, other->vertices[i])) {
+      continue;
+    }
+    if (polygon_is_point_inside(this, other->vertices[i])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void polygon_insert_point(polygon *this, vec2f point, /* between */ vec2f v0, vec2f v1) {
   register size_t i,i2,j;
 

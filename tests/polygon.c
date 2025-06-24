@@ -62,8 +62,43 @@ TEST(polygon, insert_point) {
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(50, 100), poly.vertices[3]);
 }
 
+TEST(polygon, overlaps_polygon) {
+  polygon poly0 = {
+    .vertices_count = 4,
+    .vertices = {
+      VEC2F(0, 0),
+      VEC2F(100, 0),
+      VEC2F(100, 100),
+      VEC2F(0, 100)
+    }
+  };
+
+  polygon poly1 = {
+    .vertices_count = 3,
+    .vertices = {
+      VEC2F(0, 0),
+      VEC2F(50, 50),
+      VEC2F(0, 100)
+    }
+  };
+
+  polygon poly2 = {
+    .vertices_count = 4,
+    .vertices = {
+      VEC2F(100, 0),
+      VEC2F(200, 0),
+      VEC2F(200, 100),
+      VEC2F(100, 100)
+    }
+  };
+
+  TEST_ASSERT_TRUE(polygon_overlaps_polygon(&poly0, &poly1));
+  TEST_ASSERT_FALSE(polygon_overlaps_polygon(&poly0, &poly2));
+}
+
 TEST_GROUP_RUNNER(polygon) {
   RUN_TEST_CASE(polygon, vertices_contains_point);
   RUN_TEST_CASE(polygon, is_point_inside);
   RUN_TEST_CASE(polygon, insert_point);
+  RUN_TEST_CASE(polygon, overlaps_polygon);
 }

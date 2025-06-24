@@ -399,6 +399,31 @@ static void create_semi_intersecting_sectors() {
     VEC2F(400, 270)
   ));
 
+  /* Begin steps */
+  
+  map_builder_add_polygon(&builder, 24, 128, 0.9f, VERTICES(
+    VEC2F(240, 260),
+    VEC2F(250, 260),
+    VEC2F(250, 340),
+    VEC2F(240, 340)
+  ));
+
+  map_builder_add_polygon(&builder, 16, 128, 0.75f, VERTICES(
+    VEC2F(230, 260),
+    VEC2F(240, 260),
+    VEC2F(240, 340),
+    VEC2F(230, 340)
+  ));
+
+  map_builder_add_polygon(&builder, 8, 128, 0.6f, VERTICES(
+    VEC2F(220, 260),
+    VEC2F(230, 260),
+    VEC2F(230, 340),
+    VEC2F(220, 340)
+  ));
+
+  /* End stairs */
+
   map_builder_add_polygon(&builder, -128, 96, 0.25f, VERTICES(
     VEC2F(-100, 100),
     VEC2F(100, 100),
