@@ -15,9 +15,9 @@ void map_builder_add_polygon(map_builder*, int32_t floor_height, int32_t ceiling
 struct level_data* map_builder_build(map_builder*);
 
 M_INLINED polygon* map_builder_polygon_at_point(map_builder *this, vec2f point) {
-  register size_t i = 0;
+  register int i = 0;
 
-  for (i = 0; i < this->polygons_count; ++i) {
+  for (i = this->polygons_count - 1; i >= 0; --i) {
     if (polygon_is_point_inside(&this->polygons[i], point)) {
       return &this->polygons[i];
     }

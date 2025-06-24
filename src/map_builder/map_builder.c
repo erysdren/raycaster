@@ -209,13 +209,18 @@ static void map_builder_step_remove_invalid_lines(map_builder *this, level_data 
           vec2f facing_0 = VEC2F(-line_dir.y, line_dir.x);
           vec2f facing_1 = VEC2F(line_dir.y, -line_dir.x);
 
+          polygon *sides[2] = {
+            map_builder_polygon_at_point(this, vec2f_add(line_center, facing_0)),
+            map_builder_polygon_at_point(this, vec2f_add(line_center, facing_1))
+          };
+
           /*
-           * If either side of the line is empty (no sector) this linedef shares a front face in 2 sectors.
+           * If either side of the line is not 'front' or 'back', this linedef shares a front face in 2 sectors.
            * Later (newer) sector will be front facing and the line will be removed from the other sector.
            */
-          if (line->side_sector[0] && line->side_sector[1] && (map_builder_polygon_at_point(this, vec2f_add(line_center, facing_0)) == NULL || map_builder_polygon_at_point(this, vec2f_add(line_center, facing_1)) == NULL)) {
+          if ((sides[0] != &this->polygons[i] && sides[0] != &this->polygons[j]) || (sides[1] != &this->polygons[i] && sides[1] != &this->polygons[j])) {
             M_DEBUG(printf("\t\tShared line (%d,%d) <-> (%d,%d) between sectors %d and %d\n", XY(line->v0->point), XY(line->v1->point), i, j));
-            M_DEBUG(printf("\t\t  is empty of one side. Removing from sector %d\n", j));
+            M_DEBUG(printf("\t\t  Removing from sector %d\n", j));
             // Linedef will be removed from 'back' later on
             line->side_sector[0] = front;
             line->side_sector[1] = NULL;
