@@ -1,5 +1,6 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "renderer.h"
+#include "map_builder.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_render.h>
@@ -237,8 +238,7 @@ static void create_grid_level() {
 
   register int x, y, c, f;
 
-  map_data *map = malloc(sizeof(map_data));
-  map->polygons_count = 0;
+  map_builder builder = { 0 };
 
   for (y = 0; y < h; ++y) {
     for (x = 0; x < w; ++x) {
@@ -249,7 +249,7 @@ static void create_grid_level() {
         c = 1024 - 32 * (rand() % 24);
       }
 
-      map_data_add_polygon(map, f, c, 1.f, VERTICES(
+      map_builder_add_polygon(&builder, f, c, 1.f, VERTICES(
         VEC2F(x*size, y*size),
         VEC2F(x*size + size, y*size),
         VEC2F(x*size + size, y*size + size),
@@ -258,16 +258,13 @@ static void create_grid_level() {
     }
   }
 
-  demo_level = map_data_build(map);
-
-  free(map);
+  demo_level = map_builder_build(&builder);
 }
 
 static void create_demo_level() {
-  map_data *map = malloc(sizeof(map_data));
-  map->polygons_count = 0;
+  map_builder builder = { 0 };
 
-  map_data_add_polygon(map, 0, 144, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 144, 1.f, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(400, 400),
@@ -275,51 +272,48 @@ static void create_demo_level() {
     VEC2F(0, 400)
   ));
 
-  map_data_add_polygon(map, -32, 160, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, -32, 160, 1.f, VERTICES(
     VEC2F(50, 50),
     VEC2F(50, 200),
     VEC2F(200, 200),
     VEC2F(200, 50)
   ));
 
-  map_data_add_polygon(map, 128, 128, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 128, 128, 1.f, VERTICES(
     VEC2F(100, 100),
     VEC2F(125, 100),
     VEC2F(125, 125),
     VEC2F(100, 125)
   ));
 
-  map_data_add_polygon(map, 32, 96, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 32, 96, 1.f, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(300, -200),
     VEC2F(0, -100)
   ));
 
-  map_data_add_polygon(map, -128, 256, 0.25f, VERTICES(
+  map_builder_add_polygon(&builder, -128, 256, 0.25f, VERTICES(
     VEC2F(400, 400),
     VEC2F(200, 300),
     VEC2F(100, 1000),
     VEC2F(500, 1000)
   ));
 
-  map_data_add_polygon(map, 0, 224, 1.5f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 224, 1.5f, VERTICES(
     VEC2F(275, 500),
     VEC2F(325, 500),
     VEC2F(325, 700),
     VEC2F(275, 700)
   ));
 
-  demo_level = map_data_build(map);
-
-  free(map);
+  demo_level = map_builder_build(&builder);
 }
 
 static void create_big_one() {
-  map_data *map = malloc(sizeof(map_data));
-  map->polygons_count = 0;
+  map_builder builder = { 0 };
 
-  map_data_add_polygon(map, 0, 2048, 0.75f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 2048, 0.75f, VERTICES(
     VEC2F(0, 0),
     VEC2F(6000, 0),
     VEC2F(6000, 6000),
@@ -341,7 +335,7 @@ static void create_big_one() {
         c = 1440 - 32 * (rand() % 24);
       }
 
-      map_data_add_polygon(map, f, c, 1.f, VERTICES(
+      map_builder_add_polygon(&builder, f, c, 1.f, VERTICES(
         VEC2F(1000+x*size,        1000+y*size),
         VEC2F(1000+x*size + size, 1000+y*size),
         VEC2F(1000+x*size + size, 1000+y*size + size),
@@ -350,56 +344,53 @@ static void create_big_one() {
     }
   }
 
-  demo_level = map_data_build(map);
-  free(map);
+  demo_level = map_builder_build(&builder);
 }
 
 static void create_semi_intersecting_sectors() {
-  map_data *map = malloc(sizeof(map_data));
-  map->polygons_count = 0;
+  map_builder builder = { 0 };
 
-  map_data_add_polygon(map, 0, 128, 0.5f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 0.5f, VERTICES(
     VEC2F(0, 0),
     VEC2F(500, 0),
     VEC2F(500, 500),
     VEC2F(0, 500)
   ));
 
-  map_data_add_polygon(map, 32, 96, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 32, 96, 1.f, VERTICES(
     VEC2F(0, 200),
     VEC2F(50, 200),
     VEC2F(50, 400),
     VEC2F(0, 400)
   ));
 
-  map_data_add_polygon(map, 32, 256, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 32, 256, 1.0f, VERTICES(
     VEC2F(250, 250),
     VEC2F(750, 250),
     VEC2F(750, 350),
     VEC2F(250, 350)
   ));
 
-  map_data_add_polygon(map, 56, 96, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, 1.0f, VERTICES(
     VEC2F(240, 240),
     VEC2F(260, 240),
     VEC2F(260, 260),
     VEC2F(240, 260)
   ));
 
-  map_data_add_polygon(map, 16, 88, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 16, 88, 1.0f, VERTICES(
     VEC2F(240, 340),
     VEC2F(260, 340),
     VEC2F(260, 360),
     VEC2F(240, 360)
   ));
 
-  map_data_add_polygon(map, -128, 96, 0.25f, VERTICES(
+  map_builder_add_polygon(&builder, -128, 96, 0.25f, VERTICES(
     VEC2F(-100, 100),
     VEC2F(100, 100),
     VEC2F(100, -100),
     VEC2F(-100, -100)
   ));
 
-  demo_level = map_data_build(map);
-  free(map);
+  demo_level = map_builder_build(&builder);
 }

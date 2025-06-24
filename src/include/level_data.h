@@ -3,7 +3,9 @@
 
 #include "sector.h"
 
-typedef struct {
+struct polygon;
+
+typedef struct level_data {
   size_t sectors_count,
          linedefs_count,
          vertices_count;
@@ -12,25 +14,8 @@ typedef struct {
   sector sectors[4096];
 } level_data;
 
-
-/* Structures for building the level */
-
-#define VERTICES(...) M_NARG(__VA_ARGS__), (vec2f[]) { __VA_ARGS__ }
-
-typedef struct {
-  size_t vertices_count;
-  vec2f vertices[32];
-  int32_t floor_height,
-          ceiling_height;
-  float light;
-} polygon;
-
-typedef struct {
-  size_t polygons_count;
-  polygon polygons[2048];
-} map_data;
-
-void map_data_add_polygon(map_data*, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[]);
-level_data* map_data_build(map_data*);
+vertex*   level_data_get_vertex(level_data*, vec2f);
+linedef*  level_data_get_linedef(level_data*, sector*, vertex*, vertex*);
+sector*   level_data_create_sector_from_polygon(level_data*, struct polygon*);
 
 #endif

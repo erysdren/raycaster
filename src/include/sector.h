@@ -20,7 +20,14 @@ typedef struct sector {
   linedef **linedefs;
 } sector;
 
-M_INLINED bool sector_point_inside(const sector *this, vec2f point) {
+bool      sector_references_vertex(sector*, vertex*, size_t);
+bool      sector_connects_vertices(sector*, vertex*, vertex*);
+linedef*  sector_add_linedef(sector*, linedef*);
+void      sector_remove_linedef(sector*, linedef*);
+
+M_INLINED
+bool      sector_point_inside(const sector *this, vec2f point)
+{
   register int i, wn = 0;
   register const linedef *line;
 
@@ -43,7 +50,7 @@ M_INLINED bool sector_point_inside(const sector *this, vec2f point) {
     }
   }
 
-  return wn==1 || wn==-1;
+  return wn == 1 || wn == -1;
 }
 
 #endif

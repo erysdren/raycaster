@@ -10,6 +10,15 @@
 /* SDL3 sub-directory in DEPS folder */
 #define SDL3_FOLDER   "SDL3-devel-3.2.16-mingw/i686-w64-mingw32/"
 
+/* Common source files between test and demo target */
+#define COMMON_SRC_FILES \
+  SRC_FOLDER"renderer.c", \
+  SRC_FOLDER"camera.c", \
+  SRC_FOLDER"sector.c", \
+  SRC_FOLDER"level_data.c", \
+  SRC_FOLDER"map_builder/map_builder.c", \
+  SRC_FOLDER"map_builder/polygon.c",
+
 int main(int argc, char **argv)
 {
   NOB_GO_REBUILD_URSELF(argc, argv);
@@ -61,25 +70,25 @@ int main(int argc, char **argv)
       
       "-I"SRC_FOLDER,
       "-I"SRC_FOLDER"include",
+      "-I"SRC_FOLDER"map_builder/include",
       "-I"TESTS_FOLDER,
       "-I"DEPS_FOLDER"unity/src/",
       "-I"DEPS_FOLDER"unity/extras/fixture/src/",
 
-      "-DDEBUG",
       "-DUNITY_INCLUDE_PRINT_FORMATTED",
       "-DUNITY_INCLUDE_DOUBLE",
 
       "-o", BIN_FOLDER"tests",
 
       /* Input files */
+      COMMON_SRC_FILES
       DEPS_FOLDER"unity/src/unity.c",
       DEPS_FOLDER"unity/extras/fixture/src/fixture.c",
-      SRC_FOLDER"renderer.c",
-      SRC_FOLDER"camera.c",
-      SRC_FOLDER"level_data.c",
       TESTS_FOLDER"main.c",
       TESTS_FOLDER"math.c",
+      TESTS_FOLDER"polygon.c",
       TESTS_FOLDER"sector.c",
+      TESTS_FOLDER"map_builder.c",
 
       /* Linked libraries */
       "-lm",
@@ -105,6 +114,7 @@ int main(int argc, char **argv)
       
       "-I"SRC_FOLDER,
       "-I"SRC_FOLDER"include",
+      "-I"SRC_FOLDER"map_builder/include",
       "-I"DEMO_FOLDER,
       "-I"DEPS_FOLDER""SDL3_FOLDER"include",
       
@@ -116,9 +126,7 @@ int main(int argc, char **argv)
 
       /* Input files */
       DEMO_FOLDER"main.c",
-      SRC_FOLDER"renderer.c",
-      SRC_FOLDER"camera.c",
-      SRC_FOLDER"level_data.c",
+      COMMON_SRC_FILES
 
       /* Linked libraries */
       DEPS_FOLDER""SDL3_FOLDER"lib/libSDL3.dll.a",
