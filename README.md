@@ -31,3 +31,6 @@ The library uses [nob.h](https://github.com/tsoding/nob.h) to bootstrap the buil
 1. Use `gcc -o build build.c -std=gnu99` to create the builder (or `CC`, depending on your compiler situation)
 2. Then run `build demo` or `build tests`
 3. Demo application accepts a `-level <number>` argument to try out a couple of levels (0 to 3)
+
+# What now?
+If any of this is interesting and you want to ask anything, or contribute even, then we can chat on [Discord](https://discord.gg/X379hyV37f) 👋
