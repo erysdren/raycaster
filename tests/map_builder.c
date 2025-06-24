@@ -84,7 +84,9 @@ TEST(map_builder, concave_polygon) {
 }
 
 /*
- * Non-overlapping sectors can connect simply by sharing a linedef.
+ * There are a few ways two or more sectors can be connected:
+ * 
+ * 1) Non-overlapping sectors can connect simply by sharing a linedef.
  * The front side references the original sector; the back references the other.
  */
 TEST(map_builder, neighbouring_sectors) {
@@ -118,8 +120,49 @@ TEST(map_builder, neighbouring_sectors) {
   free(level);
 }
 
+/*
+ * 2) If a sector is fully inside another, its linedefs are added with the outer sector as the back.
+ */
+TEST(map_builder, fully_contained_sector) {
+  int i;
+  map_builder builder = { 0 };
+
+  map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
+    VEC2F(0, 0),
+    VEC2F(0, 100),
+    VEC2F(100, 100),
+    VEC2F(100, 0)
+  ));
+
+  map_builder_add_polygon(&builder, 10, 90, 1, VERTICES(
+    VEC2F(25, 25),
+    VEC2F(75, 25),
+    VEC2F(75, 75),
+    VEC2F(25, 75)
+  ));
+
+  level_data *level = map_builder_build(&builder);
+
+  TEST_ASSERT_EQUAL(8, level->vertices_count);
+  TEST_ASSERT_EQUAL(8, level->linedefs_count);
+  TEST_ASSERT_EQUAL(2, level->sectors_count);
+  TEST_ASSERT_EQUAL(8, level->sectors[0].linedefs_count);
+  TEST_ASSERT_EQUAL(4, level->sectors[1].linedefs_count);
+
+  for (i = 0; i < level->sectors[1].linedefs_count; ++i) {
+    /* All linedefs of sector 1 refer to sector 0 */
+    TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[i]->side_sector[1]);
+  }
+
+  TEST_ASSERT_FALSE(sector_point_inside(&level->sectors[0], VEC2F(50, 50)));
+  TEST_ASSERT_TRUE(sector_point_inside(&level->sectors[1], VEC2F(50, 50)));
+
+  free(level);
+}
+
 TEST_GROUP_RUNNER(map_builder) {
   RUN_TEST_CASE(map_builder, convex_polygon);
   RUN_TEST_CASE(map_builder, concave_polygon);
   RUN_TEST_CASE(map_builder, neighbouring_sectors);
+  RUN_TEST_CASE(map_builder, fully_contained_sector);
 }
