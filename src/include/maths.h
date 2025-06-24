@@ -4,6 +4,8 @@
 #include "macros.h"
 #include "types.h"
 
+#define MATHS_EPSILON 1e-6f
+
 M_INLINED float math_cross(vec2f a, vec2f b) {
   return (a.x * b.y) - (a.y * b.x);
 }
@@ -39,7 +41,7 @@ M_INLINED bool math_find_line_intersection(
 
   register float cross = math_cross(BA, DC);
 
-  if (fabsf(cross) < 1e-6f) {
+  if (fabsf(cross) < MATHS_EPSILON) {
     return false;
   }
 
@@ -81,8 +83,26 @@ M_INLINED float math_line_segment_point_distance(vec2f a, vec2f b, vec2f point) 
   return fabs(math_cross(vec2f_sub(b, a), vec2f_sub(a, point))) / math_length(vec2f_sub(b, a));
 }
 
-M_INLINED bool math_point_on_line_segment(vec2f point, vec2f p, vec2f q) {
-  return point.x <= M_MAX(p.x, q.x) && point.x >= M_MIN(p.x, q.x) && point.y <= M_MAX(p.y, q.y) && point.y >= M_MIN(p.y, q.y);
+M_INLINED bool math_point_on_line_segment(vec2f P, vec2f B, vec2f A) {
+  const vec2f BA = vec2f_sub(B, A);
+  const vec2f PA = vec2f_sub(P, A);
+  const float cross = math_cross(BA, PA);
+
+  if (fabsf(cross) > MATHS_EPSILON) {
+    return false;
+  }
+
+  const float dot = math_dot2(BA, PA);
+
+  if (dot < 0.0f) {
+    return false;
+  }
+
+  if (dot > math_dot(BA)) {
+    return false;
+  }
+
+  return true;
 }
 
 M_INLINED int _math_orientation(vec2f p, vec2f q, vec2f r) {
