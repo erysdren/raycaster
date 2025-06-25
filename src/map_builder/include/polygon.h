@@ -4,6 +4,7 @@
 #include "types.h"
 
 #define VERTICES(...) M_NARG(__VA_ARGS__), (vec2f[]) { __VA_ARGS__ }
+#define POLYGON_CLOCKWISE_WINDING(POLY) polygon_signed_area(POLY) < 0
 
 typedef struct polygon {
   int32_t floor_height,
@@ -17,5 +18,6 @@ bool polygon_vertices_contains_point(polygon*, vec2f);
 bool polygon_is_point_inside(polygon*, vec2f);
 bool polygon_overlaps_polygon(polygon*, polygon*);
 void polygon_insert_point(polygon*, vec2f, vec2f, vec2f);
+float polygon_signed_area(const polygon*);
 
 #endif

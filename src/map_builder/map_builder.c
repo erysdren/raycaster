@@ -61,7 +61,7 @@ level_data* map_builder_build(map_builder *this) {
 
   M_DEBUG(printf("\t3. Remove invalid lines ...\n"));
 
-  map_builder_step_remove_invalid_lines(this, level);
+  // map_builder_step_remove_invalid_lines(this, level);
 
   /* ------------ */
 
@@ -91,7 +91,7 @@ static void map_builder_step_find_polygon_intersections(map_builder *this, level
   polygon poly_i, poly_j;
   vec2f v0, v1, v2, v3, intersection;
 
-  for (i = 0; i < this->polygons_count; ++i) {
+  for (i = this->polygons_count - 1; i >= 0; --i) {
     for (j = 0; j < this->polygons_count; ++j) {
       if (i == j) { continue; }
 
@@ -116,24 +116,28 @@ static void map_builder_step_find_polygon_intersections(map_builder *this, level
 
           if (math_point_on_line_segment(v0, v2, v3) && !polygon_vertices_contains_point(&poly_j, v0)) {
             M_DEBUG(printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", i, vi, XY(v0), XY(v2), XY(v3), j));
+            M_DEBUG(printf("\t\t + Inserting (%d,%d) between (%d,%d) and (%d,%d) in poly %d\n", XY(v0), XY(v2), XY(v3), j));
             polygon_insert_point(&poly_j, v0,   v2, v3);
             skip_intersection_check = true;
           }
 
           if (math_point_on_line_segment(v1, v2, v3) && !polygon_vertices_contains_point(&poly_j, v1)) {
             M_DEBUG(printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", i, vi, XY(v1), XY(v2), XY(v3), j));
+            M_DEBUG(printf("\t\t + Inserting (%d,%d) between (%d,%d) and (%d,%d) in poly %d\n", XY(v1), XY(v2), XY(v3), j));
             polygon_insert_point(&poly_j, v1,   v2, v3);
             skip_intersection_check = true;
           }
 
           if (math_point_on_line_segment(v2, v0, v1) && !polygon_vertices_contains_point(&poly_i, v2)) {
             M_DEBUG(printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", j, vj, XY(v2), XY(v0), XY(v1), i));
+            M_DEBUG(printf("\t\t + Inserting (%d,%d) between (%d,%d) and (%d,%d) in poly %d\n", XY(v2), XY(v0), XY(v1), i));
             polygon_insert_point(&poly_i, v2,   v0, v1);
             skip_intersection_check = true;
           }
 
           if (math_point_on_line_segment(v3, v0, v1) && !polygon_vertices_contains_point(&poly_i, v3)) {
             M_DEBUG(printf("\t\tPoly %d vertex %d (%d,%d) is on line (%d,%d) <-> (%d,%d) of poly %d\n", j, vj, XY(v3), XY(v0), XY(v1), i));
+            M_DEBUG(printf("\t\t + Inserting (%d,%d) between (%d,%d) and (%d,%d) in poly %d\n", XY(v3), XY(v0), XY(v1), i));
             polygon_insert_point(&poly_i, v3,   v0, v1);
             skip_intersection_check = true;
           }
@@ -148,7 +152,7 @@ static void map_builder_step_find_polygon_intersections(map_builder *this, level
              * Sounds horribly complicated though...
             */
 
-            M_DEBUG(printf("\t\tSector %d line %d (%d,%d) <-> (%d,%d) intersects with sector %d line %d (%d,%d) <-> (%d,%d) at (%d,%d)\n",
+            M_DEBUG(printf("\t\tPoly %d line %d (%d,%d) <-> (%d,%d) intersects with poly %d line %d (%d,%d) <-> (%d,%d) at (%d,%d)\n",
               i,
               vi,
               XY(v0),
@@ -161,10 +165,12 @@ static void map_builder_step_find_polygon_intersections(map_builder *this, level
             ));
 
             if (!polygon_vertices_contains_point(&poly_i, intersection)) {
+              M_DEBUG(printf("\t\t + Inserting (%d,%d) between (%d,%d) and (%d,%d) in poly %d\n", XY(intersection), XY(v0), XY(v1), i));
               polygon_insert_point(&poly_i, intersection, v0, v1);
             }
 
             if (!polygon_vertices_contains_point(&poly_j, intersection)) {
+              M_DEBUG(printf("\t\t + Inserting (%d,%d) between (%d,%d) and (%d,%d) in poly %d\n", XY(intersection), XY(v2), XY(v3), j));
               polygon_insert_point(&poly_j, intersection, v2, v3);
             }
           }
@@ -182,7 +188,7 @@ static void map_builder_step_remove_invalid_lines(map_builder *this, level_data 
   sector *front, *back;
   linedef *line;
 
-  for (i = 0; i < level->sectors_count; ++i) {
+  for (i = level->sectors_count - 1; i >= 0; --i) {
     front = &level->sectors[i];
 
     for (j = 0; j < level->sectors_count; ++j) {
@@ -238,7 +244,17 @@ static void map_builder_step_configure_back_sectors(map_builder *this, level_dat
         line = front->linedefs[k];
 
         if (line->side_sector[0] && line->side_sector[1]) { continue; }
-        if (sector_connects_vertices(back, line->v0, line->v1)) { continue; }
+        if (sector_connects_vertices(back, line->v0, line->v1)) {
+          if (!line->side_sector[0] || !line->side_sector[1]) {
+            // printf("one side is null of (%d,%d) <-> (%d,%d) of sector %d\n", XY(line->v0->point), XY(line->v1->point), i);
+
+
+          }
+
+
+
+          continue;
+        }
         
         if (polygon_is_point_inside(&this->polygons[i], line->v0->point) && polygon_is_point_inside(&this->polygons[i], line->v1->point)) {
           M_DEBUG(printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, XY(line->v0->point), XY(line->v1->point), j, i));

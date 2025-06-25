@@ -1,10 +1,8 @@
 #include "polygon.h"
 #include "maths.h"
-#include <stdio.h>
 
-#define XY(V) (int)V.x, (int)V.y
-
-bool polygon_vertices_contains_point(polygon *this, vec2f point) {
+bool polygon_vertices_contains_point(polygon *this, vec2f point)
+{
   register size_t i;
   for (i = 0; i < this->vertices_count; ++i) {
     if (math_length(vec2f_sub(this->vertices[i], point)) < 1) {
@@ -14,7 +12,8 @@ bool polygon_vertices_contains_point(polygon *this, vec2f point) {
   return false;
 }
 
-bool polygon_is_point_inside(polygon *this, vec2f point) {
+bool polygon_is_point_inside(polygon *this, vec2f point)
+{
   register int i, wn = 0;
   vec2f v0, v1;
 
@@ -41,7 +40,8 @@ bool polygon_is_point_inside(polygon *this, vec2f point) {
   return wn == 1 || wn == -1;
 }
 
-bool polygon_overlaps_polygon(polygon *this, polygon *other) {
+bool polygon_overlaps_polygon(polygon *this, polygon *other)
+{
   size_t i;
 
   for (i = 0; i < other->vertices_count; ++i) {
@@ -56,7 +56,8 @@ bool polygon_overlaps_polygon(polygon *this, polygon *other) {
   return false;
 }
 
-void polygon_insert_point(polygon *this, vec2f point, /* between */ vec2f v0, vec2f v1) {
+void polygon_insert_point(polygon *this, vec2f point, /* between */ vec2f v0, vec2f v1)
+{
   register size_t i,i2,j;
 
   for (i = 0; i < this->vertices_count; ++i) {
@@ -64,8 +65,6 @@ void polygon_insert_point(polygon *this, vec2f point, /* between */ vec2f v0, ve
 
     if ((VEC2F_EQUAL(this->vertices[i], v0) && VEC2F_EQUAL(this->vertices[i2], v1)) ||
         (VEC2F_EQUAL(this->vertices[i], v1) && VEC2F_EQUAL(this->vertices[i2], v0))) {
-      M_DEBUG(printf("\t\t\tInserting (%d,%d) between (%d,%d) and (%d,%d)\n", XY(point), XY(v0), XY(v1)));
-      
       for (j = this->vertices_count; j > i; --j) {
         this->vertices[j] = this->vertices[j-1];
       }
@@ -76,4 +75,18 @@ void polygon_insert_point(polygon *this, vec2f point, /* between */ vec2f v0, ve
       break;
     }
   }
+}
+
+float polygon_signed_area(const polygon *this)
+{
+  size_t i;
+  float area = 0.f;
+  
+  for (i = 0; i < this->vertices_count; ++i) {
+    vec2f v0 = this->vertices[i];
+    vec2f v1 = this->vertices[(i + 1) % this->vertices_count];
+    area += math_cross(v0, v1);
+  }
+
+  return area * 0.5;
 }

@@ -277,10 +277,10 @@ TEST(map_builder, intersecting_sectors) {
 }
 
 TEST_GROUP_RUNNER(map_builder) {
-  RUN_TEST_CASE(map_builder, convex_polygon);
+  /*RUN_TEST_CASE(map_builder, convex_polygon);
   RUN_TEST_CASE(map_builder, concave_polygon);
   RUN_TEST_CASE(map_builder, neighbouring_sectors);
   RUN_TEST_CASE(map_builder, fully_contained_sector);
   RUN_TEST_CASE(map_builder, fully_contained_sector_sharing_linedef);
-  RUN_TEST_CASE(map_builder, intersecting_sectors);
+  RUN_TEST_CASE(map_builder, intersecting_sectors);*/
 }

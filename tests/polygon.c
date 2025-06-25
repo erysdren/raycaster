@@ -96,9 +96,41 @@ TEST(polygon, overlaps_polygon) {
   TEST_ASSERT_FALSE(polygon_overlaps_polygon(&poly0, &poly2));
 }
 
+TEST(polygon, signed_area) {
+  /* Anti-clockwise winding */
+  polygon poly0 = {
+    .vertices_count = 4,
+    .vertices = {
+      VEC2F(0, 0),
+      VEC2F(100, 0),
+      VEC2F(100, 100),
+      VEC2F(0, 100)
+    }
+  };
+
+  /* Clockwise winding */
+  polygon poly1 = {
+    .vertices_count = 4,
+    .vertices = {
+      VEC2F(0, 100),
+      VEC2F(100, 100),
+      VEC2F(100, 0),
+      VEC2F(0, 0)
+    }
+  };
+
+  float a0 = polygon_signed_area(&poly0);
+  float a1 = polygon_signed_area(&poly1);
+
+  TEST_ASSERT_EQUAL_FLOAT(10000.f, a0);
+  TEST_ASSERT_EQUAL_FLOAT(-10000.f, a1);
+  TEST_ASSERT_TRUE(POLYGON_CLOCKWISE_WINDING(&poly1));
+}
+
 TEST_GROUP_RUNNER(polygon) {
   RUN_TEST_CASE(polygon, vertices_contains_point);
   RUN_TEST_CASE(polygon, is_point_inside);
   RUN_TEST_CASE(polygon, insert_point);
   RUN_TEST_CASE(polygon, overlaps_polygon);
+  RUN_TEST_CASE(polygon, signed_area);
 }
