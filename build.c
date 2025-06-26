@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
       "-DUNITY_INCLUDE_PRINT_FORMATTED",
       "-DUNITY_INCLUDE_DOUBLE",
-      "-DDEBUG",
+      // "-DDEBUG",
 
       "-o", BIN_FOLDER"tests",
 

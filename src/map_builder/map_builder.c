@@ -134,6 +134,8 @@ static void map_builder_step_find_polygon_intersections(map_builder *this, level
         continue;
       }
 
+      M_DEBUG(printf("\tIntersect Sector %d with Sector %d\n", i, j));
+
       gpc_polygon subject = { 0 }, clip = { 0 }, result = { 0 };
 
       to_gpc_polygon(pj, &subject);

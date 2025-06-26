@@ -106,7 +106,7 @@ M_INLINED bool math_point_on_line_segment(vec2f P, vec2f B, vec2f A) {
 }
 
 M_INLINED int _math_orientation(vec2f p, vec2f q, vec2f r) {
-  const float val = math_sign(q, r, p);
+  const float val = math_sign(p, q, r);
   if (fabsf(val) < 1e-6f) { return 0; }
   return (val > 0) ? 1 : 2;
 }
@@ -125,8 +125,8 @@ M_INLINED bool math_line_segments_intersect(vec2f p1, vec2f p2, vec2f q1, vec2f 
     // Special cases (colinear)
     if (o1 == 0 && math_point_on_line_segment(q1, p1, p2)) { return true; }
     if (o2 == 0 && math_point_on_line_segment(q2, p1, p2)) { return true; }
-    if (o3 == 0 && math_point_on_line_segment(q1, q1, q2)) { return true; }
-    if (o4 == 0 && math_point_on_line_segment(q2, q1, q2)) { return true; }
+    if (o3 == 0 && math_point_on_line_segment(p1, q1, q2)) { return true; }
+    if (o4 == 0 && math_point_on_line_segment(p2, q1, q2)) { return true; }
 
     return false;
 }

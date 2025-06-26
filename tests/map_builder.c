@@ -217,13 +217,13 @@ TEST(map_builder, fully_contained_sector_sharing_linedef) {
   TEST_ASSERT_EQUAL(4, level->sectors[1].linedefs_count);
 
   TEST_ASSERT_NULL(level->sectors[1].linedefs[1]->side_sector[1]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[0]->side_sector[1]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[2]->side_sector[1]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[3]->side_sector[1]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[0]->side_sector[0]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[2]->side_sector[0]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[3]->side_sector[0]);
 
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[5]->side_sector[0]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[6]->side_sector[0]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[7]->side_sector[0]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[0]->side_sector[1]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[1]->side_sector[1]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[2]->side_sector[1]);
 
   free(level);
 }
@@ -259,7 +259,7 @@ TEST(map_builder, intersecting_sectors) {
    * │      ╔═════v3════╗
    * │      ║ B         ║
    * │      ║           ║
-   * │      ╚═════v4════╝
+   * │      ╚═════v1════╝
    * │            │
    * └────────────┘
    *
@@ -271,16 +271,16 @@ TEST(map_builder, intersecting_sectors) {
   TEST_ASSERT_EQUAL(8, level->sectors[0].linedefs_count);
   TEST_ASSERT_EQUAL(6, level->sectors[1].linedefs_count);
 
-  TEST_ASSERT_FALSE(sector_connects_vertices(&level->sectors[0], &level->vertices[3], &level->vertices[4]));
+  TEST_ASSERT_FALSE(sector_connects_vertices(&level->sectors[0], &level->vertices[3], &level->vertices[1]));
 
   free(level);
 }
 
 TEST_GROUP_RUNNER(map_builder) {
-  /*RUN_TEST_CASE(map_builder, convex_polygon);
+  RUN_TEST_CASE(map_builder, convex_polygon);
   RUN_TEST_CASE(map_builder, concave_polygon);
   RUN_TEST_CASE(map_builder, neighbouring_sectors);
   RUN_TEST_CASE(map_builder, fully_contained_sector);
   RUN_TEST_CASE(map_builder, fully_contained_sector_sharing_linedef);
-  RUN_TEST_CASE(map_builder, intersecting_sectors);*/
+  RUN_TEST_CASE(map_builder, intersecting_sectors);
 }

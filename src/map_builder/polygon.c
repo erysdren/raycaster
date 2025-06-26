@@ -56,15 +56,13 @@ bool polygon_overlaps_polygon(const polygon *this, const polygon *other)
     if (polygon_is_point_inside(this, other->vertices[i], true)) {
       return true;
     }
-
     i2 = (i + 1) % other->vertices_count;
-
     for (j = 0; j < this->vertices_count; ++j) {
       j2 = (j + 1) % this->vertices_count;
-      if (VEC2F_EQUAL(other->vertices[i], this->vertices[j]) ||
-          VEC2F_EQUAL(other->vertices[i2], this->vertices[j]) ||
-          VEC2F_EQUAL(other->vertices[i], this->vertices[j2]) ||
-          VEC2F_EQUAL(other->vertices[i2], this->vertices[j2])
+      if (VEC2F_EQUAL(other->vertices[i],   this->vertices[j])  ||
+          VEC2F_EQUAL(other->vertices[i2],  this->vertices[j])  ||
+          VEC2F_EQUAL(other->vertices[i],   this->vertices[j2]) ||
+          VEC2F_EQUAL(other->vertices[i2],  this->vertices[j2])
       ) { continue; }
       if (math_line_segments_intersect(
         other->vertices[i],

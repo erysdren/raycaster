@@ -36,7 +36,9 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
 
     if ((line->v0 == v0 && line->v1 == v1) || (line->v0 == v1 && line->v1 == v0)) {
       line->side_sector[1] = sect;
-      M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", line, XY(v0->point), XY(v1->point), line->color));
+      M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d, Front: 0x%p, Back: 0x%p)\n",
+        line, XY(v0->point), XY(v1->point), line->color, line->side_sector[0], line->side_sector[1]
+      ));
       return line;
     }
   }
@@ -49,7 +51,9 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
     .color = linedef_color++
   };
 
-  M_DEBUG(printf("\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", &this->linedefs[this->linedefs_count], XY(v0->point), XY(v1->point), linedef_color-1));
+  M_DEBUG(printf("\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d, Front: 0x%p, Back: 0x%p)\n",
+    &this->linedefs[this->linedefs_count], XY(v0->point), XY(v1->point), linedef_color-1, sect, NULL
+  ));
 
   return &this->linedefs[this->linedefs_count++];
 }
