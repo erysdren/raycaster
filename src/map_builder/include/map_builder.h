@@ -7,22 +7,22 @@ struct level_data;
 
 typedef struct {
   size_t polygons_count;
-  polygon polygons[2048];
+  polygon polygons[2048]; /* Should match with max sector count in `level_data` */
 } map_builder;
 
-void map_builder_add_polygon(map_builder*, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[]);
+void                map_builder_add_polygon(map_builder*, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[]);
+struct level_data*  map_builder_build(map_builder*);
+void                map_builder_free(map_builder*);
 
-struct level_data* map_builder_build(map_builder*);
-
-M_INLINED polygon* map_builder_polygon_at_point(map_builder *this, vec2f point) {
-  register int i = 0;
-
+M_INLINED
+polygon*            map_builder_polygon_at_point(map_builder *this, vec2f point)
+{
+  int i;
   for (i = this->polygons_count - 1; i >= 0; --i) {
     if (polygon_is_point_inside(&this->polygons[i], point, true)) {
       return &this->polygons[i];
     }
   }
-
   return NULL;
 }
 

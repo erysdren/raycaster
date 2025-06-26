@@ -15,19 +15,23 @@ static void map_builder_step_configure_back_sectors(map_builder*, level_data*);
 void map_builder_add_polygon(map_builder *this, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[])
 {
   M_DEBUG(register size_t i);
-
   M_DEBUG(printf("Add polygon (%d vertices) [%d, %d]:\n", vertices_count, floor_height, ceiling_height));
 
-  this->polygons[this->polygons_count] = (polygon) {
+  const size_t pi = this->polygons_count;
+
+  this->polygons[pi] = (polygon) {
     .vertices_count = vertices_count,
     .floor_height = floor_height,
     .ceiling_height = ceiling_height,
     .light = light
   };
-  memcpy(this->polygons[this->polygons_count].vertices, vertices, vertices_count * sizeof(vec2f));
+
+  this->polygons[pi].vertices = (vec2f*)malloc(vertices_count * sizeof(vec2f));
+
+  memcpy(this->polygons[pi].vertices, vertices, vertices_count * sizeof(vec2f));
 
   M_DEBUG(for (i = 0; i < vertices_count; ++i) {
-    printf("\t(%d, %d)\n", XY(this->polygons[this->polygons_count].vertices[i]));
+    printf("\t(%d, %d)\n", XY(this->polygons[pi].vertices[i]));
   })
 
   this->polygons_count++;
@@ -71,6 +75,13 @@ level_data* map_builder_build(map_builder *this)
   return level;
 }
 
+void map_builder_free(map_builder *this) {
+  size_t i;
+  for (i = 0; i < this->polygons_count; ++i) {
+    free(this->polygons[i].vertices);
+  }
+}
+
 /*
  * Private methods
  */
@@ -96,6 +107,7 @@ static void from_gpc_polygon(const gpc_polygon *gpc_poly, polygon *poly)
   for (i = 0; i < gpc_poly->num_contours; ++i) {
     if (!gpc_poly->hole[i]) {
       poly->vertices_count = gpc_poly->contour[i].num_vertices;
+      poly->vertices = realloc(poly->vertices, poly->vertices_count * sizeof(vec2f));
       for (j = 0; j < gpc_poly->contour[i].num_vertices; ++j) {
         poly->vertices[j] = VEC2F(gpc_poly->contour[i].vertex[j].x, gpc_poly->contour[i].vertex[j].y);
       }

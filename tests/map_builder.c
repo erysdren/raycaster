@@ -45,6 +45,7 @@ TEST(map_builder, convex_polygon) {
   TEST_ASSERT_FALSE(sector_point_inside(&level->sectors[0], VEC2F(-10, -10)));
 
   free(level);
+  map_builder_free(&builder);
 }
 
 TEST(map_builder, concave_polygon) {
@@ -81,6 +82,7 @@ TEST(map_builder, concave_polygon) {
   TEST_ASSERT_TRUE(sector_point_inside(&level->sectors[0], VEC2F(10, 10)));
 
   free(level);
+  map_builder_free(&builder);
 }
 
 /*
@@ -118,6 +120,7 @@ TEST(map_builder, neighbouring_sectors) {
   TEST_ASSERT_EQUAL_PTR(level->sectors[0].linedefs[2], level->sectors[1].linedefs[0]);
 
   free(level);
+  map_builder_free(&builder);
 }
 
 /*
@@ -158,6 +161,7 @@ TEST(map_builder, fully_contained_sector) {
   TEST_ASSERT_TRUE(sector_point_inside(&level->sectors[1], VEC2F(50, 50)));
 
   free(level);
+  map_builder_free(&builder);
 }
 
 /*
@@ -226,6 +230,7 @@ TEST(map_builder, fully_contained_sector_sharing_linedef) {
   TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[2]->side_sector[1]);
 
   free(level);
+  map_builder_free(&builder);
 }
 
 /*
@@ -274,6 +279,7 @@ TEST(map_builder, intersecting_sectors) {
   TEST_ASSERT_FALSE(sector_connects_vertices(&level->sectors[0], &level->vertices[3], &level->vertices[1]));
 
   free(level);
+  map_builder_free(&builder);
 }
 
 TEST_GROUP_RUNNER(map_builder) {

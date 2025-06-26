@@ -98,6 +98,7 @@ void polygon_insert_point(polygon *this, vec2f point, vec2f after, vec2f before)
     i2 = (i + 1) % this->vertices_count;
     if ((VEC2F_EQUAL(this->vertices[i], after) && VEC2F_EQUAL(this->vertices[i2], before)) ||
         (VEC2F_EQUAL(this->vertices[i], before) && VEC2F_EQUAL(this->vertices[i2], after))) {
+      this->vertices = realloc(this->vertices, (this->vertices_count+1)*sizeof(vec2f));
       for (j = this->vertices_count; j > i + 1; --j) {
         this->vertices[j] = this->vertices[j - 1];
       }
@@ -117,7 +118,7 @@ void polygon_remove_point(polygon *this, vec2f point)
       for (j = i; j < this->vertices_count; ++j) {
         this->vertices[j] = this->vertices[j+1];
       }
-      this->vertices_count --;
+      this->vertices = realloc(this->vertices, (--this->vertices_count)*sizeof(vec2f));
       break;
     }
   }

@@ -11,7 +11,7 @@ typedef struct polygon {
           ceiling_height;
   float light;
   size_t vertices_count;
-  vec2f vertices[32];
+  vec2f *vertices;
 } polygon;
 
 bool  polygon_vertices_contains_point(const polygon*, vec2f);

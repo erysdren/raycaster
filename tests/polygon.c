@@ -15,7 +15,7 @@ TEST_TEAR_DOWN(polygon) {}
 TEST(polygon, vertices_contains_point) {
   polygon poly = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 0),
       VEC2F(0, 100),
       VEC2F(100, 100),
@@ -30,7 +30,7 @@ TEST(polygon, vertices_contains_point) {
 TEST(polygon, is_point_inside) {
   polygon poly = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 0),
       VEC2F(0, 100),
       VEC2F(100, 100),
@@ -45,33 +45,41 @@ TEST(polygon, is_point_inside) {
 }
 
 TEST(polygon, insert_point) {
-  /*polygon poly = {
+  vec2f *vertices = (vec2f*)malloc(3*sizeof(vec2f));
+  vertices[0] = VEC2F(0, 0);
+  vertices[1] = VEC2F(100, 0);
+  vertices[2] = VEC2F(50, 100);
+
+  printf("OLD ADDRESS: %p\n", vertices);
+
+  polygon poly = {
     .vertices_count = 3,
-    .vertices = {
-      VEC2F(0, 0),
-      VEC2F(100, 0),
-      VEC2F(50, 100)
-    }
+    .vertices = vertices
   };
 
   polygon_insert_point(&poly, VEC2F(100, 100), VEC2F(100, 0), VEC2F(50, 100));
 
+  printf("NEW ADDRESS: %p\n", poly.vertices);
+
   TEST_ASSERT_EQUAL_INT(4, poly.vertices_count);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(100, 0), poly.vertices[1]);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(100, 100), poly.vertices[2]);
-  TEST_ASSERT_EQUAL_VEC2F(VEC2F(50, 100), poly.vertices[3]);*/
+  TEST_ASSERT_EQUAL_VEC2F(VEC2F(50, 100), poly.vertices[3]);
+
+  free(vertices);
 }
 
 TEST(polygon, remove_point)
 {
+  vec2f *vertices = (vec2f*)malloc(3*sizeof(vec2f));
+  vertices[0] = VEC2F(0, 0);
+  vertices[1] = VEC2F(100, 0);
+  vertices[2] = VEC2F(100, 100);
+  vertices[3] = VEC2F(0, 100);
+  
   polygon poly = {
     .vertices_count = 4,
-    .vertices = {
-      VEC2F(0, 0),
-      VEC2F(100, 0),
-      VEC2F(100, 100),
-      VEC2F(0, 100)
-    }
+    .vertices = vertices
   };
 
   polygon_remove_point(&poly, VEC2F(100, 100));
@@ -80,12 +88,14 @@ TEST(polygon, remove_point)
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(0, 0), poly.vertices[0]);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(100, 0), poly.vertices[1]);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(0, 100), poly.vertices[2]);
+
+  free(vertices);
 }
 
 TEST(polygon, overlaps_polygon) {
   polygon poly0 = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 0),
       VEC2F(100, 0),
       VEC2F(100, 100),
@@ -95,7 +105,7 @@ TEST(polygon, overlaps_polygon) {
 
   polygon poly1 = {
     .vertices_count = 3,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 0),
       VEC2F(50, 50),
       VEC2F(0, 100)
@@ -104,7 +114,7 @@ TEST(polygon, overlaps_polygon) {
 
   polygon poly2 = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(100, 0),
       VEC2F(200, 0),
       VEC2F(200, 100),
@@ -120,7 +130,7 @@ TEST(polygon, signed_area) {
   /* Anti-clockwise winding */
   polygon poly0 = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 0),
       VEC2F(100, 0),
       VEC2F(100, 100),
@@ -131,7 +141,7 @@ TEST(polygon, signed_area) {
   /* Clockwise winding */
   polygon poly1 = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 100),
       VEC2F(100, 100),
       VEC2F(100, 0),
@@ -151,7 +161,7 @@ TEST(polygon, contains_polygon)
 {
   polygon poly0 = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 0),
       VEC2F(100, 0),
       VEC2F(100, 100),
@@ -161,7 +171,7 @@ TEST(polygon, contains_polygon)
 
   polygon poly1 = {
     .vertices_count = 3,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(25, 25),
       VEC2F(50, 50),
       VEC2F(10, 90)
@@ -170,7 +180,7 @@ TEST(polygon, contains_polygon)
 
   polygon poly2 = {
     .vertices_count = 4,
-    .vertices = {
+    .vertices = (vec2f[]) {
       VEC2F(0, 0),
       VEC2F(200, 0),
       VEC2F(200, 100),

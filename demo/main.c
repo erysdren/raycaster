@@ -259,6 +259,7 @@ static void create_grid_level() {
   }
 
   demo_level = map_builder_build(&builder);
+  map_builder_free(&builder);
 }
 
 static void create_demo_level() {
@@ -308,6 +309,7 @@ static void create_demo_level() {
   ));
 
   demo_level = map_builder_build(&builder);
+  map_builder_free(&builder);
 }
 
 static void create_big_one() {
@@ -345,12 +347,13 @@ static void create_big_one() {
   }
 
   demo_level = map_builder_build(&builder);
+  map_builder_free(&builder);
 }
 
 static void create_semi_intersecting_sectors() {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 0.5f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 0.75f, VERTICES(
     VEC2F(0, 0),
     VEC2F(500, 0),
     VEC2F(500, 500),
@@ -414,4 +417,5 @@ static void create_semi_intersecting_sectors() {
   ));
 
   demo_level = map_builder_build(&builder);
+  map_builder_free(&builder);
 }
