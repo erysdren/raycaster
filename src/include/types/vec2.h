@@ -39,10 +39,6 @@ M_INLINED NAME NAME##_div(NAME a, T f) {                                        
                                                                                   \
 M_INLINED bool NAME##_equals(NAME a, NAME b) {                                    \
 	return (a.x == b.x && a.y == b.y);                                              \
-}                                                                                 \
-                                                                                  \
-M_INLINED int NAME##_sign(NAME p, NAME a, NAME b) {                               \
-  return (p.x-b.x)*(a.y-b.y)-(a.x-b.x)*(p.y-b.y);                                 \
 }
 
 #endif
