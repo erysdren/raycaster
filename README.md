@@ -9,7 +9,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 * :black_square_button: Basic sector and linedef handling
 * 🚧 Basic level construction: define some polygons and automatically build the sectors
 * 💡 Sector lighting with distance falloff for walls, floors and ceilings
-* ⭐ Uses GeneralPolygonClipper for the sector differences
+* ⭐ Uses GeneralPolygonClipper for the sector differences and splitting
 * :dash: Uses OpenMP to render columns in parallel = fast (optional)
 
 ## Unfeatures
