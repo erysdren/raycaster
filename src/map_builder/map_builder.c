@@ -6,35 +6,26 @@
 
 #define XY(V) (int)V.x, (int)V.y
 
-static void map_builder_step_find_polygon_intersections(map_builder*, level_data*);
+static void map_builder_step_find_polygon_intersections(map_builder*);
 static void map_builder_step_configure_back_sectors(map_builder*, level_data*);
+static void map_builder_insert_polygon(map_builder*, size_t, int32_t, int32_t, float, size_t, void*, int);
+
+#define VEC2F_LIST 1
+#define GPC_VERTEX_LIST 2
+
 /*
  * Map data public API 
  */
 
-void map_builder_add_polygon(map_builder *this, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[])
-{
-  M_DEBUG(register size_t i);
-  M_DEBUG(printf("Add polygon (%d vertices) [%d, %d]:\n", vertices_count, floor_height, ceiling_height));
-
-  const size_t pi = this->polygons_count;
-
-  this->polygons[pi] = (polygon) {
-    .vertices_count = vertices_count,
-    .floor_height = floor_height,
-    .ceiling_height = ceiling_height,
-    .light = light
-  };
-
-  this->polygons[pi].vertices = (vec2f*)malloc(vertices_count * sizeof(vec2f));
-
-  memcpy(this->polygons[pi].vertices, vertices, vertices_count * sizeof(vec2f));
-
-  M_DEBUG(for (i = 0; i < vertices_count; ++i) {
-    printf("\t(%d, %d)\n", XY(this->polygons[pi].vertices[i]));
-  })
-
-  this->polygons_count++;
+void map_builder_add_polygon(
+  map_builder *this,
+  int32_t floor_height,
+  int32_t ceiling_height,
+  float light,
+  size_t vertices_count,
+  vec2f vertices[]
+) {
+  map_builder_insert_polygon(this, this->polygons_count, floor_height, ceiling_height, light, vertices_count, vertices, VEC2F_LIST);
 }
 
 level_data* map_builder_build(map_builder *this)
@@ -52,7 +43,7 @@ level_data* map_builder_build(map_builder *this)
   
   M_DEBUG(printf("1. Find all polygon intersections ...\n"));
   
-  map_builder_step_find_polygon_intersections(this, level);
+  map_builder_step_find_polygon_intersections(this);
 
   /* ------------ */
   
@@ -75,7 +66,8 @@ level_data* map_builder_build(map_builder *this)
   return level;
 }
 
-void map_builder_free(map_builder *this) {
+void map_builder_free(map_builder *this)
+{
   size_t i;
   for (i = 0; i < this->polygons_count; ++i) {
     free(this->polygons[i].vertices);
@@ -99,22 +91,6 @@ static void to_gpc_polygon(const polygon *poly, gpc_polygon *gpc_poly)
   free(contour.vertex);
 }
 
-static void from_gpc_polygon(const gpc_polygon *gpc_poly, polygon *poly)
-{
-  size_t i, j;
-  assert(gpc_poly->num_contours > 0);
-
-  for (i = 0; i < gpc_poly->num_contours; ++i) {
-    if (!gpc_poly->hole[i]) {
-      poly->vertices_count = gpc_poly->contour[i].num_vertices;
-      poly->vertices = realloc(poly->vertices, poly->vertices_count * sizeof(vec2f));
-      for (j = 0; j < gpc_poly->contour[i].num_vertices; ++j) {
-        poly->vertices[j] = VEC2F(gpc_poly->contour[i].vertex[j].x, gpc_poly->contour[i].vertex[j].y);
-      }
-    }
-  }
-}
-
 static void polygon_add_new_vertices_from(polygon *this, const polygon *other)
 {
   size_t j,i,i2;
@@ -130,19 +106,20 @@ static void polygon_add_new_vertices_from(polygon *this, const polygon *other)
   }
 }
 
-static void map_builder_step_find_polygon_intersections(map_builder *this, level_data *level)
+static void map_builder_step_find_polygon_intersections(map_builder *this)
 {
-  int i, j;
+  int i, j, ci, vi, external_contours;
   polygon *pi, *pj;
 
   for (j = 0; j < this->polygons_count; ++j) {
     pj = &this->polygons[j];
 
-    for (i = j + 1; i < this->polygons_count; ++i) {
+    for (i = j + 1; i < this->polygons_count;) {
       pi = &this->polygons[i];
 
       /* Polygon 'pi' is wholly inside 'pj' without sharing an edge */
       if (polygon_contains_polygon(pj, pi, false) || !polygon_overlaps_polygon(pj, pi)) {
+        i++;
         continue;
       }
 
@@ -154,14 +131,36 @@ static void map_builder_step_find_polygon_intersections(map_builder *this, level
       to_gpc_polygon(pi, &clip);
       gpc_polygon_clip(GPC_DIFF, &subject, &clip, &result);
 
-      /* TODO: If 'clip' splits 'subject' in two or more pieces (>1 external countours),
-         then we should promote the other pieces into polygons (sectors) of their own. */
-
-      from_gpc_polygon(&result, pj);
+      /* Read contours */
+      for (ci = 0, external_contours = 0; ci < result.num_contours; ++ci) {
+        if (!result.hole[ci]) {
+          if (external_contours++ == 0) {
+            pj->vertices_count = result.contour[ci].num_vertices;
+            pj->vertices = realloc(pj->vertices, pj->vertices_count * sizeof(vec2f));
+            for (vi = 0; vi < result.contour[ci].num_vertices; ++vi) {
+              pj->vertices[vi] = VEC2F(result.contour[ci].vertex[vi].x, result.contour[ci].vertex[vi].y);
+            }
+          } else {
+            /* Create new polygon from the other countour(s) */
+            map_builder_insert_polygon(
+              this,
+              j+1,
+              pj->floor_height,
+              pj->ceiling_height,
+              pj->light,
+              result.contour[ci].num_vertices,
+              result.contour[ci].vertex,
+              GPC_VERTEX_LIST
+            );
+          }
+        }
+      }
 
       gpc_free_polygon(&subject);
       gpc_free_polygon(&clip);
       gpc_free_polygon(&result);
+
+      i += external_contours;
     }
   }
 
@@ -218,4 +217,49 @@ static void map_builder_step_configure_back_sectors(map_builder *this, level_dat
       back->linedefs_count = new_count;
     }
   }
+}
+
+static void map_builder_insert_polygon(
+  map_builder *this,
+  size_t insert_index,
+  int32_t floor_height,
+  int32_t ceiling_height,
+  float light,
+  size_t vertices_count,
+  void *vertices,
+  int vertices_list_type
+) {
+  int i;
+
+  M_DEBUG(printf("Insert polygon (%d vertices) [%d, %d] at index %d:\n", vertices_count, floor_height, ceiling_height, insert_index));
+
+  if (insert_index < this->polygons_count) {
+    for (i = this->polygons_count; i > insert_index; --i) {
+      this->polygons[i] = this->polygons[i-1];
+    }
+  }
+
+  this->polygons[insert_index] = (polygon) {
+    .vertices_count = vertices_count,
+    .floor_height = floor_height,
+    .ceiling_height = ceiling_height,
+    .light = light
+  };
+
+  this->polygons[insert_index].vertices = (vec2f*)malloc(vertices_count * sizeof(vec2f));
+
+  if (vertices_list_type == VEC2F_LIST) {
+    memcpy(this->polygons[insert_index].vertices, (vec2f*)vertices, vertices_count * sizeof(vec2f));
+  } else if (vertices_list_type == GPC_VERTEX_LIST) {
+    gpc_vertex *list = (gpc_vertex *)vertices;
+    for (i=0; i < vertices_count; ++i) {
+      this->polygons[insert_index].vertices[i] = VEC2F(list[i].x, list[i].y);
+    }
+  }
+
+  M_DEBUG(for (i=0; i < vertices_count; ++i) {
+    printf("\t(%d, %d)\n", XY(this->polygons[insert_index].vertices[i]));
+  })
+
+  this->polygons_count++;
 }

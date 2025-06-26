@@ -288,6 +288,33 @@ TEST(map_builder, intersecting_sectors)
   map_builder_free(&builder);
 }
 
+TEST(map_builder, polygon_splitting)
+{
+  map_builder builder = { 0 };
+
+  map_builder_add_polygon(&builder, 0, 128, 1, VERTICES(
+    VEC2F(0, 0),
+    VEC2F(500, 0),
+    VEC2F(500, 100),
+    VEC2F(0, 100)
+  ));
+
+  /* This sector will split the first one so you end up with 3 sectors */
+  map_builder_add_polygon(&builder, 16, 112, 1, VERTICES(
+    VEC2F(225, -250),
+    VEC2F(325, -250),
+    VEC2F(325, 250),
+    VEC2F(225, 250)
+  ));
+
+  level_data *level = map_builder_build(&builder);
+
+  TEST_ASSERT_EQUAL_INT(3, level->sectors_count);
+
+  free(level);
+  map_builder_free(&builder);
+}
+
 TEST_GROUP_RUNNER(map_builder)
 {
   RUN_TEST_CASE(map_builder, convex_polygon);
@@ -296,4 +323,5 @@ TEST_GROUP_RUNNER(map_builder)
   RUN_TEST_CASE(map_builder, fully_contained_sector);
   RUN_TEST_CASE(map_builder, fully_contained_sector_sharing_linedef);
   RUN_TEST_CASE(map_builder, intersecting_sectors);
+  RUN_TEST_CASE(map_builder, polygon_splitting);
 }

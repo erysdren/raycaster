@@ -31,9 +31,11 @@ static void create_demo_level();
 static void create_grid_level();
 static void create_big_one();
 static void create_semi_intersecting_sectors();
+static void create_crossing_and_splitting_sectors();
 static void process_camera_movement(const float delta_time);
 
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
+{
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     SDL_Log("SDL_Init failed: %s", SDL_GetError());
     return -1;
@@ -85,6 +87,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   case 1: create_demo_level(); break;
   case 2: create_big_one(); break;
   case 3: create_semi_intersecting_sectors(); break;
+  case 4: create_crossing_and_splitting_sectors(); break;
   default: create_grid_level(); break;
   }
  
@@ -95,12 +98,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   return 0;
 }
 
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+void SDL_AppQuit(void *appstate, SDL_AppResult result)
+{
   renderer_destroy(&rend);
 }
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
+{
     if (event->type == SDL_EVENT_QUIT) {
       return SDL_APP_SUCCESS;
     } else if (event->type == SDL_EVENT_KEY_DOWN) {
@@ -162,7 +167,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SDL_AppIterate(void *userdata) {
+SDL_AppResult SDL_AppIterate(void *userdata)
+{
   static char debug_buffer[64];
   static float fps_update_timer = 0.5f;
 
@@ -217,7 +223,8 @@ SDL_AppResult SDL_AppIterate(void *userdata) {
   return SDL_APP_CONTINUE;
 }
 
-static void process_camera_movement(const float delta_time) {
+static void process_camera_movement(const float delta_time)
+{
   if ((int)movement.forward != 0) {
     camera_move(&cam, 400 * movement.forward * delta_time);
   }
@@ -231,7 +238,8 @@ static void process_camera_movement(const float delta_time) {
   }
 }
 
-static void create_grid_level() {
+static void create_grid_level()
+{
   const int w = 24;
   const int h = 24;
   const int size = 256;
@@ -262,7 +270,8 @@ static void create_grid_level() {
   map_builder_free(&builder);
 }
 
-static void create_demo_level() {
+static void create_demo_level()
+{
   map_builder builder = { 0 };
 
   map_builder_add_polygon(&builder, 0, 144, 1.f, VERTICES(
@@ -312,7 +321,8 @@ static void create_demo_level() {
   map_builder_free(&builder);
 }
 
-static void create_big_one() {
+static void create_big_one()
+{
   map_builder builder = { 0 };
 
   map_builder_add_polygon(&builder, 0, 2048, 0.75f, VERTICES(
@@ -350,7 +360,8 @@ static void create_big_one() {
   map_builder_free(&builder);
 }
 
-static void create_semi_intersecting_sectors() {
+static void create_semi_intersecting_sectors()
+{
   map_builder builder = { 0 };
 
   map_builder_add_polygon(&builder, 0, 128, 0.75f, VERTICES(
@@ -414,6 +425,29 @@ static void create_semi_intersecting_sectors() {
     VEC2F(100, 100),
     VEC2F(100, -100),
     VEC2F(-100, -100)
+  ));
+
+  demo_level = map_builder_build(&builder);
+  map_builder_free(&builder);
+}
+
+static void create_crossing_and_splitting_sectors()
+{
+  map_builder builder = { 0 };
+
+  map_builder_add_polygon(&builder, 0, 128, 1, VERTICES(
+    VEC2F(0, 0),
+    VEC2F(500, 0),
+    VEC2F(500, 100),
+    VEC2F(0, 100)
+  ));
+
+  /* This sector will split the first one so you end up with 3 sectors */
+  map_builder_add_polygon(&builder, 16, 112, 1, VERTICES(
+    VEC2F(225, -250),
+    VEC2F(325, -250),
+    VEC2F(325, 250),
+    VEC2F(225, 250)
   ));
 
   demo_level = map_builder_build(&builder);
