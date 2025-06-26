@@ -11,7 +11,7 @@ typedef struct level_data {
          vertices_count;
   vertex vertices[16384];
   linedef linedefs[8192];
-  sector sectors[4096];
+  sector sectors[2048];
 } level_data;
 
 vertex*   level_data_get_vertex(level_data*, vec2f);
