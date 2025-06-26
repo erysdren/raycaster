@@ -154,6 +154,9 @@ static void map_builder_step_find_polygon_intersections(map_builder *this, level
       to_gpc_polygon(pi, &clip);
       gpc_polygon_clip(GPC_DIFF, &subject, &clip, &result);
 
+      /* TODO: If 'clip' splits 'subject' in two or more pieces (>1 external countours),
+         then we should promote the other pieces into polygons (sectors) of their own. */
+
       from_gpc_polygon(&result, pj);
 
       gpc_free_polygon(&subject);
