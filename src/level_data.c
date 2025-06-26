@@ -36,7 +36,7 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
 
     if ((line->v0 == v0 && line->v1 == v1) || (line->v0 == v1 && line->v1 == v0)) {
       line->side_sector[1] = sect;
-      M_DEBUG(printf("\t\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", line, XY(v0->point), XY(v1->point), line->color));
+      M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", line, XY(v0->point), XY(v1->point), line->color));
       return line;
     }
   }
@@ -45,11 +45,11 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
     .v0 = v0,
     .v1 = v1,
     .side_sector[0] = sect,
-    .side_sector[1] = 0,
+    .side_sector[1] = NULL,
     .color = linedef_color++
   };
 
-  M_DEBUG(printf("\t\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", &this->linedefs[this->linedefs_count], XY(v0->point), XY(v1->point), linedef_color-1));
+  M_DEBUG(printf("\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d)\n", &this->linedefs[this->linedefs_count], XY(v0->point), XY(v1->point), linedef_color-1));
 
   return &this->linedefs[this->linedefs_count++];
 }
@@ -60,7 +60,7 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
 
   sector *sect = &this->sectors[this->sectors_count++];
 
-  M_DEBUG(printf("\t\tNew sector (0x%p):\n", sect));
+  M_DEBUG(printf("\tNew sector (0x%p):\n", sect));
 
   sect->floor_height = poly->floor_height;
   sect->ceiling_height = poly->ceiling_height;

@@ -378,23 +378,40 @@ static void create_semi_intersecting_sectors() {
     VEC2F(240, 260)
   ));
 
-  map_builder_add_polygon(&builder, 16, 88, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 56, 88, 1.0f, VERTICES(
     VEC2F(240, 340),
     VEC2F(260, 340),
     VEC2F(260, 360),
     VEC2F(240, 360)
   ));
 
-  /* Begin steps */
-  
-  map_builder_add_polygon(&builder, 24, 128, 0.9f, VERTICES(
-    VEC2F(240, 250),
-    VEC2F(250, 250),
-    VEC2F(250, 360),
-    VEC2F(240, 360)
+  map_builder_add_polygon(&builder, 56, 96, 1.0f, VERTICES(
+    VEC2F(400, 350),
+    VEC2F(420, 350),
+    VEC2F(420, 370),
+    VEC2F(400, 370)
   ));
 
-  /* End stairs */
+  map_builder_add_polygon(&builder, 56, 96, 1.0f, VERTICES(
+    VEC2F(400, 250),
+    VEC2F(420, 250),
+    VEC2F(420, 270),
+    VEC2F(400, 270)
+  ));
+
+  map_builder_add_polygon(&builder, 24, 128, 0.9f, VERTICES(
+    VEC2F(240, 250),
+    VEC2F(250, 260),
+    VEC2F(250, 350),
+    VEC2F(240, 350)
+  ));
+
+  map_builder_add_polygon(&builder, -128, 96, 0.25f, VERTICES(
+    VEC2F(-100, 500),
+    VEC2F(100, 100),
+    VEC2F(100, -100),
+    VEC2F(-100, -100)
+  ));
 
   demo_level = map_builder_build(&builder);
 }

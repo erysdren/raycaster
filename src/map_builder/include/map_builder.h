@@ -18,7 +18,7 @@ M_INLINED polygon* map_builder_polygon_at_point(map_builder *this, vec2f point) 
   register int i = 0;
 
   for (i = this->polygons_count - 1; i >= 0; --i) {
-    if (polygon_is_point_inside(&this->polygons[i], point)) {
+    if (polygon_is_point_inside(&this->polygons[i], point, true)) {
       return &this->polygons[i];
     }
   }

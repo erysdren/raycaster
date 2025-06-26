@@ -12,6 +12,7 @@
 
 /* Common source files between test and demo target */
 #define COMMON_SRC_FILES \
+  DEPS_FOLDER"gpc/gpc.c", \
   SRC_FOLDER"renderer.c", \
   SRC_FOLDER"camera.c", \
   SRC_FOLDER"sector.c", \
@@ -74,9 +75,11 @@ int main(int argc, char **argv)
       "-I"TESTS_FOLDER,
       "-I"DEPS_FOLDER"unity/src/",
       "-I"DEPS_FOLDER"unity/extras/fixture/src/",
+      "-I"DEPS_FOLDER"gpc",
 
       "-DUNITY_INCLUDE_PRINT_FORMATTED",
       "-DUNITY_INCLUDE_DOUBLE",
+      "-DDEBUG",
 
       "-o", BIN_FOLDER"tests",
 
@@ -117,6 +120,7 @@ int main(int argc, char **argv)
       "-I"SRC_FOLDER"map_builder/include",
       "-I"DEMO_FOLDER,
       "-I"DEPS_FOLDER""SDL3_FOLDER"include",
+      "-I"DEPS_FOLDER"gpc",
       
       "-DDEBUG",
       "-DPARALLEL_RENDERING", /* Uses OpenMP to render the screen columns in parallel */

@@ -14,10 +14,12 @@ typedef struct polygon {
   vec2f vertices[32];
 } polygon;
 
-bool polygon_vertices_contains_point(polygon*, vec2f);
-bool polygon_is_point_inside(polygon*, vec2f);
-bool polygon_overlaps_polygon(polygon*, polygon*);
-void polygon_insert_point(polygon*, vec2f, vec2f, vec2f);
+bool  polygon_vertices_contains_point(const polygon*, vec2f);
+bool  polygon_is_point_inside(const polygon*, vec2f, bool);
+bool  polygon_overlaps_polygon(const polygon*, const polygon*);
+bool  polygon_contains_polygon(const polygon*, const polygon*, bool);
+void  polygon_insert_point(polygon*, vec2f, vec2f, vec2f);
+void  polygon_remove_point(polygon*, vec2f);
 float polygon_signed_area(const polygon*);
 
 #endif
