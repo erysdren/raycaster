@@ -11,7 +11,8 @@ TEST_TEAR_DOWN(math) {}
     │ TEST CASES │
     └────────────┘ */
 
-TEST(math, lines_intersect) {
+TEST(math, find_line_intersection)
+{
   vec2f r;
   float d;
 
@@ -59,7 +60,8 @@ TEST(math, lines_intersect) {
   }
 }
 
-TEST(math, line_segment_point_distance) {
+TEST(math, line_segment_point_distance)
+{
   const float d0 = math_line_segment_point_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(5, 5));
   const float d1 = math_line_segment_point_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(1, 1));
   const float d2 = math_line_segment_point_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(10, 0));
@@ -69,7 +71,8 @@ TEST(math, line_segment_point_distance) {
   TEST_ASSERT_EQUAL_DOUBLE(0.0, d2);
 }
 
-TEST(math, sign) {
+TEST(math, sign)
+{
   int32_t s0 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(2, 5));
   int32_t s1 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(7, 5));
   int32_t s2 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(5, 5));
@@ -79,15 +82,26 @@ TEST(math, sign) {
   TEST_ASSERT(s2 == 0);
 }
 
-TEST(math, point_in_triangle) {
+TEST(math, point_in_triangle)
+{
   TEST_ASSERT_TRUE(math_point_in_triangle(VEC2F(0, 0), VEC2F(0, -5), VEC2F(-5, 5), VEC2F(5, 5)));
   TEST_ASSERT_TRUE(math_point_in_triangle(VEC2F(1, 3), VEC2F(0, -5), VEC2F(-5, 5), VEC2F(5, 5)));
   TEST_ASSERT_FALSE(math_point_in_triangle(VEC2F(0, -6), VEC2F(0, -5), VEC2F(-5, 5), VEC2F(5, 5)));
 }
 
-TEST_GROUP_RUNNER(math) {
-  RUN_TEST_CASE(math, lines_intersect);
+TEST(math, line_segments_intersect)
+{
+  TEST_ASSERT_TRUE(math_line_segments_intersect(VEC2F(0, 0), VEC2F(100, 0), VEC2F(50, 0), VEC2F(150, 0)));
+  TEST_ASSERT_FALSE(math_line_segments_intersect(VEC2F(0, 0), VEC2F(90, 0), VEC2F(91, 0), VEC2F(150, 0)));
+  TEST_ASSERT_TRUE(math_line_segments_intersect(VEC2F(-10, 0), VEC2F(10, 0), VEC2F(0, -10), VEC2F(0, 10)));
+  TEST_ASSERT_TRUE(math_line_segments_intersect(VEC2F(0, 0), VEC2F(10, 0), VEC2F(0, -10), VEC2F(0, 0)));
+}
+
+TEST_GROUP_RUNNER(math)
+{
+  RUN_TEST_CASE(math, find_line_intersection);
   RUN_TEST_CASE(math, line_segment_point_distance);
   RUN_TEST_CASE(math, sign);
   RUN_TEST_CASE(math, point_in_triangle);
+  RUN_TEST_CASE(math, line_segments_intersect);
 }

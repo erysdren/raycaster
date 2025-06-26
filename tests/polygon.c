@@ -12,7 +12,8 @@ TEST_TEAR_DOWN(polygon) {}
     │ TEST CASES │
     └────────────┘ */
 
-TEST(polygon, vertices_contains_point) {
+TEST(polygon, vertices_contains_point)
+{
   polygon poly = {
     .vertices_count = 4,
     .vertices = (vec2f[]) {
@@ -27,7 +28,8 @@ TEST(polygon, vertices_contains_point) {
   TEST_ASSERT_FALSE(polygon_vertices_contains_point(&poly, VEC2F(101, 102)));
 }
 
-TEST(polygon, is_point_inside) {
+TEST(polygon, is_point_inside)
+{
   polygon poly = {
     .vertices_count = 4,
     .vertices = (vec2f[]) {
@@ -44,13 +46,12 @@ TEST(polygon, is_point_inside) {
   TEST_ASSERT_FALSE(polygon_is_point_inside(&poly, VEC2F(-1, -1), true));
 }
 
-TEST(polygon, insert_point) {
+TEST(polygon, insert_point)
+{
   vec2f *vertices = (vec2f*)malloc(3*sizeof(vec2f));
   vertices[0] = VEC2F(0, 0);
   vertices[1] = VEC2F(100, 0);
   vertices[2] = VEC2F(50, 100);
-
-  printf("OLD ADDRESS: %p\n", vertices);
 
   polygon poly = {
     .vertices_count = 3,
@@ -58,8 +59,6 @@ TEST(polygon, insert_point) {
   };
 
   polygon_insert_point(&poly, VEC2F(100, 100), VEC2F(100, 0), VEC2F(50, 100));
-
-  printf("NEW ADDRESS: %p\n", poly.vertices);
 
   TEST_ASSERT_EQUAL_INT(4, poly.vertices_count);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(100, 0), poly.vertices[1]);
@@ -71,7 +70,7 @@ TEST(polygon, insert_point) {
 
 TEST(polygon, remove_point)
 {
-  vec2f *vertices = (vec2f*)malloc(3*sizeof(vec2f));
+  vec2f *vertices = (vec2f*)malloc(4*sizeof(vec2f));
   vertices[0] = VEC2F(0, 0);
   vertices[1] = VEC2F(100, 0);
   vertices[2] = VEC2F(100, 100);
@@ -92,7 +91,8 @@ TEST(polygon, remove_point)
   free(vertices);
 }
 
-TEST(polygon, overlaps_polygon) {
+TEST(polygon, overlaps_polygon)
+{
   polygon poly0 = {
     .vertices_count = 4,
     .vertices = (vec2f[]) {
@@ -121,12 +121,24 @@ TEST(polygon, overlaps_polygon) {
       VEC2F(100, 100)
     }
   };
+  
+  /* Does not share any vertices with others */
+  polygon poly3 = {
+    .vertices_count = 3,
+    .vertices = (vec2f[]) {
+      VEC2F(-100, 30),
+      VEC2F(250, -40),
+      VEC2F(0, -100)
+    }
+  };
 
   TEST_ASSERT_TRUE(polygon_overlaps_polygon(&poly0, &poly1));
   TEST_ASSERT_FALSE(polygon_overlaps_polygon(&poly0, &poly2));
+  TEST_ASSERT_TRUE(polygon_overlaps_polygon(&poly0, &poly3));
 }
 
-TEST(polygon, signed_area) {
+TEST(polygon, signed_area)
+{
   /* Anti-clockwise winding */
   polygon poly0 = {
     .vertices_count = 4,
@@ -190,11 +202,12 @@ TEST(polygon, contains_polygon)
 
   TEST_ASSERT_TRUE(polygon_contains_polygon(&poly0, &poly1, true));
   TEST_ASSERT_TRUE(polygon_contains_polygon(&poly2, &poly1, true));
-  TEST_ASSERT_TRUE(polygon_contains_polygon(&poly2, &poly0, true));
+  TEST_ASSERT_FALSE(polygon_contains_polygon(&poly2, &poly0, false)); /* Shared edges not allowed */
   TEST_ASSERT_FALSE(polygon_contains_polygon(&poly1, &poly0, true));
 }
 
-TEST_GROUP_RUNNER(polygon) {
+TEST_GROUP_RUNNER(polygon)
+{
   RUN_TEST_CASE(polygon, vertices_contains_point);
   RUN_TEST_CASE(polygon, is_point_inside);
   RUN_TEST_CASE(polygon, insert_point);

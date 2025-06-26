@@ -16,7 +16,8 @@ static sector* create_test_sector(vertex**, linedef**);
     │ TEST CASES │
     └────────────┘ */
 
-TEST(sector, references_vertex) {
+TEST(sector, references_vertex)
+{
   vertex *vertices;
   sector *sect = create_test_sector(&vertices, NULL);
 
@@ -24,7 +25,8 @@ TEST(sector, references_vertex) {
   TEST_ASSERT_FALSE(sector_references_vertex(sect, &vertices[4], 0));
 }
 
-TEST(sector, connects_vertices) {
+TEST(sector, connects_vertices)
+{
   vertex *vertices;
   sector *sect = create_test_sector(&vertices, NULL);
 
@@ -33,7 +35,8 @@ TEST(sector, connects_vertices) {
   TEST_ASSERT_FALSE(sector_connects_vertices(sect, &vertices[4], &vertices[3]));
 }
 
-TEST(sector, add_linedef) {
+TEST(sector, add_linedef)
+{
   vertex *vertices;
   linedef *linedefs;
   sector *sect = create_test_sector(&vertices, &linedefs);
@@ -46,7 +49,8 @@ TEST(sector, add_linedef) {
   TEST_ASSERT_TRUE(sector_references_vertex(sect, &vertices[4], 0));
 }
 
-TEST(sector, remove_linedef) {
+TEST(sector, remove_linedef)
+{
   vertex *vertices;
   linedef *linedefs;
   sector *sect = create_test_sector(&vertices, &linedefs);
@@ -59,14 +63,16 @@ TEST(sector, remove_linedef) {
   TEST_ASSERT_FALSE(sector_connects_vertices(sect, &vertices[0], &vertices[3]));
 }
 
-TEST(sector, point_inside) {
+TEST(sector, point_inside)
+{
   sector *sect = create_test_sector(NULL, NULL);
 
   TEST_ASSERT_TRUE(sector_point_inside(sect, VEC2F(75, 50)));
   TEST_ASSERT_FALSE(sector_point_inside(sect, VEC2F(10, 50)));
 }
 
-TEST_GROUP_RUNNER(sector) {
+TEST_GROUP_RUNNER(sector)
+{
   RUN_TEST_CASE(sector, references_vertex);
   RUN_TEST_CASE(sector, connects_vertices);
   RUN_TEST_CASE(sector, add_linedef);
@@ -74,7 +80,8 @@ TEST_GROUP_RUNNER(sector) {
   RUN_TEST_CASE(sector, point_inside);
 }
 
-static sector* create_test_sector(vertex **vertices, linedef **linedefs) {
+static sector* create_test_sector(vertex **vertices, linedef **linedefs)
+{
   vertex *verts = (vertex *)malloc(5 * sizeof(vertex));
   linedef *lines = (linedef *)malloc(5 * sizeof(linedef));
   sector *sect = (sector *)malloc(sizeof(sector));

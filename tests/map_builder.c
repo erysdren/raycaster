@@ -12,7 +12,8 @@ TEST_TEAR_DOWN(map_builder) {}
     │ TEST CASES │
     └────────────┘ */
 
-TEST(map_builder, convex_polygon) {
+TEST(map_builder, convex_polygon)
+{
   int i;
   map_builder builder = { 0 };
 
@@ -48,7 +49,8 @@ TEST(map_builder, convex_polygon) {
   map_builder_free(&builder);
 }
 
-TEST(map_builder, concave_polygon) {
+TEST(map_builder, concave_polygon)
+{
   int i;
   map_builder builder = { 0 };
 
@@ -91,7 +93,8 @@ TEST(map_builder, concave_polygon) {
  * 1) Non-overlapping sectors can connect simply by sharing a linedef.
  * The front side references the original sector; the back references the other.
  */
-TEST(map_builder, neighbouring_sectors) {
+TEST(map_builder, neighbouring_sectors)
+{
   map_builder builder = { 0 };
 
   map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
@@ -126,7 +129,8 @@ TEST(map_builder, neighbouring_sectors) {
 /*
  * 2) If a sector is fully inside another, its linedefs are added with the outer sector as the back.
  */
-TEST(map_builder, fully_contained_sector) {
+TEST(map_builder, fully_contained_sector)
+{
   int i;
   map_builder builder = { 0 };
 
@@ -168,7 +172,8 @@ TEST(map_builder, fully_contained_sector) {
  * 3) Sector can be fully inside another while still sharing a linedef wholly
  * or just partially, in which case the encompassing sector gets additional vertices.
  */
-TEST(map_builder, fully_contained_sector_sharing_linedef) {
+TEST(map_builder, fully_contained_sector_sharing_linedef)
+{
   map_builder builder = { 0 };
 
   map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
@@ -237,7 +242,8 @@ TEST(map_builder, fully_contained_sector_sharing_linedef) {
  * 4) Partially overlapping sectors create new vertices and linedefs at intersections,
  * replacing existing ones. The earlier-defined sector is carved out.
  */
-TEST(map_builder, intersecting_sectors) {
+TEST(map_builder, intersecting_sectors)
+{
   map_builder builder = { 0 };
 
   map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
@@ -282,7 +288,8 @@ TEST(map_builder, intersecting_sectors) {
   map_builder_free(&builder);
 }
 
-TEST_GROUP_RUNNER(map_builder) {
+TEST_GROUP_RUNNER(map_builder)
+{
   RUN_TEST_CASE(map_builder, convex_polygon);
   RUN_TEST_CASE(map_builder, concave_polygon);
   RUN_TEST_CASE(map_builder, neighbouring_sectors);
