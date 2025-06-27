@@ -1,8 +1,9 @@
+
 # Raycaster
 
 A simple sector and linedef based raycaster written in C.
 
-## Motivation
+## Background
 Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D RPG](https://eigen.itch.io/sunless-isle) that fit on a 64x64 screen. It started out as a standard raycaster experiment following [Lode's tutorial](https://lodev.org/cgtutor/raycasting.html) (most well known on the subject probably) but I decided to try and replace regular grid map with lines instead. So instead of checking collisions and intersections *optimally*, you do the opposite and find all lines the ray intersects and draw them in order. The upside is that you can have varying heights of walls and walls behind each other. This project follows that idea but has a bunch of improvements, although the underlying algorithm is still not optimal, since you have to find a lot of line intersections for each column instead of doing what DOOM does, for example. BUT the benefit is a lot simpler code to follow and modify, so yeah.. pros and cons.
 
 ## Features
@@ -15,7 +16,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 ## Unfeatures
 * 🧱 Texturing
 * 🌲 Sprites
-* 🪞 Maybe portals?
+* 🪞 Maybe portals or mirrors?
 
 ![image](https://github.com/user-attachments/assets/94be15ab-71d8-4956-b850-2ef8935f49d4)
 ![image](https://github.com/user-attachments/assets/6a2ae674-7da7-49c7-9dc1-e59675c8c460)
@@ -23,7 +24,52 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 ![image](https://github.com/user-attachments/assets/d8273d82-c590-4c58-a8dd-3c396a5b1353)
 ![image](https://github.com/user-attachments/assets/2dd0107c-3aca-4c2f-8cbf-b8003d274dfd)
 
-## More details
+## How it works (WIP section)
+## Data structures (basically)
+1. **Vertex**
+  ```c
+  vec2f       point
+  ```
+2. **Linedef**
+  **Linedef** is basically one wall in the sector. It always has a reference to the sector that first created it (at index 0), but it can also have a reference to the sector behind it (generally at index 1).
+  ```c
+  vertex      *v0, *v1        // Vertices that define this line
+  sector      *side_sector[2] // Sectors on one or both sides of the line
+  ```
+4. **Sector**
+  ```c
+  int32_t     floor_height
+  int32_t     ceiling_height
+  float       light
+  linedef     **linedefs      // References to linedefs stored elsewhere
+  size_t      linedefs_count
+  ```
+5. **Level / map data (optional)**
+    Pointers to **Vertices**, **Linedefs** and **Sectors** refer to elements stored here, but this could also just reside in game state somewhere if you just have a singular map for example.
+  ```c
+  vertex      vertices[N]
+  linedef     linedefs[N]
+  sector      sectors[N]
+  ```
+6. **Camera**
+  Defines where the viewpoint is and where it's looking at. In the future this structure (or concept) should be more game-specific, but for now the renderer reads data directly from this type.
+  ```c
+  vec2f       position
+  vec2f       direction
+  vec2f       plane           // Unit vector perpendicular to direction,
+                              // scaled by FOV
+  float       fov             // 1.0f ~ 90°
+  float       z
+  sector      *in_sector      // Sector from which the column render loop begins
+                              // Should be updated when camera moves
+  level_data  *level          // Reference to level data, so we know what sector
+                              // to put the camera in when it moves
+  ```
+
+## Render loop
+:construction: TODO :construction:
+
+---
 The general concept is to have **sectors** that define floor and ceiling height (and light in the future) and where each sector has some **linedefs** which can have a reference to the sector behind it. You start drawing from the sector the camera is currently in --- for each column you check that sector's visible linedefs for intersections and sort them by distance. If the linedef has no back sector, you draw a full wall segment and terminate that column. If there is a back sector, you draw an upper and lower wall segments based on the floor and ceiling height difference compared to current sector, and then move on the sector behind and repeat. You keep track of sectors that have been visited in each column to avoid cycling. As mentioned earlier, this is not an optimal algorithm but it's simple, and since drawing only happens within a column where global state is not mutated, it's easily parallelizable (thanks to OMP in this case).
 
 ### Getting started
