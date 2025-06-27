@@ -31,6 +31,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
   vec2f       point
   ```
 2. **Linedef**
+   
   **Linedef** is basically one wall in the sector. It always has a reference to the sector that first created it (at index 0), but it can also have a reference to the sector behind it (generally at index 1).
   ```c
   vertex      *v0, *v1        // Vertices that define this line
@@ -45,6 +46,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
   size_t      linedefs_count
   ```
 5. **Level / map data (optional)**
+   
     Pointers to **Vertices**, **Linedefs** and **Sectors** refer to elements stored here, but this could also just reside in game state somewhere if you just have a singular map for example.
   ```c
   vertex      vertices[N]
@@ -52,6 +54,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
   sector      sectors[N]
   ```
 6. **Camera**
+   
   Defines where the viewpoint is and where it's looking at. In the future this structure (or concept) should be more game-specific, but for now the renderer reads data directly from this type.
   ```c
   vec2f       position
