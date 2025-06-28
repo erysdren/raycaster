@@ -29,47 +29,47 @@ Where normal Wolfenstein-3D-like raycasters work on a 2D grid, where each cell i
 
 ## Data structures (basically)
 1. **Vertex**
-  ```c
-  vec2f       point
-  ```
+    ```c
+    vec2f       point
+    ```
 2. **Linedef**
    
-  **Linedef** is basically one wall in the sector. It always has a reference to the sector that first created it (at index 0), but it can also have a reference to the sector behind it (generally at index 1).
-  ```c
-  vertex      *v0, *v1        // Vertices that define this line
-  sector      *side_sector[2] // Sectors on one or both sides of the line
-  ```
+    **Linedef** is basically one wall in the sector. It always has a reference to the sector that first created it (at index 0), but it can also have a reference to the sector behind it (generally at index 1).
+    ```c
+    vertex      *v0, *v1        // Vertices that define this line
+    sector      *side_sector[2] // Sectors on one or both sides of the line
+    ```
 4. **Sector**
-  ```c
-  int32_t     floor_height
-  int32_t     ceiling_height
-  float       light
-  linedef     **linedefs      // References to linedefs stored elsewhere
-  size_t      linedefs_count
-  ```
+    ```c
+    int32_t     floor_height
+    int32_t     ceiling_height
+    float       light
+    linedef     **linedefs      // References to linedefs stored elsewhere
+    size_t      linedefs_count
+    ```
 5. **Level / map data (optional)**
    
     Pointers to **Vertices**, **Linedefs** and **Sectors** refer to elements stored here, but this could also just reside in game state somewhere if you just have a singular map for example.
-  ```c
-  vertex      vertices[N]
-  linedef     linedefs[N]
-  sector      sectors[N]
-  ```
+    ```c
+    vertex      vertices[N]
+    linedef     linedefs[N]
+    sector      sectors[N]
+    ```
 6. **Camera**
    
-  Defines where the viewpoint is and where it's looking at. In the future this structure (or concept) should be more game-specific, but for now the renderer reads data directly from this type.
-  ```c
-  vec2f       position
-  vec2f       direction
-  vec2f       plane           // Unit vector perpendicular to direction,
-                              // scaled by FOV
-  float       fov             // 1.0f ~ 90°
-  float       z
-  sector      *in_sector      // Sector from which the column render loop begins
-                              // Should be updated when camera moves
-  level_data  *level          // Reference to level data, so we know what sector
-                              // to put the camera in when it moves
-  ```
+    Defines where the viewpoint is and where it's looking at. In the future this structure (or concept) should be more game-specific, but for now the renderer reads data directly from this type.
+    ```c
+    vec2f       position
+    vec2f       direction
+    vec2f       plane           // Unit vector perpendicular to direction,
+                                // scaled by FOV
+    float       fov             // 1.0f ~ 90°
+    float       z
+    sector      *in_sector      // Sector from which the column render loop begins
+                                // Should be updated when camera moves
+    level_data  *level          // Reference to level data, so we know what sector
+                                // to put the camera in when it moves
+    ```
 
 ## Render loop
 :construction: TODO :construction:
