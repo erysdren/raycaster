@@ -7,7 +7,7 @@ struct level_data;
 
 typedef struct {
   size_t polygons_count;
-  polygon polygons[2048]; /* Should match with max sector count in `level_data` */
+  polygon *polygons;
 } map_builder;
 
 void                map_builder_add_polygon(map_builder*, int32_t floor_height, int32_t ceiling_height, float light, size_t vertices_count, vec2f vertices[]);

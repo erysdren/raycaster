@@ -255,6 +255,12 @@ static void map_builder_insert_polygon(
 
   M_DEBUG(printf("Insert polygon (%d vertices) [%d, %d] at index %d:\n", vertices_count, floor_height, ceiling_height, insert_index));
 
+  if (!this->polygons) {
+    this->polygons = (polygon*)malloc(sizeof(polygon));
+  } else {
+    this->polygons = (polygon*)realloc(this->polygons, (this->polygons_count+1) * sizeof(polygon));
+  }
+
   if (insert_index < this->polygons_count) {
     for (i = this->polygons_count; i > insert_index; --i) {
       this->polygons[i] = this->polygons[i-1];
