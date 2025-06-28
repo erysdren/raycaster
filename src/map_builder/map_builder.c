@@ -98,10 +98,26 @@ static void polygon_add_new_vertices_from(polygon *this, const polygon *other)
     for (i = 0; i < this->vertices_count; ++i) {
       i2 = (i + 1) % this->vertices_count;
       if (math_point_on_line_segment(other->vertices[j], this->vertices[i], this->vertices[i2]) && !polygon_vertices_contains_point(this, other->vertices[j])) {
-        M_DEBUG(printf("\t\t + Inserting (%d,%d) between (%d,%d) and (%d,%d)\n", XY(other->vertices[j]), XY(this->vertices[i]), XY(this->vertices[i2])));
+        M_DEBUG(printf("\tInserting (%d,%d) of 0x%p between (%d,%d) and (%d,%d) in 0x%p\n",
+          XY(other->vertices[j]), other, XY(this->vertices[i]), XY(this->vertices[i2]), this));
         polygon_insert_point(this, other->vertices[j], this->vertices[i], this->vertices[i2]);
         break;
       }
+    }
+  }
+}
+
+static void polygon_optimize_lines(polygon *this)
+{
+  int i = 0, prev, next, n;
+
+  while (i < (n = this->vertices_count)) {
+    prev = (n+i-1)%n;
+    next = (i+1)%n;
+    if (math_point_on_line_segment(this->vertices[i], this->vertices[prev], this->vertices[next])) {
+      polygon_remove_point(this, this->vertices[i]);
+    } else {
+      i++;
     }
   }
 }
@@ -123,7 +139,7 @@ static void map_builder_step_find_polygon_intersections(map_builder *this)
         continue;
       }
 
-      M_DEBUG(printf("\tIntersect Sector %d with Sector %d\n", i, j));
+      M_DEBUG(printf("\tIntersect Polygon %d (0x%p) with Polygon %d (0x%p)\n", i, pi, j, pj));
 
       gpc_polygon subject = { 0 }, clip = { 0 }, result = { 0 };
 
@@ -164,6 +180,12 @@ static void map_builder_step_find_polygon_intersections(map_builder *this)
     }
   }
 
+  /* Optimize lines */
+  for (i = 0; i < this->polygons_count; ++i) {
+    polygon_optimize_lines(&this->polygons[i]);
+  }
+
+  /* Add colinear points from other polygons */
   for (j = 0; j < this->polygons_count; ++j) {
     pj = &this->polygons[j];
     for (i = 0; i < this->polygons_count; ++i) {

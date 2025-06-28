@@ -315,6 +315,26 @@ TEST(map_builder, polygon_splitting)
   map_builder_free(&builder);
 }
 
+TEST(map_builder, optimize_polygon)
+{
+  map_builder builder = { 0 };
+
+  map_builder_add_polygon(&builder, 0, 128, 1, VERTICES(
+    VEC2F(0, 0),
+    VEC2F(250, 0), /* Unless any other polygon uses that point as well, it's unnecessary */
+    VEC2F(500, 0),
+    VEC2F(500, 100),
+    VEC2F(0, 100)
+  ));
+
+  level_data *level = map_builder_build(&builder);
+
+  TEST_ASSERT_EQUAL_INT(4, level->vertices_count);
+
+  free(level);
+  map_builder_free(&builder);
+}
+
 TEST_GROUP_RUNNER(map_builder)
 {
   RUN_TEST_CASE(map_builder, convex_polygon);
@@ -324,4 +344,5 @@ TEST_GROUP_RUNNER(map_builder)
   RUN_TEST_CASE(map_builder, fully_contained_sector_sharing_linedef);
   RUN_TEST_CASE(map_builder, intersecting_sectors);
   RUN_TEST_CASE(map_builder, polygon_splitting);
+  RUN_TEST_CASE(map_builder, optimize_polygon);
 }
