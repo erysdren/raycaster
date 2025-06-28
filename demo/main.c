@@ -131,9 +131,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
       }
 
       if (event->key.key == SDLK_P) {
-        camera_set_fov(&cam, M_MAX(0.1f, cam.fov*(1.0-delta_time*3)));
+        camera_set_fov(&cam, M_MAX(0.1f, cam.fov*0.9));
       } else if (event->key.key == SDLK_O) {
-        camera_set_fov(&cam, M_MIN(4.0f, cam.fov*(1.0+delta_time*3)));
+        camera_set_fov(&cam, M_MIN(4.0f, cam.fov*1.1));
       }
 
       if (event->key.key == SDLK_HOME) {
@@ -146,6 +146,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         cam.in_sector->floor_height = M_MIN(cam.in_sector->ceiling_height, cam.in_sector->floor_height + 2);
       } else if (event->key.key == SDLK_PAGEDOWN) {
         cam.in_sector->floor_height -= 2;
+      }
+
+      if (event->key.key == SDLK_K) {
+        cam.in_sector->light = M_MAX(0.f, cam.in_sector->light - 0.1f);
+      } else if (event->key.key == SDLK_L) {
+        cam.in_sector->light = M_MIN(4.f, cam.in_sector->light + 0.1f);
       }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W) { movement.forward = 0.f; }
@@ -217,6 +223,7 @@ SDL_AppResult SDL_AppIterate(void *userdata)
   SDL_RenderDebugText(sdl_renderer, 4, y, "[O P] - Zoom out/in"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[Home End] - Raise/lower sector ceiling"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector light level"); y+=h;
 
   SDL_RenderPresent(sdl_renderer);
 

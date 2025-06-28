@@ -55,7 +55,7 @@ static uint32_t debug_colors_dark[16][3] = {
 
 /* Common frame info all column renderers can share */
 typedef struct {
-  vec2f ray_start,
+  vec2f view_position,
         near_left,
         near_right,
         far_left,
@@ -67,7 +67,8 @@ typedef struct {
 /* Column-specific data */
 typedef struct {
   const sector *sector_history[MAX_SECTOR_HISTORY];
-  vec2f ray_end,
+  vec2f ray_start,
+        ray_end,
         ray_direction;
   float theta, top_limit, bottom_limit;
   uint32_t index, sector_depth, buffer_stride;
@@ -143,11 +144,11 @@ void renderer_draw(
   
   this->tick++;
 
+  info.view_position = camera->position;
   info.near_left = vec2f_sub(camera->position, camera->plane),
   info.near_right = vec2f_add(camera->position, camera->plane);
   info.far_left = vec2f_add(camera->position, vec2f_mul(vec2f_sub(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.far_right = vec2f_add(camera->position, vec2f_mul(vec2f_add(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
-  info.ray_start = camera->position;
   info.half_h = this->buffer_size.y >> 1;
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
   info.view_z = camera->z;
@@ -171,6 +172,7 @@ void renderer_draw(
     );
 
     column_info column = (column_info) {
+      .ray_start = camera->position,
       .ray_end = VEC2F(
         camera->position.x + (ray.x * RENDERER_DRAW_DISTANCE),
         camera->position.y + (ray.y * RENDERER_DRAW_DISTANCE)
@@ -216,7 +218,7 @@ static void check_sector_visibility(
     if (line->v0->last_visibility_check_tick != this->tick) {
       line->v0->last_visibility_check_tick = this->tick;
       this->counters.vertex_visibility_checks ++;
-      if ((line->v0->visible = math_point_in_triangle(line->v0->point, info->ray_start, info->far_left, info->far_right))) {
+      if ((line->v0->visible = math_point_in_triangle(line->v0->point, info->view_position, info->far_left, info->far_right))) {
         this->counters.visible_vertices ++;
       }
     }
@@ -224,14 +226,14 @@ static void check_sector_visibility(
     if (line->v1->last_visibility_check_tick != this->tick) {
       line->v1->last_visibility_check_tick = this->tick;
       this->counters.vertex_visibility_checks ++;
-      if ((line->v1->visible = math_point_in_triangle(line->v1->point, info->ray_start, info->far_left, info->far_right))) {
+      if ((line->v1->visible = math_point_in_triangle(line->v1->point, info->view_position, info->far_left, info->far_right))) {
         this->counters.visible_vertices ++;
       }
     }
 
     if (line->v0->visible || line->v1->visible
-      || math_line_segments_intersect(line->v0->point, line->v1->point, info->ray_start, info->far_left)
-      || math_line_segments_intersect(line->v0->point, line->v1->point, info->ray_start, info->far_right)) {
+      || math_line_segments_intersect(line->v0->point, line->v1->point, info->view_position, info->far_left)
+      || math_line_segments_intersect(line->v0->point, line->v1->point, info->view_position, info->far_right)) {
       this->counters.visible_lines ++;
       line->last_visible_tick = this->tick;
 
@@ -293,7 +295,7 @@ static void check_sector_column(
 
     // column->counters.line_checks ++;
 
-    if (math_find_line_intersection(line->v0->point, line->v1->point, info->ray_start, column->ray_end, &intersection, &intersectiond)) {
+    if (math_find_line_intersection(line->v0->point, line->v1->point, column->ray_start, column->ray_end, &intersection, &intersectiond)) {
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
       // point_distance = math_length(vec2f_sub(intersection, info->ray_start));
       point_distance = planar_distance / column->theta;
@@ -474,7 +476,7 @@ static void draw_floor_segment(
     light = M_MAX(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
 #ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
-    __m128i result_i32 = _mm_cvtps_epi32(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)));
+    __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
     _mm_storeu_si128((__m128i*)temp, result_i32);
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
@@ -516,7 +518,7 @@ static void draw_ceiling_segment(
     light = M_MAX(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
 #ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
-    __m128i result_i32 = _mm_cvtps_epi32(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)));
+    __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
     _mm_storeu_si128((__m128i*)temp, result_i32);
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
