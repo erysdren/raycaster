@@ -124,7 +124,7 @@ int main(int argc, char **argv)
       
       "-DDEBUG",
       "-DPARALLEL_RENDERING", /* Uses OpenMP to render the screen columns in parallel */
-      "-DVECTORIZE_FLOOR_CEILING_LIGHT_MUL", /* Vectorizes floor & ceiling light multiplication */
+      "-DVECTORIZED_LIGHT_MUL", /* Vectorizes light multiplication for walls, floors & ceilings */
 
       "-o", BIN_FOLDER"demo",
 

@@ -9,7 +9,7 @@
   #include <omp.h>
 #endif
 
-#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+#ifdef VECTORIZED_LIGHT_MUL
   #include <xmmintrin.h>
 #endif
 
@@ -436,13 +436,25 @@ static void draw_wall_segment(
   register uint32_t y;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors[hit->line->color % 16];
-  register const float light = M_MAX(0.f, sect->light - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
-  register uint8_t r = M_MIN((c[0] * light), 255);
-  register uint8_t g = M_MIN((c[1] * light), 255);
-  register uint8_t b = M_MIN((c[2] * light), 255);
+  register float light = M_MAX(0.f, sect->light - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
+
+#ifdef VECTORIZED_LIGHT_MUL
+  int32_t temp[4];
+#else
+  register uint8_t r, g, b;
+#endif
 
   for (y = from; y <= to; ++y, p += column->buffer_stride) {
+#ifdef VECTORIZED_LIGHT_MUL
+    __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
+    _mm_storeu_si128((__m128i*)temp, result_i32);
+    *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
+#else
+    r = M_MIN((c[0] * light), 255);
+    g = M_MIN((c[1] * light), 255);
+    b = M_MIN((c[2] * light), 255);
     *p = 0xFF000000 | (r << 16) | (g << 8) | b;
+#endif
   }
 }
 
@@ -465,7 +477,7 @@ static void draw_floor_segment(
   register uint32_t *c = debug_colors_dark[sect->color % 16];
   register float light, distance;
 
-#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+#ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
 #else
   register uint8_t r, g, b;
@@ -475,7 +487,7 @@ static void draw_floor_segment(
     distance = (distance_from_view * this->depth_values[yz++]) / column->theta;
     light = M_MAX(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
-#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+#ifdef VECTORIZED_LIGHT_MUL
     __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
     _mm_storeu_si128((__m128i*)temp, result_i32);
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
@@ -507,7 +519,7 @@ static void draw_ceiling_segment(
   register uint32_t *c = debug_colors_dark[sect->color % 16];
   register float light, distance;
 
-#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+#ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
 #else
   register uint32_t r, g, b;
@@ -517,7 +529,7 @@ static void draw_ceiling_segment(
     distance = (distance_from_view * this->depth_values[yz--]) / column->theta;
     light = M_MAX(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
-#ifdef VECTORIZE_FLOOR_CEILING_LIGHT_MUL
+#ifdef VECTORIZED_LIGHT_MUL
     __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
     _mm_storeu_si128((__m128i*)temp, result_i32);
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
