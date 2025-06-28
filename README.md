@@ -27,6 +27,8 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 ## How it works (WIP section)
 Where normal Wolfenstein-3D-like raycasters work on a 2D grid, where each cell is either empty or a wall, here we can instead think of each cell consisting of 4 vertices and 4 lines connecting them. Then you can imagine we don't have to keep those 4 points as a square, and we can reshape it as a trapezoid or a rectangle. Then you can probably imagine we can add more vertices to the polygon. And then, imagine we flip everything. Instead of looking at the shape from the outside, we step inside it and start casting rays outward. This polygon becomes a sector we're standing in. Its edges are now outer walls, and the sector itself holds values like floor and ceiling heights, lighting, and more.
 
+That sector can also hold more lines that are not part of the outer boundary. These lines are part of outer boundary of other sectors. That way we can have sectors within sectors - a raised platform in the middle of the room for example.
+
 ## Data structures (basically)
 1. **Vertex**
     ```c
