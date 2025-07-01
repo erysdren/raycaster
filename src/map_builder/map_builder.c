@@ -219,13 +219,7 @@ map_builder_step_find_polygon_intersections(map_builder *this)
   }
 }
 
-/*
- * Check for lines that are shared by sectors that either intersect
- * a) partially (one shared vertex, one vertex inside the polygon), or
- * b) both vertices inside the polygon
- *
- * In those cases the other side of the lindef will be set.
- */
+/* Check for lines that are wholly inside other sectors */
 static void
 map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
 {
@@ -251,15 +245,6 @@ map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
        
         if (polygon_is_point_inside(&this->polygons[i], line->v0->point, false) && polygon_is_point_inside(&this->polygons[i], line->v1->point, false)) {
           M_DEBUG(printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, XY(line->v0->point), XY(line->v1->point), j, i));
-          line->side_sector[1] = back;
-          back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
-          back->linedefs[new_count++] = line;
-        } else if ((
-             (sector_references_vertex(back, line->v0, 0) && polygon_is_point_inside(&this->polygons[i], line->v1->point, false))
-          || (sector_references_vertex(back, line->v1, 0) && polygon_is_point_inside(&this->polygons[i], line->v0->point, false))
-          ) && j > i
-        ) {
-          M_DEBUG(printf("\t\tAdd partial linedef %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, XY(line->v0->point), XY(line->v1->point), j, i));
           line->side_sector[1] = back;
           back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
