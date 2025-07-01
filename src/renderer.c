@@ -372,13 +372,13 @@ static void draw_column(
     column->finished = true;
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
-    const float top_segment = M_MAX(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
-    const float bottom_segment = M_MAX(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
+    const float top_segment = math_max(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
+    const float bottom_segment = math_max(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
 
-    const float top_start_y = M_CLAMP(ceiling_z_local, column->top_limit, column->bottom_limit);
-    const float top_end_y = M_CLAMP(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit);
-    const float bottom_end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
-    const float bottom_start_y = M_CLAMP(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
+    const float top_start_y = math_clamp(ceiling_z_local, column->top_limit, column->bottom_limit);
+    const float top_end_y = math_clamp(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit);
+    const float bottom_end_y = math_clamp(floor_z_local, column->top_limit, column->bottom_limit);
+    const float bottom_start_y = math_clamp(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
 
     if (top_segment > 0) {
       draw_wall_segment(info, column, sect, hit, top_start_y, top_end_y);
@@ -436,7 +436,7 @@ static void draw_wall_segment(
   register uint32_t y;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   register uint32_t *c = debug_colors[hit->line->color % 16];
-  register float light = M_MAX(0.f, sect->light - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
+  register float light = math_max(0.f, sect->light - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -450,9 +450,9 @@ static void draw_wall_segment(
     _mm_storeu_si128((__m128i*)temp, result_i32);
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
-    r = M_MIN((c[0] * light), 255);
-    g = M_MIN((c[1] * light), 255);
-    b = M_MIN((c[2] * light), 255);
+    r = math_min((c[0] * light), 255);
+    g = math_min((c[1] * light), 255);
+    b = math_min((c[2] * light), 255);
     *p = 0xFF000000 | (r << 16) | (g << 8) | b;
 #endif
   }
@@ -485,16 +485,16 @@ static void draw_floor_segment(
 
   for (y = from, yz = from - info->half_h; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz++]) / column->theta;
-    light = M_MAX(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
+    light = math_max(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
 #ifdef VECTORIZED_LIGHT_MUL
     __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
     _mm_storeu_si128((__m128i*)temp, result_i32);
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
-    r = M_MIN((c[0] * light), 255);
-    g = M_MIN((c[1] * light), 255);
-    b = M_MIN((c[2] * light), 255);
+    r = math_min((c[0] * light), 255);
+    g = math_min((c[1] * light), 255);
+    b = math_min((c[2] * light), 255);
     *p = 0xFF000000 | (r << 16) | (g << 8) | b;
 #endif
   } 
@@ -527,16 +527,16 @@ static void draw_ceiling_segment(
 
   for (y = from, yz = info->half_h - from - 1; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz--]) / column->theta;
-    light = M_MAX(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
+    light = math_max(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
 #ifdef VECTORIZED_LIGHT_MUL
     __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
     _mm_storeu_si128((__m128i*)temp, result_i32);
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
-    r = M_MIN((c[0] * light), 255);
-    g = M_MIN((c[1] * light), 255);
-    b = M_MIN((c[2] * light), 255);
+    r = math_min((c[0] * light), 255);
+    g = math_min((c[1] * light), 255);
+    b = math_min((c[2] * light), 255);
     *p = 0xFF000000 | (r << 16) | (g << 8) | b;
 #endif
   }

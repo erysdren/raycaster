@@ -6,6 +6,18 @@
 
 #define MATHS_EPSILON 1e-6f
 
+M_INLINED float math_max(float a, float b) {
+  return fmaxf(a, b);
+}
+
+M_INLINED float math_min(float a, float b) {
+  return fminf(a, b);
+}
+
+M_INLINED float math_clamp(float v, float lo, float hi) {
+  return fmaxf(fminf(v, hi), lo);
+}
+
 M_INLINED float math_cross(vec2f a, vec2f b) {
   return (a.x * b.y) - (a.y * b.x);
 }
