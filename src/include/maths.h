@@ -91,8 +91,20 @@ M_INLINED bool math_point_in_triangle(vec2f point, vec2f v0, vec2f v1, vec2f v2)
   return !(((d0 < 0) || (d1 < 0) || (d2 < 0)) && ((d0 > 0) || (d1 > 0) || (d2 > 0)));
 }
 
-M_INLINED float math_line_segment_point_distance(vec2f a, vec2f b, vec2f point) {
+M_INLINED float math_line_segment_point_perpendicular_distance(vec2f a, vec2f b, vec2f point) {
   return fabs(math_cross(vec2f_sub(b, a), vec2f_sub(a, point))) / math_length(vec2f_sub(b, a));
+}
+
+M_INLINED float math_line_segment_point_distance(vec2f a, vec2f b, vec2f point) {
+  vec2f ab = vec2f_sub(b, a);
+  vec2f ap = vec2f_sub(point, a);
+  float ab_len2 = math_dot(ab);
+  if (ab_len2 <= MATHS_EPSILON) {
+    return math_length(vec2f_sub(point, a));
+  }
+  float t = math_dot2(ap, ap) / ab_len2;
+  t = fmaxf(0.0f, fminf(1.0f, t));
+  return math_length(vec2f_sub(point, VEC2F(a.x + t * ab.x, a.y + t * ab.y)));
 }
 
 M_INLINED bool math_point_on_line_segment(vec2f P, vec2f B, vec2f A) {

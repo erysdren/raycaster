@@ -60,11 +60,11 @@ TEST(math, find_line_intersection)
   }
 }
 
-TEST(math, line_segment_point_distance)
+TEST(math, line_segment_point_perpendicular_distance)
 {
-  const float d0 = math_line_segment_point_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(5, 5));
-  const float d1 = math_line_segment_point_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(1, 1));
-  const float d2 = math_line_segment_point_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(10, 0));
+  const float d0 = math_line_segment_point_perpendicular_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(5, 5));
+  const float d1 = math_line_segment_point_perpendicular_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(1, 1));
+  const float d2 = math_line_segment_point_perpendicular_distance(vec2f_make(0, 0), vec2f_make(10, 0), vec2f_make(10, 0));
 
   TEST_ASSERT_EQUAL_DOUBLE(5.0, d0);
   TEST_ASSERT_EQUAL_DOUBLE(1.0, d1);
@@ -100,7 +100,7 @@ TEST(math, line_segments_intersect)
 TEST_GROUP_RUNNER(math)
 {
   RUN_TEST_CASE(math, find_line_intersection);
-  RUN_TEST_CASE(math, line_segment_point_distance);
+  RUN_TEST_CASE(math, line_segment_point_perpendicular_distance);
   RUN_TEST_CASE(math, sign);
   RUN_TEST_CASE(math, point_in_triangle);
   RUN_TEST_CASE(math, line_segments_intersect);

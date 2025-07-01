@@ -14,8 +14,13 @@ typedef struct level_data {
   sector sectors[2048];
 } level_data;
 
-vertex*   level_data_get_vertex(level_data*, vec2f);
-linedef*  level_data_get_linedef(level_data*, sector*, vertex*, vertex*);
-sector*   level_data_create_sector_from_polygon(level_data*, struct polygon*);
+vertex*
+level_data_get_vertex(level_data*, vec2f);
+
+linedef*
+level_data_get_linedef(level_data*, sector*, vertex*, vertex*);
+
+sector*
+level_data_create_sector_from_polygon(level_data*, struct polygon*);
 
 #endif

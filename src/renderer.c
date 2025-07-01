@@ -291,7 +291,7 @@ static void check_sector_column(
 #endif
 
     if (math_find_line_intersection(line->v0->point, line->v1->point, column->ray_start, column->ray_end, &intersection, &intersectiond)) {
-      planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);
+      planar_distance = math_line_segment_point_perpendicular_distance(info->near_left, info->near_right, intersection);
       // point_distance = math_length(vec2f_sub(intersection, info->ray_start));
       point_distance = planar_distance / column->theta;
 
