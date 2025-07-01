@@ -91,7 +91,11 @@ typedef struct {
 static const float POSTERIZATION_STEP_DISTANCE = RENDERER_DRAW_DISTANCE / POSTERIZATION_STEPS;
 static const float POSTERIZATION_STEP_LIGHT_CHANGE = 1.f / POSTERIZATION_STEPS;
 
-static void check_sector_visibility(renderer*, const frame_info*, sector *sect);
+#ifdef LINE_VIS_CHECK
+static void
+check_sector_visibility(renderer*, const frame_info*, sector*);
+#endif
+
 static void check_sector_column(renderer*, const frame_info*, column_info*, const sector*);
 static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit *hit, uint32_t from, uint32_t to);
 static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector *, float, uint32_t from, uint32_t to);
@@ -153,13 +157,9 @@ void renderer_draw(
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
   info.view_z = camera->z;
 
-  this->counters.line_visibility_checks = 0;
-  this->counters.visible_lines = 0;
-  this->counters.vertex_visibility_checks = 0;
-  this->counters.visible_vertices = 0;
-  this->counters.sectors_visited = 0;
-
+#ifdef LINE_VIS_CHECK
   check_sector_visibility(this, &info, camera->in_sector);
+#endif
 
 #ifdef PARALLEL_RENDERING
   #pragma omp parallel for simd
@@ -194,7 +194,10 @@ void renderer_draw(
 
 /* ----- */
 
-static void check_sector_visibility(
+#ifdef LINE_VIS_CHECK
+
+static void
+check_sector_visibility(
   renderer *this,
   const frame_info *info,
   sector *sect
@@ -204,7 +207,6 @@ static void check_sector_visibility(
   sector *back_sector;
 
   sect->last_visibility_check_tick = this->tick;
-  this->counters.sectors_visited ++;
 
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
@@ -213,28 +215,19 @@ static void check_sector_visibility(
       continue;
     }
 
-    this->counters.line_visibility_checks ++;
-
     if (line->v0->last_visibility_check_tick != this->tick) {
       line->v0->last_visibility_check_tick = this->tick;
-      this->counters.vertex_visibility_checks ++;
-      if ((line->v0->visible = math_point_in_triangle(line->v0->point, info->view_position, info->far_left, info->far_right))) {
-        this->counters.visible_vertices ++;
-      }
+      line->v0->visible = math_point_in_triangle(line->v0->point, info->view_position, info->far_left, info->far_right);
     }
 
     if (line->v1->last_visibility_check_tick != this->tick) {
       line->v1->last_visibility_check_tick = this->tick;
-      this->counters.vertex_visibility_checks ++;
-      if ((line->v1->visible = math_point_in_triangle(line->v1->point, info->view_position, info->far_left, info->far_right))) {
-        this->counters.visible_vertices ++;
-      }
+      line->v1->visible = math_point_in_triangle(line->v1->point, info->view_position, info->far_left, info->far_right);
     }
 
     if (line->v0->visible || line->v1->visible
       || math_line_segments_intersect(line->v0->point, line->v1->point, info->view_position, info->far_left)
       || math_line_segments_intersect(line->v0->point, line->v1->point, info->view_position, info->far_right)) {
-      this->counters.visible_lines ++;
       line->last_visible_tick = this->tick;
 
       back_sector = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0];
@@ -245,6 +238,8 @@ static void check_sector_visibility(
     }
   }
 }
+
+#endif
 
 M_INLINED void sort_nearest(line_hit *arr, int n) {
   register int i, j;
@@ -289,11 +284,11 @@ static void check_sector_column(
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
 
+#ifdef LINE_VIS_CHECK
     if (line->last_visible_tick != this->tick) {
       continue;
     }
-
-    // column->counters.line_checks ++;
+#endif
 
     if (math_find_line_intersection(line->v0->point, line->v1->point, column->ray_start, column->ray_end, &intersection, &intersectiond)) {
       planar_distance = math_line_segment_point_distance(info->near_left, info->near_right, intersection);

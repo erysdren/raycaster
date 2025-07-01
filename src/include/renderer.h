@@ -14,14 +14,6 @@ typedef struct {
   float *depth_values;
   vec2u buffer_size;
   uint32_t tick;
-
-  struct {
-    uint32_t line_visibility_checks,
-             visible_lines,
-             vertex_visibility_checks,
-             visible_vertices,
-             sectors_visited;
-  } counters;
 } renderer;
 
 void renderer_init(renderer *this, vec2u size);

@@ -214,9 +214,6 @@ SDL_AppResult SDL_AppIterate(void *userdata)
   SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "CAMERA pos: (%.1f, %.1f, %.1f), dir: (%.3f, %.3f), plane: (%.3f, %.3f), FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", cam.in_sector); y+=h;
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Line vis checks: %d (%d visible)", rend.counters.line_visibility_checks, rend.counters.visible_lines); y+=h;
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Vertex checks:   %d (%d visible)", rend.counters.vertex_visibility_checks, rend.counters.visible_vertices); y+=h;
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Sectors visited: %d", rend.counters.sectors_visited); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[+ -] - Increase/decrease scale factor"); y+=h;
