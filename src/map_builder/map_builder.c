@@ -5,30 +5,39 @@
 #include <assert.h>
 
 #define XY(V) (int)V.x, (int)V.y
-
-static void map_builder_step_find_polygon_intersections(map_builder*);
-static void map_builder_step_configure_back_sectors(map_builder*, level_data*);
-static void map_builder_insert_polygon(map_builder*, size_t, int32_t, int32_t, float, size_t, void*, int);
-
 #define VEC2F_LIST 1
 #define GPC_VERTEX_LIST 2
 
+static void
+map_builder_step_find_polygon_intersections(map_builder*);
+
+static void
+map_builder_step_configure_back_sectors(map_builder*, level_data*);
+
+static void
+map_builder_insert_polygon(map_builder*, size_t, int32_t, int32_t, float, size_t, void*, int);
+
 /*
- * Map data public API 
+ * Map data public API
  */
 
-void map_builder_add_polygon(
+void
+map_builder_add_polygon(
   map_builder *this,
-  int32_t floor_height,
-  int32_t ceiling_height,
-  float light,
-  size_t vertices_count,
-  vec2f vertices[]
+  int32_t     floor_height,
+  int32_t     ceiling_height,
+  float       light,
+  size_t      vertices_count,
+  vec2f       vertices[]
 ) {
-  map_builder_insert_polygon(this, this->polygons_count, floor_height, ceiling_height, light, vertices_count, vertices, VEC2F_LIST);
+  map_builder_insert_polygon(
+    this, this->polygons_count, floor_height, ceiling_height,
+    light, vertices_count, vertices, VEC2F_LIST
+  );
 }
 
-level_data* map_builder_build(map_builder *this)
+level_data*
+map_builder_build(map_builder *this)
 {
   int i;
 
@@ -40,13 +49,13 @@ level_data* map_builder_build(map_builder *this)
   M_DEBUG(printf("Building level (0x%p) ...\n", level));
 
   /* ------------ */
-  
+ 
   M_DEBUG(printf("1. Find all polygon intersections ...\n"));
-  
+ 
   map_builder_step_find_polygon_intersections(this);
 
   /* ------------ */
-  
+ 
   M_DEBUG(printf("2. Creating sectors and linedefs (from %d polys) ...\n", this->polygons_count));
 
   for (i = 0; i < this->polygons_count; ++i) {
@@ -66,7 +75,8 @@ level_data* map_builder_build(map_builder *this)
   return level;
 }
 
-void map_builder_free(map_builder *this)
+void
+map_builder_free(map_builder *this)
 {
   size_t i;
   for (i = 0; i < this->polygons_count; ++i) {
@@ -78,7 +88,9 @@ void map_builder_free(map_builder *this)
  * Private methods
  */
 
-static void to_gpc_polygon(const polygon *poly, gpc_polygon *gpc_poly)
+/* Maps vertices from polygon type to GPC polygon */
+static void
+to_gpc_polygon(const polygon *poly, gpc_polygon *gpc_poly)
 {
   size_t i;
   gpc_vertex_list contour;
@@ -91,8 +103,15 @@ static void to_gpc_polygon(const polygon *poly, gpc_polygon *gpc_poly)
   free(contour.vertex);
 }
 
-static void polygon_add_new_vertices_from(polygon *this, const polygon *other)
-{
+/*
+ * Insert all vertices from the second polygon that are co-linear
+ * on any line of the first polygon.
+ */
+static void
+polygon_add_new_vertices_from(
+  polygon *this,
+  const polygon *other
+) {
   size_t j,i,i2;
   for (j = 0; j < other->vertices_count; ++j) {
     for (i = 0; i < this->vertices_count; ++i) {
@@ -107,7 +126,8 @@ static void polygon_add_new_vertices_from(polygon *this, const polygon *other)
   }
 }
 
-static void polygon_optimize_lines(polygon *this)
+static void
+polygon_optimize_lines(polygon *this)
 {
   int i = 0, prev, next, n;
 
@@ -122,7 +142,8 @@ static void polygon_optimize_lines(polygon *this)
   }
 }
 
-static void map_builder_step_find_polygon_intersections(map_builder *this)
+static void
+map_builder_step_find_polygon_intersections(map_builder *this)
 {
   int i, j, ci, vi, external_contours;
   polygon *pi, *pj;
@@ -146,6 +167,8 @@ static void map_builder_step_find_polygon_intersections(map_builder *this)
       to_gpc_polygon(pj, &subject);
       to_gpc_polygon(pi, &clip);
       gpc_polygon_clip(GPC_DIFF, &subject, &clip, &result);
+
+      /* TODO: Check if polygon was clipped to nothing (no vertices)? */
 
       /* Read contours */
       for (ci = 0, external_contours = 0; ci < result.num_contours; ++ci) {
@@ -191,13 +214,20 @@ static void map_builder_step_find_polygon_intersections(map_builder *this)
     for (i = 0; i < this->polygons_count; ++i) {
       pi = &this->polygons[i];
       if (pi == pj) { continue; }
-      /* Add new vertices from 'pj' that are on any of the edges of 'pi' */
       polygon_add_new_vertices_from(pi, pj);
     }
   }
 }
 
-static void map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
+/*
+ * Check for lines that are shared by sectors that either intersect
+ * a) partially (one shared vertex, one vertex inside the polygon), or
+ * b) both vertices inside the polygon
+ *
+ * In those cases the other side of the lindef will be set.
+ */
+static void
+map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
 {
   int i, j, k, new_count;
   sector *front, *back;
@@ -208,7 +238,7 @@ static void map_builder_step_configure_back_sectors(map_builder *this, level_dat
 
     for (i = j - 1; i >= 0; --i) {
       back = &level->sectors[i];
-      
+     
       if (back == front) { continue; }
 
       new_count = back->linedefs_count;
@@ -218,7 +248,7 @@ static void map_builder_step_configure_back_sectors(map_builder *this, level_dat
 
         if (line->side_sector[0] && line->side_sector[1]) { continue; }
         if (sector_connects_vertices(back, line->v0, line->v1)) { continue; }
-        
+       
         if (polygon_is_point_inside(&this->polygons[i], line->v0->point, false) && polygon_is_point_inside(&this->polygons[i], line->v1->point, false)) {
           M_DEBUG(printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, XY(line->v0->point), XY(line->v1->point), j, i));
           line->side_sector[1] = back;
@@ -241,15 +271,16 @@ static void map_builder_step_configure_back_sectors(map_builder *this, level_dat
   }
 }
 
-static void map_builder_insert_polygon(
+static void
+map_builder_insert_polygon(
   map_builder *this,
-  size_t insert_index,
-  int32_t floor_height,
-  int32_t ceiling_height,
-  float light,
-  size_t vertices_count,
-  void *vertices,
-  int vertices_list_type
+  size_t      insert_index,
+  int32_t     floor_height,
+  int32_t     ceiling_height,
+  float       light,
+  size_t      vertices_count,
+  void        *vertices,
+  int         vertices_list_type
 ) {
   int i;
 
