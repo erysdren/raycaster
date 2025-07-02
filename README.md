@@ -82,7 +82,7 @@ The general concept is to have **sectors** that define floor and ceiling height 
 ### Getting started
 The library uses [nob.h](https://github.com/tsoding/nob.h) to bootstrap the build command to build the test and demo target.
 
-1. Use `gcc -o build build.c -std=gnu99` to create the builder (or `CC`, depending on your compiler situation)
+1. Use `gcc -o build build.c` to create the builder (or `CC`, depending on your compiler situation)
 2. Then run `build demo` or `build tests`
 3. Demo application accepts a `-level <number>` argument to try out a couple of levels (0 to 3)
 
