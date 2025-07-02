@@ -434,8 +434,9 @@ static void draw_wall_segment(
     return;
   }
 
-  register uint32_t y, wz;
+  register uint32_t y;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
+  int32_t wz;
   uint8_t c[3];
   float light = math_max(0.f, sect->light - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
   float tex_pos = ((from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
