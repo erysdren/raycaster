@@ -98,8 +98,8 @@ check_sector_visibility(renderer*, const frame_info*, sector*);
 
 static void check_sector_column(renderer*, const frame_info*, column_info*, const sector*);
 static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, float);
-static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector*, float, uint32_t from, uint32_t to);
-static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector*, float, uint32_t from, uint32_t to);
+static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
+static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_column(renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
 
 M_INLINED void init_depth_values(renderer *this) {
@@ -125,7 +125,7 @@ void renderer_resize(
 ) {
   this->buffer_size = new_size;
   this->buffer = realloc(this->buffer, new_size.x * new_size.y * sizeof(pixel_type));
-  free(this->depth_values);
+  free((float*)this->depth_values);
   init_depth_values(this);
 }
 
@@ -353,6 +353,7 @@ static void draw_column(
       info,
       column,
       sect,
+      hit,
       (sect->ceiling_height - info->view_z) * info->unit_size,
       column->top_limit,
       M_MIN(start_y, column->bottom_limit)
@@ -363,6 +364,7 @@ static void draw_column(
       info,
       column,
       sect,
+      hit,
       (info->view_z - sect->floor_height) * info->unit_size,
       end_y+1,
       column->bottom_limit+1
@@ -392,6 +394,7 @@ static void draw_column(
       info,
       column,
       sect,
+      hit,
       (sect->ceiling_height - info->view_z) * info->unit_size,
       column->top_limit,
       M_MAX(top_start_y, column->top_limit)
@@ -402,6 +405,7 @@ static void draw_column(
       info,
       column,
       sect,
+      hit,
       (info->view_z - sect->floor_height) * info->unit_size,
       M_MIN(bottom_end_y, column->bottom_limit)+1,
       column->bottom_limit+1
@@ -471,6 +475,7 @@ static void draw_floor_segment(
   const frame_info *info,
   column_info *column,
   const sector *sect,
+  const line_hit *hit,
   float distance_from_view,
   uint32_t from,
   uint32_t to
@@ -482,8 +487,10 @@ static void draw_floor_segment(
 
   register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  register const uint8_t *c = debug_colors_dark[sect->color % 16];
-  register float light, distance;
+  register float light, distance, weight, wx, wy;
+
+  uint8_t c[3];
+  memcpy(c, debug_colors_dark[sect->color % 16], sizeof(uint8_t)*3);
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -493,6 +500,13 @@ static void draw_floor_segment(
 
   for (y = from, yz = from - info->half_h; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz++]) / column->theta;
+    weight = distance / hit->point_distance;
+    wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
+    wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
+
+    c[1] = (int)truncf(wx) & 127;
+    c[2] = (int)truncf(wy) & 127;
+
     light = math_max(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
 #ifdef VECTORIZED_LIGHT_MUL
@@ -513,6 +527,7 @@ static void draw_ceiling_segment(
   const frame_info *info,
   column_info *column,
   const sector *sect,
+  const line_hit *hit,
   float distance_from_view,
   uint32_t from,
   uint32_t to
@@ -524,8 +539,9 @@ static void draw_ceiling_segment(
 
   register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  register const uint8_t *c = debug_colors_dark[sect->color % 16];
-  register float light, distance;
+  register float light, distance, weight, wx, wy;
+  uint8_t c[3];
+  memcpy(c, debug_colors_dark[sect->color % 16], sizeof(uint8_t)*3);
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -535,6 +551,13 @@ static void draw_ceiling_segment(
 
   for (y = from, yz = info->half_h - from - 1; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz--]) / column->theta;
+    weight = distance / hit->point_distance;
+    wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
+    wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
+
+    c[0] = (int)truncf(wx) & 127;
+    c[1] = (int)truncf(wy) & 127;
+
     light = math_max(0.f, sect->light - (uint8_t)(distance / POSTERIZATION_STEP_DISTANCE) * POSTERIZATION_STEP_LIGHT_CHANGE);
 
 #ifdef VECTORIZED_LIGHT_MUL

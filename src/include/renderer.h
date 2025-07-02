@@ -10,8 +10,8 @@ typedef pixel_type* frame_buffer;
 #define RENDERER_DRAW_DISTANCE 8192.f
 
 typedef struct {
-  frame_buffer buffer;
-  float *depth_values;
+  volatile frame_buffer buffer;
+  volatile float *depth_values;
   vec2u buffer_size;
   uint32_t tick;
 } renderer;

@@ -303,8 +303,8 @@ static void create_demo_level()
   map_builder_add_polygon(&builder, 32, 96, 1.f, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
-    VEC2F(300, -200),
-    VEC2F(0, -100)
+    VEC2F(300, -256),
+    VEC2F(0, -128)
   ));
 
   map_builder_add_polygon(&builder, -128, 256, 0.25f, VERTICES(
@@ -331,14 +331,14 @@ static void create_big_one()
 
   map_builder_add_polygon(&builder, 0, 2048, 0.75f, VERTICES(
     VEC2F(0, 0),
-    VEC2F(6000, 0),
-    VEC2F(6000, 6000),
-    VEC2F(0, 6000)
+    VEC2F(6144, 0),
+    VEC2F(6144, 6144),
+    VEC2F(0, 6144)
   ));
 
   const int w = 20;
   const int h = 20;
-  const int size = 200;
+  const int size = 256;
 
   register int x, y, c, f;
 
@@ -352,10 +352,10 @@ static void create_big_one()
       }
 
       map_builder_add_polygon(&builder, f, c, 1.f, VERTICES(
-        VEC2F(1000+x*size,        1000+y*size),
-        VEC2F(1000+x*size + size, 1000+y*size),
-        VEC2F(1000+x*size + size, 1000+y*size + size),
-        VEC2F(1000+x*size,        1000+y*size + size)
+        VEC2F(512+x*size,        512+y*size),
+        VEC2F(512+x*size + size, 512+y*size),
+        VEC2F(512+x*size + size, 512+y*size + size),
+        VEC2F(512+x*size,        512+y*size + size)
       ));
     }
   }
