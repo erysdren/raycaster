@@ -15,7 +15,7 @@
 
 #define MAX_SECTOR_HISTORY 64
 
-static uint32_t debug_colors[16][3] = {
+static uint8_t debug_colors[16][3] = {
   { 195, 235, 233 },
   { 123, 45, 67 },
   { 34, 200, 123 },
@@ -34,7 +34,7 @@ static uint32_t debug_colors[16][3] = {
   { 231, 99, 178 }
 };
 
-static uint32_t debug_colors_dark[16][3] = {
+static uint8_t debug_colors_dark[16][3] = {
   { 120, 110, 100 },
   { 123, 67, 45 },
   { 34, 100, 123 },
@@ -61,7 +61,7 @@ typedef struct {
         far_left,
         far_right;
   float unit_size, view_z;
-  uint32_t half_h;
+  int32_t half_w, half_h;
 } frame_info;
 
 /* Column-specific data */
@@ -97,10 +97,10 @@ check_sector_visibility(renderer*, const frame_info*, sector*);
 #endif
 
 static void check_sector_column(renderer*, const frame_info*, column_info*, const sector*);
-static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit *hit, uint32_t from, uint32_t to);
-static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector *, float, uint32_t from, uint32_t to);
-static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector *, float, uint32_t from, uint32_t to);
-static void draw_column(renderer*, const frame_info*, column_info*, const sector*, line_hit const *);
+static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, float);
+static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector*, float, uint32_t from, uint32_t to);
+static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector*, float, uint32_t from, uint32_t to);
+static void draw_column(renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
 
 M_INLINED void init_depth_values(renderer *this) {
   register size_t y, h = (this->buffer_size.y>>1);
@@ -153,6 +153,7 @@ void renderer_draw(
   info.near_right = vec2f_add(camera->position, camera->plane);
   info.far_left = vec2f_add(camera->position, vec2f_mul(vec2f_sub(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.far_right = vec2f_add(camera->position, vec2f_mul(vec2f_add(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
+  info.half_w = this->buffer_size.x >> 1;
   info.half_h = this->buffer_size.y >> 1;
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
   info.view_z = camera->z;
@@ -321,18 +322,19 @@ static void draw_column(
   const sector *sect,
   line_hit const *hit
 ) {
-  register const float depth_scale_factor = info->unit_size * hit->planar_distance_inv;
-  register const float ceiling_z_scaled   = sect->ceiling_height * depth_scale_factor;
-  register const float floor_z_scaled     = sect->floor_height * depth_scale_factor;
-  register const float view_z_scaled      = info->view_z * depth_scale_factor;
-  register const float ceiling_z_local    = info->half_h - ceiling_z_scaled + view_z_scaled;
-  register const float floor_z_local      = info->half_h - floor_z_scaled + view_z_scaled;
+  const float depth_scale_factor = info->unit_size * hit->planar_distance_inv;
+  const float ceiling_z_scaled   = sect->ceiling_height * depth_scale_factor;
+  const float floor_z_scaled     = sect->floor_height * depth_scale_factor;
+  const float view_z_scaled      = info->view_z * depth_scale_factor;
+  const float ceiling_z_local    = info->half_h - ceiling_z_scaled + view_z_scaled;
+  const float floor_z_local      = info->half_h - floor_z_scaled + view_z_scaled;
+  const float wall_texture_step  = hit->planar_distance / info->unit_size;
 
   sector *back_sector = hit->back_sector;
 
   if (!back_sector || (back_sector && back_sector->floor_height == back_sector->ceiling_height)) {
     /* Draw a full wall */
-    const float start_y = M_MAX(ceiling_z_local, column->top_limit);
+    const float start_y = ceilf(M_MAX(ceiling_z_local, column->top_limit));
     const float end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
 
     draw_wall_segment(
@@ -341,7 +343,9 @@ static void draw_column(
       sect,
       hit,
       start_y,
-      end_y
+      end_y,
+      view_z_scaled,
+      wall_texture_step
     );
 
     draw_ceiling_segment(
@@ -370,17 +374,17 @@ static void draw_column(
     const float top_segment = math_max(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
     const float bottom_segment = math_max(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
 
-    const float top_start_y = math_clamp(ceiling_z_local, column->top_limit, column->bottom_limit);
-    const float top_end_y = math_clamp(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit);
-    const float bottom_end_y = math_clamp(floor_z_local, column->top_limit, column->bottom_limit);
-    const float bottom_start_y = math_clamp(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
+    const float top_start_y = ceilf(math_clamp(ceiling_z_local, column->top_limit, column->bottom_limit));
+    const float top_end_y = floorf(math_clamp(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit));
+    const float bottom_end_y = floorf(math_clamp(floor_z_local, column->top_limit, column->bottom_limit));
+    const float bottom_start_y = ceilf(math_clamp(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit));
 
     if (top_segment > 0) {
-      draw_wall_segment(info, column, sect, hit, top_start_y, top_end_y);
+      draw_wall_segment(info, column, sect, hit, top_start_y, top_end_y, view_z_scaled, wall_texture_step);
     }
 
     if (bottom_segment > 0) {
-      draw_wall_segment(info, column, sect, hit, bottom_start_y, bottom_end_y);
+      draw_wall_segment(info, column, sect, hit, bottom_start_y, bottom_end_y, view_z_scaled, wall_texture_step);
     }
 
     draw_ceiling_segment(
@@ -421,17 +425,22 @@ static void draw_wall_segment(
   column_info *column,
   const sector *sect,
   const line_hit *hit,
-  uint32_t from,
-  uint32_t to
+  int32_t from,
+  int32_t to,
+  float view_z_scaled,
+  float texture_step
 ) {
   if (from == to) {
     return;
   }
 
-  register uint32_t y;
+  register uint32_t y, wz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  register uint32_t *c = debug_colors[hit->line->color % 16];
-  register float light = math_max(0.f, sect->light - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
+  uint8_t c[3];
+  float light = math_max(0.f, sect->light - hit->light_steps * POSTERIZATION_STEP_LIGHT_CHANGE);
+  float tex_pos = ((from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
+
+  memcpy(c, debug_colors[hit->line->color % 16], sizeof(uint8_t)*3);
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -439,7 +448,10 @@ static void draw_wall_segment(
   register uint8_t r, g, b;
 #endif
 
-  for (y = from; y <= to; ++y, p += column->buffer_stride) {
+  for (y = from; y <= to; ++y, p += column->buffer_stride, tex_pos += texture_step) {
+    wz = (int)floorf(tex_pos);
+    c[0] = wz & 127;
+
 #ifdef VECTORIZED_LIGHT_MUL
     __m128i result_i32 = _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, c[2], c[1], c[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f)));
     _mm_storeu_si128((__m128i*)temp, result_i32);
@@ -469,7 +481,7 @@ static void draw_floor_segment(
 
   register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  register uint32_t *c = debug_colors_dark[sect->color % 16];
+  register const uint8_t *c = debug_colors_dark[sect->color % 16];
   register float light, distance;
 
 #ifdef VECTORIZED_LIGHT_MUL
@@ -511,7 +523,7 @@ static void draw_ceiling_segment(
 
   register uint32_t y, yz;
   register uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  register uint32_t *c = debug_colors_dark[sect->color % 16];
+  register const uint8_t *c = debug_colors_dark[sect->color % 16];
   register float light, distance;
 
 #ifdef VECTORIZED_LIGHT_MUL

@@ -424,7 +424,7 @@ static void create_semi_intersecting_sectors()
     VEC2F(240, 350)
   ));
 
-  map_builder_add_polygon(&builder, -128, 96, 0.25f, VERTICES(
+  map_builder_add_polygon(&builder, -128, 256, 0.25f, VERTICES(
     VEC2F(-100, 500),
     VEC2F(100, 100),
     VEC2F(100, -100),

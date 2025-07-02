@@ -111,8 +111,10 @@ int main(int argc, char **argv)
       "-g",
       // "-pg", /* For GPROF */
       "-no-pie",
+      "-flto",
       "-ffast-math",
       "-funroll-loops",
+      "-fomit-frame-pointer",
       "-O3",
       
       "-I"SRC_FOLDER,
