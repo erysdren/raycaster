@@ -15,8 +15,10 @@
   DEPS_FOLDER"gpc/gpc.c", \
   SRC_FOLDER"renderer.c", \
   SRC_FOLDER"camera.c", \
+  SRC_FOLDER"linedef.c", \
   SRC_FOLDER"sector.c", \
   SRC_FOLDER"level_data.c", \
+  SRC_FOLDER"map_cache.c", \
   SRC_FOLDER"map_builder/map_builder.c", \
   SRC_FOLDER"map_builder/polygon.c",
 
@@ -92,6 +94,7 @@ int main(int argc, char **argv)
       TESTS_FOLDER"polygon.c",
       TESTS_FOLDER"sector.c",
       TESTS_FOLDER"map_builder.c",
+      TESTS_FOLDER"level_data.c",
 
       /* Linked libraries */
       "-lm",
@@ -125,9 +128,11 @@ int main(int argc, char **argv)
       "-I"DEPS_FOLDER"gpc",
       
       "-DDEBUG",
+      "-DLIGHT_STEPS=0", /* 0 = smooth light falloff */
       "-DLINE_VIS_CHECK",
       "-DPARALLEL_RENDERING", /* Uses OpenMP to render the screen columns in parallel */
       "-DVECTORIZED_LIGHT_MUL", /* Vectorizes light multiplication for walls, floors & ceilings */
+      "-DDYNAMIC_SHADOWS", 
 
       "-o", BIN_FOLDER"demo",
 

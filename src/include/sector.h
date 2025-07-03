@@ -14,10 +14,12 @@ typedef struct sector {
   int32_t floor_height,
           ceiling_height;
   size_t linedefs_count;
-  float light;
+  float brightness;
   uint32_t color;
   uint32_t last_visibility_check_tick;
   linedef **linedefs;
+  uint8_t lights_count;
+  light *lights[MAX_LIGHTS_PER_SURFACE];
 } sector;
 
 bool
@@ -31,6 +33,9 @@ sector_add_linedef(sector*, linedef*);
 
 void
 sector_remove_linedef(sector*, linedef*);
+
+void
+sector_update_floor_ceiling_limits(sector*);
 
 M_INLINED bool
 sector_point_inside(const sector *this, vec2f point)

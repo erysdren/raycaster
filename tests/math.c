@@ -58,6 +58,10 @@ TEST(math, find_line_intersection)
   if (math_find_line_intersection(VEC2F(0,0), VEC2F(256,0), VEC2F(512,0), VEC2F(768,0), &r, &d)) {
     TEST_FAIL_MESSAGE("Lines should not have intersected");
   }
+
+  if (math_find_line_intersection(VEC2F(0,250), VEC2F(200,250), VEC2F(100,250), VEC2F(300,250), &r, &d)) {
+    TEST_FAIL_MESSAGE("Lines should not have intersected");
+  }
 }
 
 TEST(math, line_segment_point_perpendicular_distance)
@@ -89,19 +93,10 @@ TEST(math, point_in_triangle)
   TEST_ASSERT_FALSE(math_point_in_triangle(VEC2F(0, -6), VEC2F(0, -5), VEC2F(-5, 5), VEC2F(5, 5)));
 }
 
-TEST(math, line_segments_intersect)
-{
-  TEST_ASSERT_TRUE(math_line_segments_intersect(VEC2F(0, 0), VEC2F(100, 0), VEC2F(50, 0), VEC2F(150, 0)));
-  TEST_ASSERT_FALSE(math_line_segments_intersect(VEC2F(0, 0), VEC2F(90, 0), VEC2F(91, 0), VEC2F(150, 0)));
-  TEST_ASSERT_TRUE(math_line_segments_intersect(VEC2F(-10, 0), VEC2F(10, 0), VEC2F(0, -10), VEC2F(0, 10)));
-  TEST_ASSERT_TRUE(math_line_segments_intersect(VEC2F(0, 0), VEC2F(10, 0), VEC2F(0, -10), VEC2F(0, 0)));
-}
-
 TEST_GROUP_RUNNER(math)
 {
   RUN_TEST_CASE(math, find_line_intersection);
   RUN_TEST_CASE(math, line_segment_point_perpendicular_distance);
   RUN_TEST_CASE(math, sign);
   RUN_TEST_CASE(math, point_in_triangle);
-  RUN_TEST_CASE(math, line_segments_intersect);
 }

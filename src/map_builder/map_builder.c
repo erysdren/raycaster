@@ -26,13 +26,13 @@ map_builder_add_polygon(
   map_builder *this,
   int32_t     floor_height,
   int32_t     ceiling_height,
-  float       light,
+  float       brightness,
   size_t      vertices_count,
   vec2f       vertices[]
 ) {
   map_builder_insert_polygon(
     this, this->polygons_count, floor_height, ceiling_height,
-    light, vertices_count, vertices, VEC2F_LIST
+    brightness, vertices_count, vertices, VEC2F_LIST
   );
 }
 
@@ -45,6 +45,7 @@ map_builder_build(map_builder *this)
   level->sectors_count = 0;
   level->linedefs_count = 0;
   level->vertices_count = 0;
+  level->lights_count = 0;
 
   M_DEBUG(printf("Building level (0x%p) ...\n", level));
 
@@ -67,6 +68,12 @@ map_builder_build(map_builder *this)
   M_DEBUG(printf("3. Configure back sectors ...\n"));
 
   map_builder_step_configure_back_sectors(this, level);
+
+  /* ------------ */
+
+  M_DEBUG(printf("4. Prepare map cache ...\n"));
+
+  map_cache_process_level_data(&level->cache, level);
 
   /* ------------ */
 
@@ -186,7 +193,7 @@ map_builder_step_find_polygon_intersections(map_builder *this)
               j+1,
               pj->floor_height,
               pj->ceiling_height,
-              pj->light,
+              pj->brightness,
               result.contour[ci].num_vertices,
               result.contour[ci].vertex,
               GPC_VERTEX_LIST
@@ -248,6 +255,7 @@ map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
           line->side_sector[1] = back;
           back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
+          linedef_update_floor_ceiling_limits(line);
         }
       }
 
@@ -262,7 +270,7 @@ map_builder_insert_polygon(
   size_t      insert_index,
   int32_t     floor_height,
   int32_t     ceiling_height,
-  float       light,
+  float       brightness,
   size_t      vertices_count,
   void        *vertices,
   int         vertices_list_type
@@ -287,7 +295,7 @@ map_builder_insert_polygon(
     .vertices_count = vertices_count,
     .floor_height = floor_height,
     .ceiling_height = ceiling_height,
-    .light = light
+    .brightness = brightness
   };
 
   this->polygons[insert_index].vertices = (vec2f*)malloc(vertices_count * sizeof(vec2f));
@@ -299,6 +307,10 @@ map_builder_insert_polygon(
     for (i=0; i < vertices_count; ++i) {
       this->polygons[insert_index].vertices[i] = VEC2F(list[i].x, list[i].y);
     }
+  }
+
+  if (POLYGON_CLOCKWISE_WINDING(&this->polygons[insert_index]) == false) {
+    polygon_reverse_vertices(&this->polygons[insert_index]);
   }
 
   M_DEBUG(for (i=0; i < vertices_count; ++i) {

@@ -17,11 +17,14 @@ SDL_Texture *texture = NULL;
 static renderer rend;
 static camera cam;
 static level_data *demo_level = NULL;
+static light *dynamic_light = NULL;
+static float light_z, light_movement_range = 48;
 static uint64_t last_ticks;
 static float delta_time;
 static const int initial_window_width = 1024,
                  initial_window_height = 768;
 static int scale = 1;
+static bool nearest = true;
 
 static struct {
   float forward, turn, raise;
@@ -50,6 +53,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
       level = atoi(argv[i+1]);
     } else if (!strcmp(argv[i], "-f") || !strcmp(argv[i], "-fullscreen")) {
       fullscreen = true;
+    } else if (!strcmp(argv[i], "-s") || !strcmp(argv[i], "-scale")) {
+      scale = M_MAX(1, atoi(argv[i+1]));
     }
   }
 
@@ -81,7 +86,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
   
   if (!texture) return -1;
 
-  SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+  SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
 
   switch (level) {
   case 1: create_demo_level(); break;
@@ -127,7 +132,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         renderer_resize(&rend, VEC2U(w / scale, h / scale));
         SDL_DestroyTexture(texture);
         texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
-        SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+        SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
       }
 
       if (event->key.key == SDLK_P) {
@@ -138,20 +143,29 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
       if (event->key.key == SDLK_HOME) {
         cam.in_sector->ceiling_height += 2;
+        sector_update_floor_ceiling_limits(cam.in_sector);
       } else if (event->key.key == SDLK_END) {
         cam.in_sector->ceiling_height = M_MAX(cam.in_sector->floor_height, cam.in_sector->ceiling_height - 2);
+        sector_update_floor_ceiling_limits(cam.in_sector);
       }
 
       if (event->key.key == SDLK_PAGEUP) {
         cam.in_sector->floor_height = M_MIN(cam.in_sector->ceiling_height, cam.in_sector->floor_height + 2);
+        sector_update_floor_ceiling_limits(cam.in_sector);
       } else if (event->key.key == SDLK_PAGEDOWN) {
         cam.in_sector->floor_height -= 2;
+        sector_update_floor_ceiling_limits(cam.in_sector);
       }
 
       if (event->key.key == SDLK_K) {
-        cam.in_sector->light = M_MAX(0.f, cam.in_sector->light - 0.1f);
+        cam.in_sector->brightness = M_MAX(0.f, cam.in_sector->brightness - 0.1f);
       } else if (event->key.key == SDLK_L) {
-        cam.in_sector->light = M_MIN(4.f, cam.in_sector->light + 0.1f);
+        cam.in_sector->brightness = M_MIN(4.f, cam.in_sector->brightness + 0.1f);
+      }
+
+      if (event->key.key == SDLK_M) {
+        nearest = !nearest;
+        SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
       }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W) { movement.forward = 0.f; }
@@ -167,13 +181,14 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
       renderer_resize(&rend, VEC2U(event->window.data1 / scale, event->window.data2 / scale));
       SDL_DestroyTexture(texture);
       texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
-      SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+      SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
     }
 
     return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SDL_AppIterate(void *userdata)
+SDL_AppResult
+SDL_AppIterate(void *userdata)
 {
   static char debug_buffer[64];
   static float fps_update_timer = 0.5f;
@@ -189,18 +204,24 @@ SDL_AppResult SDL_AppIterate(void *userdata)
     fps_update_timer += delta_time;
   }
 
-  // SDL_ClearSurface(window_surface, 0, 0, 0, 1.f);
+  if (dynamic_light) {
+    /* Light moves up and down */
+    light_set_position(dynamic_light, VEC3F(
+      dynamic_light->position.x,
+      dynamic_light->position.y,
+      light_z + sin((now_ticks/30) * M_PI / 180.0) * light_movement_range
+    ));
+
+    /* Circles the light around the camera */
+    /*light_set_position(dynamic_light, VEC3F(
+      cam.position.x + cos((now_ticks/30) * M_PI / 180.0) * 16,
+      cam.position.y + sin((now_ticks/30) * M_PI / 180.0) * 16,
+      cam.z + sin((now_ticks/30) * M_PI / 180.0) * 16
+    ));*/
+  }
 
   process_camera_movement(delta_time);
   renderer_draw(&rend, &cam);
-
-  /*void* pixels;
-  int pitch;
-
-  if (SDL_LockTexture(texture, NULL, &pixels, &pitch)) {
-    memcpy(pixels, rend.buffer, rend.buffer_size.y*pitch);
-    SDL_UnlockTexture(texture);
-  }*/
 
   SDL_UpdateTexture(texture, NULL, rend.buffer, rend.buffer_size.x*sizeof(pixel_type));
 
@@ -216,11 +237,12 @@ SDL_AppResult SDL_AppIterate(void *userdata)
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", cam.in_sector); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[M] - Toggle nearest/linear scaling"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[+ -] - Increase/decrease scale factor"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[O P] - Zoom out/in"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[Home End] - Raise/lower sector ceiling"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector light level"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector brightness"); y+=h;
 
   SDL_RenderPresent(sdl_renderer);
 
@@ -271,6 +293,12 @@ static void create_grid_level()
   }
 
   demo_level = map_builder_build(&builder);
+
+  for (x = 0; x < demo_level->vertices_count; ++x) {
+    demo_level->vertices[x].point.x += (-24 + rand() % 48);
+    demo_level->vertices[x].point.y += (-24 + rand() % 48);
+  }
+  
   map_builder_free(&builder);
 }
 
@@ -329,7 +357,7 @@ static void create_big_one()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 2048, 0.75f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 2048, 0.25f, VERTICES(
     VEC2F(0, 0),
     VEC2F(6144, 0),
     VEC2F(6144, 6144),
@@ -351,7 +379,7 @@ static void create_big_one()
         c = 1440 - 32 * (rand() % 24);
       }
 
-      map_builder_add_polygon(&builder, f, c, 1.f, VERTICES(
+      map_builder_add_polygon(&builder, f, c, 0.5f, VERTICES(
         VEC2F(512+x*size,        512+y*size),
         VEC2F(512+x*size + size, 512+y*size),
         VEC2F(512+x*size + size, 512+y*size + size),
@@ -361,70 +389,77 @@ static void create_big_one()
   }
 
   demo_level = map_builder_build(&builder);
+
+  dynamic_light = level_data_add_light(demo_level, VEC3F(460, 460, 512), 1024, 1.0f);
+  light_z = dynamic_light->position.z;
+  light_movement_range = 400;
+
   map_builder_free(&builder);
 }
 
 static void create_semi_intersecting_sectors()
 {
+  const float base_light = 0.25f;
+
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 0.75f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, base_light, VERTICES(
     VEC2F(0, 0),
     VEC2F(500, 0),
     VEC2F(500, 500),
     VEC2F(0, 500)
   ));
 
-  map_builder_add_polygon(&builder, 32, 96, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 32, 96, base_light, VERTICES(
     VEC2F(0, 200),
     VEC2F(50, 200),
     VEC2F(50, 400),
     VEC2F(0, 400)
   ));
 
-  map_builder_add_polygon(&builder, 32, 256, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 32, 256, base_light, VERTICES(
     VEC2F(250, 250),
-    VEC2F(750, 250),
-    VEC2F(750, 350),
+    VEC2F(2000, 250),
+    VEC2F(2000, 350),
     VEC2F(250, 350)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, VERTICES(
     VEC2F(240, 240),
     VEC2F(260, 240),
     VEC2F(260, 260),
     VEC2F(240, 260)
   ));
 
-  map_builder_add_polygon(&builder, 56, 88, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 56, 88, base_light, VERTICES(
     VEC2F(240, 340),
     VEC2F(260, 340),
     VEC2F(260, 360),
     VEC2F(240, 360)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, VERTICES(
     VEC2F(400, 350),
     VEC2F(420, 350),
     VEC2F(420, 370),
     VEC2F(400, 370)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, 1.0f, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, VERTICES(
     VEC2F(400, 250),
     VEC2F(420, 250),
     VEC2F(420, 270),
     VEC2F(400, 270)
   ));
 
-  map_builder_add_polygon(&builder, 24, 128, 0.9f, VERTICES(
+  map_builder_add_polygon(&builder, 24, 128, base_light, VERTICES(
     VEC2F(240, 250),
     VEC2F(250, 260),
     VEC2F(250, 350),
     VEC2F(240, 350)
   ));
 
-  map_builder_add_polygon(&builder, -128, 256, 0.25f, VERTICES(
+  map_builder_add_polygon(&builder, -128, 256, base_light, VERTICES(
     VEC2F(-100, 500),
     VEC2F(100, 100),
     VEC2F(100, -100),
@@ -432,6 +467,10 @@ static void create_semi_intersecting_sectors()
   ));
 
   demo_level = map_builder_build(&builder);
+
+  dynamic_light = level_data_add_light(demo_level, VEC3F(300, 400, 64), 300, 1.0f);
+  light_z = dynamic_light->position.z;
+
   map_builder_free(&builder);
 }
 
@@ -439,15 +478,15 @@ static void create_crossing_and_splitting_sectors()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 1, VERTICES(
-    VEC2F(0, 0),
-    VEC2F(500, 0),
-    VEC2F(500, 100),
-    VEC2F(0, 100)
+  map_builder_add_polygon(&builder, 0, 128, 0.1f, VERTICES(
+    VEC2F(-500, 0),
+    VEC2F(1000, 0),
+    VEC2F(1000, 100),
+    VEC2F(-500, 100)
   ));
 
   /* This sector will split the first one so you end up with 3 sectors */
-  map_builder_add_polygon(&builder, 16, 112, 1, VERTICES(
+  map_builder_add_polygon(&builder, 16, 112, 0.1f, VERTICES(
     VEC2F(225, -250),
     VEC2F(325, -250),
     VEC2F(325, 250),
@@ -455,5 +494,9 @@ static void create_crossing_and_splitting_sectors()
   ));
 
   demo_level = map_builder_build(&builder);
+
+  dynamic_light = level_data_add_light(demo_level, VEC3F(250, 50, 64), 200, 0.5f);
+  light_z = dynamic_light->position.z;
+
   map_builder_free(&builder);
 }

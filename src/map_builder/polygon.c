@@ -64,11 +64,13 @@ bool polygon_overlaps_polygon(const polygon *this, const polygon *other)
           VEC2F_EQUAL(other->vertices[i],   this->vertices[j2]) ||
           VEC2F_EQUAL(other->vertices[i2],  this->vertices[j2])
       ) { continue; }
-      if (math_line_segments_intersect(
+      if (math_find_line_intersection(
         other->vertices[i],
         other->vertices[i2],
         this->vertices[j],
-        this->vertices[j2]
+        this->vertices[j2],
+        NULL,
+        NULL
       )) { return true; }
     }
   }
@@ -121,6 +123,19 @@ void polygon_remove_point(polygon *this, vec2f point)
       this->vertices = realloc(this->vertices, (--this->vertices_count)*sizeof(vec2f));
       break;
     }
+  }
+}
+
+void
+polygon_reverse_vertices(polygon *this)
+{
+  int i,j, w = this->vertices_count / 2;
+  vec2f temp_swap;
+  for (i = 0; i < w; ++i) {
+    j = this->vertices_count-1-i;
+    temp_swap = this->vertices[j];
+    this->vertices[j] = this->vertices[i];
+    this->vertices[i] = temp_swap;
   }
 }
 

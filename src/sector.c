@@ -1,6 +1,7 @@
 #include "sector.h"
 
-bool sector_references_vertex(sector *this, vertex *v, size_t linedefs_count)
+bool
+sector_references_vertex(sector *this, vertex *v, size_t linedefs_count)
 {
   register size_t i;
   for (i = 0; i < (linedefs_count ? linedefs_count : this->linedefs_count); ++i) {
@@ -11,7 +12,8 @@ bool sector_references_vertex(sector *this, vertex *v, size_t linedefs_count)
   return false;
 }
 
-bool sector_connects_vertices(sector *this, vertex *v0, vertex *v1)
+bool
+sector_connects_vertices(sector *this, vertex *v0, vertex *v1)
 {
   register size_t i;
   for (i = 0; i < this->linedefs_count; ++i) {
@@ -22,7 +24,8 @@ bool sector_connects_vertices(sector *this, vertex *v0, vertex *v1)
   return false;
 }
 
-linedef* sector_add_linedef(sector *sect, linedef *line)
+linedef*
+sector_add_linedef(sector *sect, linedef *line)
 {
   if (sect->linedefs_count) {
     sect->linedefs = realloc(sect->linedefs, sizeof(linedef*) * (sect->linedefs_count+1));
@@ -33,7 +36,8 @@ linedef* sector_add_linedef(sector *sect, linedef *line)
   return line;
 }
 
-void sector_remove_linedef(sector *this, linedef *line)
+void
+sector_remove_linedef(sector *this, linedef *line)
 {
   register size_t i,j;
   for (i = 0; i < this->linedefs_count; ++i) {
@@ -47,5 +51,14 @@ void sector_remove_linedef(sector *this, linedef *line)
       else if (line->side_sector[1] == this) { line->side_sector[1] = NULL; }
       return;
     }
+  }
+}
+
+void
+sector_update_floor_ceiling_limits(sector *this)
+{
+  size_t li;
+  for (li = 0; li < this->linedefs_count; ++li) {
+    linedef_update_floor_ceiling_limits(this->linedefs[li]);
   }
 }

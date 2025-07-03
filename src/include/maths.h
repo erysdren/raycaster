@@ -4,7 +4,7 @@
 #include "macros.h"
 #include "types.h"
 
-#define MATHS_EPSILON 1e-6f
+#define MATHS_EPSILON 1e-5f
 
 M_INLINED float math_max(float a, float b) {
   return fmaxf(a, b);
@@ -37,6 +37,18 @@ M_INLINED float math_length(vec2f v) {
 M_INLINED int32_t math_sign(vec2f p0, vec2f p1, vec2f point) {
   /* > 0 = is left of the line*/
   return (int32_t)((p1.x - p0.x) * (point.y - p0.y) - (point.x - p0.x) * (p1.y - p0.y));
+}
+
+M_INLINED float math_vec3_dot(vec3f v) {
+  return (v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+M_INLINED float math_vec3_distance_squared(vec3f a, vec3f b) {
+  return math_vec3_dot(vec3f_sub(b, a));
+}
+
+M_INLINED float math_vec3_distance(vec3f a, vec3f b) {
+  return sqrtf(math_vec3_dot(vec3f_sub(b, a)));
 }
 
 M_INLINED bool math_find_line_intersection(
@@ -128,32 +140,5 @@ M_INLINED bool math_point_on_line_segment(vec2f P, vec2f B, vec2f A) {
 
   return true;
 }
-
-M_INLINED int _math_orientation(vec2f p, vec2f q, vec2f r) {
-  const float val = math_sign(p, q, r);
-  if (fabsf(val) < 1e-6f) { return 0; }
-  return (val > 0) ? 1 : 2;
-}
-
-M_INLINED bool math_line_segments_intersect(vec2f p1, vec2f p2, vec2f q1, vec2f q2) {
-    int o1 = _math_orientation(p1, p2, q1);
-    int o2 = _math_orientation(p1, p2, q2);
-    int o3 = _math_orientation(q1, q2, p1);
-    int o4 = _math_orientation(q1, q2, p2);
-
-    // General case
-    if (o1 != o2 && o3 != o4) {
-      return true;
-    }
-
-    // Special cases (colinear)
-    if (o1 == 0 && math_point_on_line_segment(q1, p1, p2)) { return true; }
-    if (o2 == 0 && math_point_on_line_segment(q2, p1, p2)) { return true; }
-    if (o3 == 0 && math_point_on_line_segment(p1, q1, q2)) { return true; }
-    if (o4 == 0 && math_point_on_line_segment(p2, q1, q2)) { return true; }
-
-    return false;
-}
-
 
 #endif
