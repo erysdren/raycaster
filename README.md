@@ -25,7 +25,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 ![image](https://github.com/user-attachments/assets/2dd0107c-3aca-4c2f-8cbf-b8003d274dfd)
 ![image](https://github.com/user-attachments/assets/5a0f7275-709e-414f-873e-7df03bea65fb)
 
-![Software Rendering Example 2025-07-03 13-37-15 - Trim](https://github.com/user-attachments/assets/974dcb5b-bd42-42ac-b19a-301926de7ad0)
+![SoftwareRenderingExample2025-07-0313-37-15-Trim-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/8ffa15b4-2766-43e5-907c-5362a0faff6d)
 > There is some support for dynamic lights but it's still quite early and inefficient at full resolution
 
 ## How it works (WIP section)
