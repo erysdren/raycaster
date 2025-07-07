@@ -154,7 +154,6 @@ level_data_update_lights(level_data *this)
 
   for (i = 0; i < this->lights_count; ++i) {
     lite = &this->lights[i];
-    lite->in_sector = NULL;
 
     pos2d = VEC2F(lite->position.x, lite->position.y);
 
@@ -163,8 +162,7 @@ level_data_update_lights(level_data *this)
       sect = &this->sectors[si];
       sector_lit = sector_contains_light(sect, lite);
 
-      if (!lite->in_sector && sect->lights_count < MAX_LIGHTS_PER_SURFACE && sector_point_inside(sect, pos2d)) {
-        lite->in_sector = sect;
+      if (!sector_lit && sect->lights_count < MAX_LIGHTS_PER_SURFACE && sector_point_inside(sect, pos2d)) {
         sect->lights[sect->lights_count++] = lite;
         sector_lit = true;
       }

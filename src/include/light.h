@@ -17,7 +17,6 @@ typedef struct light {
         radius_sq,
         radius_sq_inverse;
   float strength;
-  struct sector *in_sector;
   struct level_data *level;
 } light;
 
