@@ -52,9 +52,9 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
     line = &this->linedefs[i];
 
     if ((line->v0 == v0 && line->v1 == v1) || (line->v0 == v1 && line->v1 == v0)) {
-      line->side_sector[1] = sect;
+      line->side[1].sector = sect;
       M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d, Front: 0x%p, Back: 0x%p)\n",
-        line, XY(v0->point), XY(v1->point), line->color, line->side_sector[0], line->side_sector[1]
+        line, XY(v0->point), XY(v1->point), line->color, line->side[0].sector, line->side[1].sector
       ));
       return line;
     }
@@ -63,8 +63,8 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
   this->linedefs[this->linedefs_count] = (linedef) {
     .v0 = v0,
     .v1 = v1,
-    .side_sector[0] = sect,
-    .side_sector[1] = NULL,
+    .side[0].sector = sect,
+    .side[1].sector = NULL,
     .color = linedef_color++,
     .xmin = fminf(v0->point.x, v1->point.x),
     .xmax = fmaxf(v0->point.x, v1->point.x),
@@ -147,8 +147,8 @@ level_data_update_lights(level_data *this)
 
     for (li = 0; li < sect->linedefs_count; ++li) {
       line = sect->linedefs[li];
-      line->lights_count[0] = 0;
-      line->lights_count[1] = 0;
+      line->side[0].lights_count = 0;
+      line->side[1].lights_count = 0;
     }
   }
 
@@ -169,7 +169,7 @@ level_data_update_lights(level_data *this)
 
       for (li = 0; li < sect->linedefs_count; ++li) {
         line = sect->linedefs[li];
-        side = sect==line->side_sector[0]?0:1;
+        side = sect==line->side[0].sector?0:1;
         sign = math_sign(line->v0->point, line->v1->point, pos2d);
 
   #ifdef DYNAMIC_SHADOWS
@@ -185,10 +185,10 @@ level_data_update_lights(level_data *this)
           }
 
           if ((side == 0 ? (sign < 0) : (sign > 0)) &&
-              line->lights_count[side] < MAX_LIGHTS_PER_SURFACE &&
+              line->side[side].lights_count < MAX_LIGHTS_PER_SURFACE &&
               !linedef_contains_light(line, side, lite)
           ) {
-            line->lights[side][line->lights_count[side]++] = lite;
+            line->side[side].lights[line->side[side].lights_count++] = lite;
           }
         }
   #else
@@ -207,7 +207,7 @@ level_data_update_lights(level_data *this)
 
         /* 2 - Check four corners of the wall */
         if ((side == 0 ? (sign < 0) : (sign > 0)) &&
-            line->lights_count[side] < MAX_LIGHTS_PER_SURFACE &&
+            line->side[side].lights_count < MAX_LIGHTS_PER_SURFACE &&
             !linedef_contains_light(line, side, lite)
         ) {
           if (!level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->floor_height), lite->position, sect) ||
@@ -215,7 +215,7 @@ level_data_update_lights(level_data *this)
               !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->ceiling_height), lite->position, sect) ||
               !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->ceiling_height), lite->position, sect
           )) {
-            line->lights[side][line->lights_count[side]++] = lite;
+            line->side[side].lights[line->side[side].lights_count++] = lite;
           }
         }
   #endif
@@ -268,7 +268,7 @@ level_data_intersect_3d(const level_data *this, vec3f p0, vec3f p1, const sector
       }*/
 
       if (math_find_line_intersection(p0_2, p1_2, line->v0->point, line->v1->point, NULL, &det) && det > MATHS_EPSILON) {
-        back = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0];
+        back = line->side[0].sector == sect ? line->side[1].sector : line->side[0].sector;
         if (sector_visited(back, sh, history)) {
           continue;
         }
@@ -301,8 +301,8 @@ static bool
 linedef_contains_light(const linedef *this, int side, const light *lt)
 {
   size_t i;
-  for (i = 0; i < this->lights_count[side]; ++i) {
-    if (this->lights[side][i] == lt) {
+  for (i = 0; i < this->side[side].lights_count; ++i) {
+    if (this->side[side].lights[i] == lt) {
       return true;
     }
   }

@@ -47,8 +47,8 @@ sector_remove_linedef(sector *this, linedef *line)
         this->linedefs[j] = this->linedefs[j+1];
       }
       this->linedefs = realloc(this->linedefs, sizeof(linedef*) * this->linedefs_count);
-      if (line->side_sector[0] == this) { line->side_sector[0] = NULL; }
-      else if (line->side_sector[1] == this) { line->side_sector[1] = NULL; }
+      if (line->side[0].sector == this) { line->side[0].sector = NULL; }
+      else if (line->side[1].sector == this) { line->side[1].sector = NULL; }
       return;
     }
   }

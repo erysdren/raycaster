@@ -38,8 +38,8 @@ TEST(map_builder, convex_polygon)
   TEST_ASSERT_EQUAL(1, level->sectors_count);
 
   for (i = 0; i < level->linedefs_count; ++i) {
-    TEST_ASSERT_NOT_NULL(level->sectors[0].linedefs[i]->side_sector[0]); /* Front */
-    TEST_ASSERT_NULL(level->sectors[0].linedefs[i]->side_sector[1]); /* Back */
+    TEST_ASSERT_NOT_NULL(level->sectors[0].linedefs[i]->side[0].sector); /* Front */
+    TEST_ASSERT_NULL(level->sectors[0].linedefs[i]->side[1].sector); /* Back */
   }
 
   TEST_ASSERT_TRUE(sector_point_inside(&level->sectors[0], VEC2F(50, 75)));
@@ -76,8 +76,8 @@ TEST(map_builder, concave_polygon)
   TEST_ASSERT_EQUAL_DOUBLE(0.5, level->sectors[0].brightness);
 
   for (i = 0; i < level->linedefs_count; ++i) {
-    TEST_ASSERT_NOT_NULL(level->sectors[0].linedefs[i]->side_sector[0]); /* Front */
-    TEST_ASSERT_NULL(level->sectors[0].linedefs[i]->side_sector[1]); /* Back */
+    TEST_ASSERT_NOT_NULL(level->sectors[0].linedefs[i]->side[0].sector); /* Front */
+    TEST_ASSERT_NULL(level->sectors[0].linedefs[i]->side[1].sector); /* Back */
   }
 
   TEST_ASSERT_FALSE(sector_point_inside(&level->sectors[0], VEC2F(50, 75)));
@@ -118,8 +118,8 @@ TEST(map_builder, neighbouring_sectors)
   TEST_ASSERT_EQUAL(2, level->sectors_count);
 
   /* Same linedef is referenced by both sectors */
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[0].linedefs[2]->side_sector[0]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[1].linedefs[0]->side_sector[1]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[0].linedefs[2]->side[0].sector);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[1].linedefs[0]->side[1].sector);
   TEST_ASSERT_EQUAL_PTR(level->sectors[0].linedefs[2], level->sectors[1].linedefs[0]);
 
   free(level);
@@ -158,7 +158,7 @@ TEST(map_builder, fully_contained_sector)
 
   for (i = 0; i < level->sectors[1].linedefs_count; ++i) {
     /* All linedefs of sector 1 refer to sector 0 */
-    TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[i]->side_sector[1]);
+    TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[i]->side[1].sector);
   }
 
   TEST_ASSERT_FALSE(sector_point_inside(&level->sectors[0], VEC2F(50, 50)));
@@ -225,14 +225,14 @@ TEST(map_builder, fully_contained_sector_sharing_linedef)
   TEST_ASSERT_EQUAL(8, level->sectors[0].linedefs_count);
   TEST_ASSERT_EQUAL(4, level->sectors[1].linedefs_count);
 
-  TEST_ASSERT_NULL(level->sectors[1].linedefs[1]->side_sector[1]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[0]->side_sector[0]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[2]->side_sector[0]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[3]->side_sector[0]);
+  TEST_ASSERT_NULL(level->sectors[1].linedefs[1]->side[1].sector);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[0]->side[0].sector);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[2]->side[0].sector);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[0], level->sectors[1].linedefs[3]->side[0].sector);
 
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[0]->side_sector[1]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[1]->side_sector[1]);
-  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[2]->side_sector[1]);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[0]->side[1].sector);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[1]->side[1].sector);
+  TEST_ASSERT_EQUAL_PTR(&level->sectors[1], level->sectors[0].linedefs[2]->side[1].sector);
 
   free(level);
   map_builder_free(&builder);

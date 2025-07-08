@@ -260,7 +260,7 @@ check_sector_visibility(
       || math_find_line_intersection(line->v0->point, line->v1->point, info->view_position, info->far_right, NULL, NULL)) {
       line->last_visible_tick = this->tick;
 
-      back_sector = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0];
+      back_sector = line->side[0].sector == sect ? line->side[1].sector : line->side[0].sector;
 
       if (back_sector && back_sector->last_visibility_check_tick != this->tick) {
         check_sector_visibility(this, info, back_sector);
@@ -374,7 +374,7 @@ static void check_sector_column(
         .point_distance = point_distance,
         .point_distance_inverse = 1.f / point_distance,
         .line = line,
-        .back_sector = line->side_sector[0] == sect ? line->side_sector[1] : line->side_sector[0],
+        .back_sector = line->side[0].sector == sect ? line->side[1].sector : line->side[0].sector,
 #if LIGHT_STEPS > 0
         .light_steps = (uint8_t)(point_distance * LIGHT_STEP_DISTANCE_INVERSE)
 #else
@@ -526,7 +526,7 @@ static void draw_wall_segment(
 
   memcpy(c, debug_colors[hit->line->color % 16], sizeof(uint8_t)*3);
 
-  const int side = hit->line->side_sector[0] == sect ? 0 : 1;
+  const int side = hit->line->side[0].sector == sect ? 0 : 1;
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -543,8 +543,8 @@ static void draw_wall_segment(
           sect,
           VEC3F(hit->point.x, hit->point.y, -tex_pos),
           SURFACE_WALL,
-          hit->line->lights_count[side],
-          hit->line->lights[side],
+          hit->line->side[side].lights_count,
+          hit->line->side[side].lights,
 #if LIGHT_STEPS > 0
           hit->light_steps
 #else

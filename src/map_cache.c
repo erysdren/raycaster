@@ -98,7 +98,7 @@ collide(const map_cache *this, int x, int y, float current_z, float next_z, floa
     }
 
     if (math_find_line_intersection(start_xy, end_xy, line->v0->point, line->v1->point, NULL, &det) && det > MATHS_EPSILON) {
-      if (!line->side_sector[1]) {
+      if (!line->side[1].sector) {
         return true;
       }
 

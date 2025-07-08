@@ -8,10 +8,12 @@ struct sector;
 
 typedef struct linedef {
   vertex *v0, *v1;
-  struct sector *side_sector[2];
-  uint32_t color;
-  uint8_t lights_count[2];
-  light *lights[2][MAX_LIGHTS_PER_SURFACE];
+  struct {
+    struct sector *sector;
+    uint8_t lights_count;
+    light *lights[MAX_LIGHTS_PER_SURFACE];
+  } side[2];
+  uint32_t color; // TODO: remove once textures are in
   int32_t max_floor_height,
           min_ceiling_height;
   float xmin, xmax, ymin, ymax;
