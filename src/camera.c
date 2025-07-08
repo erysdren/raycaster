@@ -7,6 +7,7 @@ static void find_current_sector(camera *this);
 void camera_init(camera *this, level_data *level) {
   this->level = level;
   this->fov = 1.0; /* ~90 degrees */
+  this->pitch = 0.f;
   this->z = 64;
   this->position = vec2f_make(70, 70);
   this->direction = vec2f_make(1, 0);

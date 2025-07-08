@@ -130,7 +130,7 @@ static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, con
 static void draw_column(renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
 
 M_INLINED void init_depth_values(renderer *this) {
-  register size_t y, h = 1+(this->buffer_size.y>>1);
+  register size_t y, h = this->buffer_size.y;
   this->depth_values = malloc(h*sizeof(float));
   for (y = 0; y < h; ++y) {
     this->depth_values[y] = !y ? 1.f : 1.f / y;
@@ -175,13 +175,15 @@ void renderer_draw(
   
   this->tick++;
 
+  int32_t half_h = this->buffer_size.y >> 1;
+
   info.view_position = camera->position;
   info.near_left = vec2f_sub(camera->position, camera->plane),
   info.near_right = vec2f_add(camera->position, camera->plane);
   info.far_left = vec2f_add(camera->position, vec2f_mul(vec2f_sub(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.far_right = vec2f_add(camera->position, vec2f_mul(vec2f_add(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.half_w = this->buffer_size.x >> 1;
-  info.half_h = this->buffer_size.y >> 1;
+  info.half_h = half_h + (int32_t)floorf(camera->pitch * half_h);
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
   info.view_z = camera->z;
 

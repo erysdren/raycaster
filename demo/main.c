@@ -27,7 +27,7 @@ static int scale = 1;
 static bool nearest = true;
 
 static struct {
-  float forward, turn, raise;
+  float forward, turn, raise, pitch;
 } movement = { 0 };
 
 static void create_demo_level();
@@ -123,6 +123,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
       if (event->key.key == SDLK_Q) { movement.raise = 1.f; }
       else if (event->key.key == SDLK_Z) { movement.raise = -1.f; }
 
+      if (event->key.key == SDLK_E) { movement.pitch = 1.f; }
+      else if (event->key.key == SDLK_C) { movement.pitch = -1.f; }
+
       if (event->key.key == SDLK_PLUS ||event->key.key == SDLK_MINUS) {
         if (event->key.key == SDLK_PLUS) { scale += 1; }
         else if (scale > 1) { scale -= 1; }
@@ -168,14 +171,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
       }
     } else if (event->type == SDL_EVENT_KEY_UP) {
-      if (event->key.key == SDLK_W) { movement.forward = 0.f; }
-      else if (event->key.key == SDLK_S) { movement.forward = 0.f; }
-      
-      if (event->key.key == SDLK_A) { movement.turn = 0.f; }
-      else if (event->key.key == SDLK_D) { movement.turn = 0.f; }
-      
-      if (event->key.key == SDLK_Q) { movement.raise = 0.f; }
-      else if (event->key.key == SDLK_Z) { movement.raise = 0.f; }
+      if (event->key.key == SDLK_W || event->key.key == SDLK_S) { movement.forward = 0.f; }
+      if (event->key.key == SDLK_A || event->key.key == SDLK_D) { movement.turn = 0.f; }
+      if (event->key.key == SDLK_Q || event->key.key == SDLK_Z) { movement.raise = 0.f; }
+      if (event->key.key == SDLK_E || event->key.key == SDLK_C) { movement.pitch = 0.f; }
+
     } else if (event->type == SDL_EVENT_WINDOW_RESIZED) {
       printf("Resize buffer to %dx%d\n", event->window.data1 / scale, event->window.data2 / scale);
       renderer_resize(&rend, VEC2U(event->window.data1 / scale, event->window.data2 / scale));
@@ -237,6 +237,7 @@ SDL_AppIterate(void *userdata)
   SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", cam.in_sector); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
+  SDL_RenderDebugText(sdl_renderer, 4, y, "[E C] - Pitch up/down"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[M] - Toggle nearest/linear scaling"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[+ -] - Increase/decrease scale factor"); y+=h;
   SDL_RenderDebugText(sdl_renderer, 4, y, "[O P] - Zoom out/in"); y+=h;
@@ -261,6 +262,12 @@ static void process_camera_movement(const float delta_time)
 
   if ((int)movement.raise != 0) {
     cam.z += 88 * movement.raise * delta_time;
+  }
+
+  if ((int)movement.pitch != 0) {
+    cam.pitch = math_clamp(cam.pitch+2*movement.pitch*delta_time, MIN_CAMERA_PITCH, MAX_CAMERA_PITCH);
+  } else {
+    cam.pitch *= 0.98f;
   }
 }
 
