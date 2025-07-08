@@ -23,7 +23,7 @@ bool polygon_is_point_inside(const polygon *this, vec2f point, bool include_edge
     v0 = this->vertices[i];
     v1 = this->vertices[(i+1)%this->vertices_count];
 
-    if (math_point_on_line_segment(point, v0, v1)) {
+    if (math_point_on_line_segment(point, v0, v1, MATHS_EPSILON)) {
       return include_edges;
     }
 

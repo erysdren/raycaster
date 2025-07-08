@@ -5,6 +5,7 @@
 #include "types.h"
 
 #define MATHS_EPSILON 1e-5f
+#define PRECISION_LOW 1e-2f
 
 M_INLINED float math_max(float a, float b) {
   return fmaxf(a, b);
@@ -119,12 +120,12 @@ M_INLINED float math_line_segment_point_distance(vec2f a, vec2f b, vec2f point) 
   return math_length(vec2f_sub(point, VEC2F(a.x + t * ab.x, a.y + t * ab.y)));
 }
 
-M_INLINED bool math_point_on_line_segment(vec2f P, vec2f B, vec2f A) {
+M_INLINED bool math_point_on_line_segment(vec2f P, vec2f B, vec2f A, float precision) {
   const vec2f BA = vec2f_sub(B, A);
   const vec2f PA = vec2f_sub(P, A);
   const float cross = math_cross(BA, PA);
 
-  if (fabsf(cross) > MATHS_EPSILON) {
+  if (fabsf(cross) > precision) {
     return false;
   }
 

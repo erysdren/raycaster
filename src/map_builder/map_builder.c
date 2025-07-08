@@ -123,7 +123,8 @@ polygon_add_new_vertices_from(
   for (j = 0; j < other->vertices_count; ++j) {
     for (i = 0; i < this->vertices_count; ++i) {
       i2 = (i + 1) % this->vertices_count;
-      if (math_point_on_line_segment(other->vertices[j], this->vertices[i], this->vertices[i2]) && !polygon_vertices_contains_point(this, other->vertices[j])) {
+      if (math_point_on_line_segment(other->vertices[j], this->vertices[i], this->vertices[i2], PRECISION_LOW) &&
+          polygon_vertices_contains_point(this, other->vertices[j]) == false) {
         M_DEBUG(printf("\tInserting (%d,%d) of 0x%p between (%d,%d) and (%d,%d) in 0x%p\n",
           XY(other->vertices[j]), other, XY(this->vertices[i]), XY(this->vertices[i2]), this));
         polygon_insert_point(this, other->vertices[j], this->vertices[i], this->vertices[i2]);
@@ -141,7 +142,7 @@ polygon_optimize_lines(polygon *this)
   while (i < (n = this->vertices_count)) {
     prev = (n+i-1)%n;
     next = (i+1)%n;
-    if (math_point_on_line_segment(this->vertices[i], this->vertices[prev], this->vertices[next])) {
+    if (math_point_on_line_segment(this->vertices[i], this->vertices[prev], this->vertices[next], MATHS_EPSILON)) {
       polygon_remove_point(this, this->vertices[i]);
     } else {
       i++;
