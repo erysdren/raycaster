@@ -55,12 +55,6 @@ typedef struct {
 #endif
 } line_hit;
 
-typedef enum {
-  SURFACE_WALL,
-  SURFACE_FLOOR,
-  SURFACE_CEILING
-} surface_type;
-
 #define DIMMING_DISTANCE 4096.f
 
 #if LIGHT_STEPS > 0
@@ -77,15 +71,6 @@ static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
 static void
 check_sector_visibility(renderer*, const frame_info*, sector*);
 #endif
-
-static float
-calculate_light(const sector *sect, vec3f pos, surface_type, size_t, light**,
-#if LIGHT_STEPS > 0
-  uint8_t steps
-#else
-  float light_falloff
-#endif
-);
 
 static void check_sector_column(renderer*, const frame_info*, column_info*, const sector*);
 static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, texture_ref, float, int32_t);
@@ -234,70 +219,6 @@ check_sector_visibility(
 }
 
 #endif
-
-M_INLINED float
-calculate_light(const sector *sect, vec3f pos, surface_type surface_type, size_t num_lights, light **lights,
-#if LIGHT_STEPS > 0
-  uint8_t steps
-#else
-  float light_falloff
-#endif
-) {
-  size_t i;
-  light *lt;
-  float v = sect->brightness, dsq;
-
-  for (i = 0; i < num_lights; ++i) {
-    lt = lights[i];
-
-    /* Floors and ceilings are not lit when above or below the light respectively */
-    if (surface_type != SURFACE_WALL &&
-        ((surface_type == SURFACE_FLOOR && lt->position.z < sect->floor_height) ||
-         (surface_type == SURFACE_CEILING && lt->position.z > sect->ceiling_height))
-    ) {
-      continue;
-    }
-
-    if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
-      continue;
-    }
-
-#ifdef DYNAMIC_SHADOWS
-    if (map_cache_intersect_3d(&lt->level->cache, pos, lt->position)) {
-      continue;
-    }
-#endif
-
-    v = math_max(v, lt->strength * math_min(1.f, 1.f - (dsq * lt->radius_sq_inverse)));
-  }
-
-  return math_max(
-    0.f,
-#if LIGHT_STEPS > 0
-    ((uint8_t)(v * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
-#else
-    v - light_falloff
-#endif
-  );
-}
-
-M_INLINED float
-calculate_basic_brightness(const float base,
-#if LIGHT_STEPS > 0
-  uint8_t steps
-#else
-  float light_falloff
-#endif
-) {
-  return math_max(
-    0.f,
-#if LIGHT_STEPS > 0
-    ((uint8_t)(base * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
-#else
-    base - light_falloff
-#endif
-  );
-}
 
 M_INLINED void sort_nearest(line_hit *arr, int n) {
   register int i, j;
@@ -516,6 +437,118 @@ static void draw_column(
   }
 }
 
+/*
+ * There are three light functions here:
+ * 
+ * When a surface is affected by a dynamic light:
+ *   1. For vertical surfaces with a little falloff/attenuation as the light approaches and goes below it
+ *   2. For horizontal surfaces
+ * 
+ * When it's not:
+ *   3. Basic brightness and dimming
+ */
+
+#define VERTICAL_FADE_DIST 2.5f
+
+M_INLINED float
+calculate_vertical_surface_light(const sector *sect, vec3f pos, bool is_floor, size_t num_lights, light **lights,
+#if LIGHT_STEPS > 0
+  uint8_t steps
+#else
+  float light_falloff
+#endif
+) {
+  size_t i;
+  light *lt;
+  float dz, v = sect->brightness, dsq;
+
+  for (i = 0; i < num_lights; ++i) {
+    lt = lights[i];
+
+    if ((dz = is_floor ? (lt->position.z - sect->floor_height) : (sect->ceiling_height - lt->position.z)) < 0.f) {
+      continue;
+    }
+
+    if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
+      continue;
+    }
+
+#ifdef DYNAMIC_SHADOWS
+    if (map_cache_intersect_3d(&lt->level->cache, pos, lt->position)) {
+      continue;
+    }
+#endif
+
+    v = math_max(v, lt->strength * math_min(1.f, dz / VERTICAL_FADE_DIST) * math_min(1.f, 1.f - (dsq * lt->radius_sq_inverse)));
+  }
+
+  return math_max(
+    0.f,
+#if LIGHT_STEPS > 0
+    ((uint8_t)(v * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
+#else
+    v - light_falloff
+#endif
+  );
+}
+
+
+M_INLINED float
+calculate_horizontal_surface_light(const sector *sect, vec3f pos, size_t num_lights, light **lights,
+#if LIGHT_STEPS > 0
+  uint8_t steps
+#else
+  float light_falloff
+#endif
+) {
+  size_t i;
+  light *lt;
+  float v = sect->brightness, dsq;
+
+  for (i = 0; i < num_lights; ++i) {
+    lt = lights[i];
+
+    if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
+      continue;
+    }
+
+#ifdef DYNAMIC_SHADOWS
+    if (map_cache_intersect_3d(&lt->level->cache, pos, lt->position)) {
+      continue;
+    }
+#endif
+
+    v = math_max(v, lt->strength * math_min(1.f, 1.f - (dsq * lt->radius_sq_inverse)));
+  }
+
+  return math_max(
+    0.f,
+#if LIGHT_STEPS > 0
+    ((uint8_t)(v * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
+#else
+    v - light_falloff
+#endif
+  );
+}
+
+M_INLINED float
+calculate_basic_brightness(const float base,
+#if LIGHT_STEPS > 0
+  uint8_t steps
+#else
+  float light_falloff
+#endif
+) {
+  return math_max(
+    0.f,
+#if LIGHT_STEPS > 0
+    ((uint8_t)(base * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
+#else
+    base - light_falloff
+#endif
+  );
+}
+
 static void draw_wall_segment(
   const frame_info *info,
   column_info *column,
@@ -554,10 +587,9 @@ static void draw_wall_segment(
     texture_sampler(texture, texture_x, (int32_t)floorf(tex_pos), 1 + hit->distance_steps, &rgb[0]);
 
     light = lights_count ?
-      calculate_light(
+      calculate_horizontal_surface_light(
         sect,
         VEC3F(hit->point.x, hit->point.y, -tex_pos),
-        SURFACE_WALL,
         lights_count,
         lights,
 #if LIGHT_STEPS > 0
@@ -610,10 +642,10 @@ static void draw_floor_segment(
 
     texture_sampler(sect->floor_texture, (int)truncf(wx), (int)truncf(wy), 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
-    light = lights_count ? calculate_light(
+    light = lights_count ? calculate_vertical_surface_light(
       sect,
       VEC3F(wx, wy, sect->floor_height),
-      SURFACE_FLOOR,
+      true,
       lights_count,
       lights,
 #if LIGHT_STEPS > 0
@@ -673,10 +705,10 @@ static void draw_ceiling_segment(
     
     texture_sampler(sect->ceiling_texture, (int)truncf(wx), (int)truncf(wy), 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
-    light = lights_count ? calculate_light(
+    light = lights_count ? calculate_vertical_surface_light(
       sect,
       VEC3F(wx, wy, sect->ceiling_height),
-      SURFACE_CEILING,
+      false,
       lights_count,
       lights,
 #if LIGHT_STEPS > 0
