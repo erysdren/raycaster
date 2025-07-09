@@ -9,13 +9,13 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 ## Features
 * :black_square_button: Basic sector and linedef handling
 * 🚧 Basic level construction: define some polygons and automatically build the sectors
-* 💡 Sector lighting with distance falloff for walls, floors and ceilings
+* ⛅ Sector brightness with distance falloff for walls, floors and ceilings
+* 💡 Point lights with dynamic shadows
 * ⭐ Uses GeneralPolygonClipper for the sector differences and splitting
 * :dash: Uses OpenMP to render columns in parallel = fast (optional)
 
 ## Unfeatures
-* 🧱 Texturing
-* 🌲 Sprites
+* 🌲 Sprites & objects
 * 🪞 Maybe portals or mirrors?
 
 ![image](https://github.com/user-attachments/assets/d9ab0242-0829-4499-a30d-31665b33945e)
