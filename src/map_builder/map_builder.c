@@ -261,6 +261,9 @@ map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
         if (polygon_is_point_inside(&this->polygons[i], line->v0->point, false) && polygon_is_point_inside(&this->polygons[i], line->v1->point, false)) {
           M_DEBUG(printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, XY(line->v0->point), XY(line->v1->point), j, i));
           line->side[1].sector = back;
+          line->side[1].texture[0] = line->side[0].texture[0];
+          line->side[1].texture[1] = line->side[0].texture[1];
+          line->side[1].texture[2] = line->side[0].texture[2];
           back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
           linedef_update_floor_ceiling_limits(line);

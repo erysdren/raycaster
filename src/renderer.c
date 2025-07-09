@@ -235,7 +235,7 @@ check_sector_visibility(
 
 #endif
 
-static float
+M_INLINED float
 calculate_light(const sector *sect, vec3f pos, surface_type surface_type, size_t num_lights, light **lights,
 #if LIGHT_STEPS > 0
   uint8_t steps
@@ -271,11 +271,32 @@ calculate_light(const sector *sect, vec3f pos, surface_type surface_type, size_t
     v = math_max(v, lt->strength * math_min(1.f, 1.f - (dsq * lt->radius_sq_inverse)));
   }
 
+  return math_max(
+    0.f,
 #if LIGHT_STEPS > 0
-  return ((uint8_t)(v * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE);
+    ((uint8_t)(v * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
 #else
-  return v - light_falloff;
+    v - light_falloff
 #endif
+  );
+}
+
+M_INLINED float
+calculate_basic_brightness(const float base,
+#if LIGHT_STEPS > 0
+  uint8_t steps
+#else
+  float light_falloff
+#endif
+) {
+  return math_max(
+    0.f,
+#if LIGHT_STEPS > 0
+    ((uint8_t)(base * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
+#else
+    base - light_falloff
+#endif
+  );
 }
 
 M_INLINED void sort_nearest(line_hit *arr, int n) {
@@ -512,9 +533,18 @@ static void draw_wall_segment(
   }
 
   register uint32_t y;
-  register float light=-1, tex_pos = ((from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
+  register float light = calculate_basic_brightness(
+      sect->brightness,
+#if LIGHT_STEPS > 0
+        hit->distance_steps
+#else
+        hit->light_falloff
+#endif
+  ), tex_pos = ((from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   uint8_t rgb[3] = { 0 };
+  uint8_t lights_count = hit->line->side[hit->side].lights_count;
+  struct light **lights = hit->line->side[hit->side].lights;
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -523,21 +553,19 @@ static void draw_wall_segment(
   for (y = from; y <= to; ++y, p += column->buffer_stride, tex_pos += texture_step) {
     texture_sampler(texture, texture_x, (int32_t)floorf(tex_pos), 1 + hit->distance_steps, &rgb[0]);
 
-    light = math_max(
+    light = lights_count ?
       calculate_light(
         sect,
         VEC3F(hit->point.x, hit->point.y, -tex_pos),
         SURFACE_WALL,
-        hit->line->side[hit->side].lights_count,
-        hit->line->side[hit->side].lights,
+        lights_count,
+        lights,
 #if LIGHT_STEPS > 0
         hit->distance_steps
 #else
         hit->light_falloff
 #endif
-      ),
-      0.f
-    );
+      ) : light;
 
 #ifdef VECTORIZED_LIGHT_MUL
     _mm_storeu_si128((__m128i*)temp, _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, rgb[2], rgb[1], rgb[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f))));
@@ -567,6 +595,8 @@ static void draw_floor_segment(
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   uint8_t rgb[3];
+  uint8_t lights_count = sect->lights_count;
+  struct light **lights = ((sector*)sect)->lights;
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -580,20 +610,24 @@ static void draw_floor_segment(
 
     texture_sampler(sect->floor_texture, (int)truncf(wx), (int)truncf(wy), 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
-    light = math_max(
-      calculate_light(
-        sect,
-        VEC3F(wx, wy, sect->floor_height),
-        SURFACE_FLOOR,
-        sect->lights_count,
-        ((sector*)sect)->lights,
+    light = lights_count ? calculate_light(
+      sect,
+      VEC3F(wx, wy, sect->floor_height),
+      SURFACE_FLOOR,
+      lights_count,
+      lights,
 #if LIGHT_STEPS > 0
-        distance * LIGHT_STEP_DISTANCE_INVERSE
+      distance * LIGHT_STEP_DISTANCE_INVERSE
 #else
-        distance * DIMMING_DISTANCE_INVERSE
+      distance * DIMMING_DISTANCE_INVERSE
 #endif
-      ),
-      0.f
+    ) : calculate_basic_brightness(
+      sect->brightness,
+#if LIGHT_STEPS > 0
+      distance * LIGHT_STEP_DISTANCE_INVERSE
+#else
+      distance * DIMMING_DISTANCE_INVERSE
+#endif
     );
 
 #ifdef VECTORIZED_LIGHT_MUL
@@ -624,6 +658,8 @@ static void draw_ceiling_segment(
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   uint8_t rgb[3];
+  uint8_t lights_count = sect->lights_count;
+  struct light **lights = ((sector*)sect)->lights;
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -637,20 +673,24 @@ static void draw_ceiling_segment(
     
     texture_sampler(sect->ceiling_texture, (int)truncf(wx), (int)truncf(wy), 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
-    light = math_max(
-      calculate_light(
-        sect,
-        VEC3F(wx, wy, sect->ceiling_height),
-        SURFACE_CEILING,
-        sect->lights_count,
-        ((sector*)sect)->lights,
+    light = lights_count ? calculate_light(
+      sect,
+      VEC3F(wx, wy, sect->ceiling_height),
+      SURFACE_CEILING,
+      lights_count,
+      lights,
 #if LIGHT_STEPS > 0
-        distance * LIGHT_STEP_DISTANCE_INVERSE
+      distance * LIGHT_STEP_DISTANCE_INVERSE
 #else
-        distance * DIMMING_DISTANCE_INVERSE
+      distance * DIMMING_DISTANCE_INVERSE
 #endif
-      ),
-      0.f
+    ) : calculate_basic_brightness(
+      sect->brightness,
+#if LIGHT_STEPS > 0
+      distance * LIGHT_STEP_DISTANCE_INVERSE
+#else
+      distance * DIMMING_DISTANCE_INVERSE
+#endif
     );
 
 #ifdef VECTORIZED_LIGHT_MUL
