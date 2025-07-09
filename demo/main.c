@@ -5,10 +5,15 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_surface.h>
+#include <SDL3_image/SDL_image.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#define WALL_TEXTURE 0
+#define FLOOR_TEXTURE 1
+#define CEILING_TEXTURE 2
 
 SDL_Window* window = NULL;
 SDL_Renderer *sdl_renderer = NULL;
@@ -26,6 +31,8 @@ static const int initial_window_width = 1024,
 static int scale = 1;
 static bool nearest = true;
 
+static SDL_Surface *textures[3];
+
 static struct {
   float forward, turn, raise, pitch;
 } movement = { 0 };
@@ -36,6 +43,9 @@ static void create_big_one();
 static void create_semi_intersecting_sectors();
 static void create_crossing_and_splitting_sectors();
 static void process_camera_movement(const float delta_time);
+
+M_INLINED bool
+demo_texture_sampler(texture_ref texture, int32_t x, int32_t y, uint8_t, uint8_t *rgb);
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
@@ -88,6 +98,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
   SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
 
+  textures[WALL_TEXTURE] = IMG_Load("res/wall.png");
+  textures[FLOOR_TEXTURE] = IMG_Load("res/floor.png");
+  textures[CEILING_TEXTURE] = IMG_Load("res/ceiling.png");
+
   switch (level) {
   case 1: create_demo_level(); break;
   case 2: create_big_one(); break;
@@ -99,6 +113,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
   camera_init(&cam, demo_level);
 
   last_ticks = SDL_GetTicks();
+
+  texture_sampler = demo_texture_sampler;
 
   return 0;
 }
@@ -290,7 +306,7 @@ static void create_grid_level()
         c = 1024 - 32 * (rand() % 24);
       }
 
-      map_builder_add_polygon(&builder, f, c, 1.f, VERTICES(
+      map_builder_add_polygon(&builder, f, c, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
         VEC2F(x*size, y*size),
         VEC2F(x*size + size, y*size),
         VEC2F(x*size + size, y*size + size),
@@ -313,7 +329,7 @@ static void create_demo_level()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 144, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 144, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(400, 400),
@@ -321,35 +337,35 @@ static void create_demo_level()
     VEC2F(0, 400)
   ));
 
-  map_builder_add_polygon(&builder, -32, 160, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, -32, 160, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(50, 50),
     VEC2F(50, 200),
     VEC2F(200, 200),
     VEC2F(200, 50)
   ));
 
-  map_builder_add_polygon(&builder, 128, 128, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 128, 128, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(100, 100),
     VEC2F(125, 100),
     VEC2F(125, 125),
     VEC2F(100, 125)
   ));
 
-  map_builder_add_polygon(&builder, 32, 96, 1.f, VERTICES(
+  map_builder_add_polygon(&builder, 32, 96, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(300, -256),
     VEC2F(0, -128)
   ));
 
-  map_builder_add_polygon(&builder, -128, 256, 0.25f, VERTICES(
+  map_builder_add_polygon(&builder, -128, 256, 0.25f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(400, 400),
     VEC2F(200, 300),
     VEC2F(100, 1000),
     VEC2F(500, 1000)
   ));
 
-  map_builder_add_polygon(&builder, 0, 224, 1.5f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 224, 1.5f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(275, 500),
     VEC2F(325, 500),
     VEC2F(325, 700),
@@ -364,7 +380,7 @@ static void create_big_one()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 2048, 0.25f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 2048, 0.25f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(6144, 0),
     VEC2F(6144, 6144),
@@ -386,7 +402,7 @@ static void create_big_one()
         c = 1440 - 32 * (rand() % 24);
       }
 
-      map_builder_add_polygon(&builder, f, c, 0.5f, VERTICES(
+      map_builder_add_polygon(&builder, f, c, 0.5f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
         VEC2F(512+x*size,        512+y*size),
         VEC2F(512+x*size + size, 512+y*size),
         VEC2F(512+x*size + size, 512+y*size + size),
@@ -410,63 +426,63 @@ static void create_semi_intersecting_sectors()
 
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(500, 0),
     VEC2F(500, 500),
     VEC2F(0, 500)
   ));
 
-  map_builder_add_polygon(&builder, 32, 96, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 32, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 200),
     VEC2F(50, 200),
     VEC2F(50, 400),
     VEC2F(0, 400)
   ));
 
-  map_builder_add_polygon(&builder, 32, 256, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 32, 256, base_light, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(250, 250),
     VEC2F(2000, 250),
     VEC2F(2000, 350),
     VEC2F(250, 350)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(240, 240),
     VEC2F(260, 240),
     VEC2F(260, 260),
     VEC2F(240, 260)
   ));
 
-  map_builder_add_polygon(&builder, 56, 88, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 56, 88, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(240, 340),
     VEC2F(260, 340),
     VEC2F(260, 360),
     VEC2F(240, 360)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(400, 350),
     VEC2F(420, 350),
     VEC2F(420, 370),
     VEC2F(400, 370)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(400, 250),
     VEC2F(420, 250),
     VEC2F(420, 270),
     VEC2F(400, 270)
   ));
 
-  map_builder_add_polygon(&builder, 24, 128, base_light, VERTICES(
+  map_builder_add_polygon(&builder, 24, 128, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(240, 250),
     VEC2F(250, 260),
     VEC2F(250, 350),
     VEC2F(240, 350)
   ));
 
-  map_builder_add_polygon(&builder, -128, 256, base_light, VERTICES(
+  map_builder_add_polygon(&builder, -128, 256, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(-100, 500),
     VEC2F(100, 100),
     VEC2F(100, -100),
@@ -485,7 +501,7 @@ static void create_crossing_and_splitting_sectors()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 0.1f, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 0.1f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(-500, 0),
     VEC2F(1000, 0),
     VEC2F(1000, 100),
@@ -493,7 +509,7 @@ static void create_crossing_and_splitting_sectors()
   ));
 
   /* This sector will split the first one so you end up with 3 sectors */
-  map_builder_add_polygon(&builder, 16, 112, 0.1f, VERTICES(
+  map_builder_add_polygon(&builder, 16, 112, 0.1f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(225, -250),
     VEC2F(325, -250),
     VEC2F(325, 250),
@@ -506,4 +522,14 @@ static void create_crossing_and_splitting_sectors()
   light_z = dynamic_light->position.z;
 
   map_builder_free(&builder);
+}
+
+M_INLINED bool
+demo_texture_sampler(texture_ref texture, int32_t x, int32_t y, uint8_t mip_level, uint8_t *rgb)
+{
+  SDL_Surface *surface = textures[texture];
+  x = (x / mip_level) * mip_level;
+  y = (y / mip_level) * mip_level;
+  memcpy(rgb, (Uint8 *)surface->pixels + (y & (surface->h-1)) * surface->pitch + (x & (surface->w-1)) * SDL_BYTESPERPIXEL(surface->format), 3);
+  return true;
 }

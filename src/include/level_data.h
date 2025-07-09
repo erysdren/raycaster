@@ -3,6 +3,7 @@
 
 #include "sector.h"
 #include "light.h"
+#include "texture.h"
 #include "map_cache.h"
 
 struct polygon;
@@ -25,7 +26,7 @@ vertex*
 level_data_get_vertex(level_data*, vec2f);
 
 linedef*
-level_data_get_linedef(level_data*, sector*, vertex*, vertex*);
+level_data_get_linedef(level_data*, sector*, vertex*, vertex*, texture_ref);
 
 sector*
 level_data_create_sector_from_polygon(level_data*, struct polygon*);

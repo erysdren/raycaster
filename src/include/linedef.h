@@ -3,8 +3,15 @@
 
 #include "vertex.h"
 #include "light.h"
+#include "texture.h"
 
 struct sector;
+
+typedef enum {
+  LINE_TEXTURE_TOP = 0,
+  LINE_TEXTURE_MIDDLE,
+  LINE_TEXTURE_BOTTOM
+} linedef_side_texture;
 
 typedef struct linedef {
   vertex *v0, *v1;
@@ -12,11 +19,11 @@ typedef struct linedef {
     struct sector *sector;
     uint8_t lights_count;
     light *lights[MAX_LIGHTS_PER_SURFACE];
+    texture_ref texture[3];
   } side[2];
-  uint32_t color; // TODO: remove once textures are in
   int32_t max_floor_height,
           min_ceiling_height;
-  float xmin, xmax, ymin, ymax;
+  float length, xmin, xmax, ymin, ymax;
 
 #ifdef LINE_VIS_CHECK
   uint32_t last_visible_tick;

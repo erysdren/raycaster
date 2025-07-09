@@ -17,7 +17,7 @@ TEST(map_builder, convex_polygon)
   int i;
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 1, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(0, 100),
     VEC2F(100, 100),
@@ -54,7 +54,7 @@ TEST(map_builder, concave_polygon)
   int i;
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 0.5, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 0.5, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(0, 100),
     VEC2F(50, 50),
@@ -97,14 +97,14 @@ TEST(map_builder, neighbouring_sectors)
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
+  map_builder_add_polygon(&builder, 0, 100, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(0, 100),
     VEC2F(100, 100),
     VEC2F(100, 0)
   ));
 
-  map_builder_add_polygon(&builder, 10, 90, 1, VERTICES(
+  map_builder_add_polygon(&builder, 10, 90, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(100, 0),
     VEC2F(100, 100),
     VEC2F(200, 100),
@@ -134,14 +134,14 @@ TEST(map_builder, fully_contained_sector)
   int i;
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
+  map_builder_add_polygon(&builder, 0, 100, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(0, 100),
     VEC2F(100, 100),
     VEC2F(100, 0)
   ));
 
-  map_builder_add_polygon(&builder, 10, 90, 1, VERTICES(
+  map_builder_add_polygon(&builder, 10, 90, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(25, 25),
     VEC2F(75, 25),
     VEC2F(75, 75),
@@ -176,14 +176,14 @@ TEST(map_builder, fully_contained_sector_sharing_linedef)
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
+  map_builder_add_polygon(&builder, 0, 100, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(0, 100),
     VEC2F(100, 100),
     VEC2F(100, 0)
   ));
 
-  map_builder_add_polygon(&builder, 10, 90, 1, VERTICES(
+  map_builder_add_polygon(&builder, 10, 90, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(50, 25),
     VEC2F(100, 25),
     VEC2F(100, 75),
@@ -246,14 +246,14 @@ TEST(map_builder, intersecting_sectors)
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 100, 1, VERTICES(
+  map_builder_add_polygon(&builder, 0, 100, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(0, 100),
     VEC2F(100, 100),
     VEC2F(100, 0)
   ));
 
-  map_builder_add_polygon(&builder, 10, 90, 1, VERTICES(
+  map_builder_add_polygon(&builder, 10, 90, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(50, 25),
     VEC2F(150, 25),
     VEC2F(150, 75),
@@ -292,7 +292,7 @@ TEST(map_builder, polygon_splitting)
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 1, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(500, 0),
     VEC2F(500, 100),
@@ -300,7 +300,7 @@ TEST(map_builder, polygon_splitting)
   ));
 
   /* This sector will split the first one so you end up with 3 sectors */
-  map_builder_add_polygon(&builder, 16, 112, 1, VERTICES(
+  map_builder_add_polygon(&builder, 16, 112, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(225, -250),
     VEC2F(325, -250),
     VEC2F(325, 250),
@@ -319,7 +319,7 @@ TEST(map_builder, optimize_polygon)
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 1, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 1, TEXTURE_NONE, TEXTURE_NONE, TEXTURE_NONE, VERTICES(
     VEC2F(0, 0),
     VEC2F(250, 0), /* Unless any other polygon uses that point as well, it's unnecessary */
     VEC2F(500, 0),

@@ -35,6 +35,10 @@ M_INLINED float math_length(vec2f v) {
   return sqrtf(math_dot(v));
 }
 
+M_INLINED float math_vec2f_distance(vec2f p0, vec2f p1) {
+  return math_length(vec2f_sub(p1, p0));
+}
+
 M_INLINED int32_t math_sign(vec2f p0, vec2f p1, vec2f point) {
   /* > 0 = is left of the line*/
   return (int32_t)((p1.x - p0.x) * (point.y - p0.y) - (point.x - p0.x) * (p1.y - p0.y));

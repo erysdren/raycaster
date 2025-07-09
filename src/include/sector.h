@@ -11,15 +11,16 @@
 #define LINEDEFS(...) M_NARG(__VA_ARGS__), (linedef[]) { __VA_ARGS__ }
 
 typedef struct sector {
-  int32_t floor_height,
-          ceiling_height;
-  size_t linedefs_count;
-  float brightness;
-  uint32_t color;
-  uint32_t last_visibility_check_tick;
-  linedef **linedefs;
-  uint8_t lights_count;
-  light *lights[MAX_LIGHTS_PER_SURFACE];
+  int32_t     floor_height,
+              ceiling_height;
+  size_t      linedefs_count;
+  float       brightness;
+  texture_ref floor_texture,
+              ceiling_texture;
+  uint32_t    last_visibility_check_tick;
+  linedef     **linedefs;
+  uint8_t     lights_count;
+  light       *lights[MAX_LIGHTS_PER_SURFACE];
 } sector;
 
 bool

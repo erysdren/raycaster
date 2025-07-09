@@ -2,16 +2,20 @@
 #define RAYCAST_MAP_BUILDER_POLYGON_INCLUDED
 
 #include "types.h"
+#include "texture.h"
 
 #define VERTICES(...) M_NARG(__VA_ARGS__), (vec2f[]) { __VA_ARGS__ }
 #define POLYGON_CLOCKWISE_WINDING(POLY) (polygon_signed_area(POLY) < 0)
 
 typedef struct polygon {
-  int32_t floor_height,
-          ceiling_height;
-  float brightness;
-  size_t vertices_count;
-  vec2f *vertices;
+  int32_t     floor_height,
+              ceiling_height;
+  float       brightness;
+  texture_ref wall_texture,
+              floor_texture,
+              ceiling_texture;
+  size_t      vertices_count;
+  vec2f       *vertices;
 } polygon;
 
 bool

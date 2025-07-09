@@ -10,9 +10,6 @@ linedef_contains_light(const linedef*, int, const light*);
 static bool
 sector_contains_light(const sector*, const light*);
 
-/* Just for debbuging for now */
-static uint32_t linedef_color = 0, sector_color = 0;
-
 /* FIND a vertex at given point OR CREATE a new one */
 vertex* level_data_get_vertex(level_data *this, vec2f point)
 {
@@ -42,7 +39,7 @@ vertex* level_data_get_vertex(level_data *this, vec2f point)
 }
 
 /* FIND a linedef with given vertices OR CREATE a new one */
-linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vertex *v1)
+linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vertex *v1, texture_ref texture)
 {
   register size_t i;
   linedef *line;
@@ -53,8 +50,12 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
 
     if ((line->v0 == v0 && line->v1 == v1) || (line->v0 == v1 && line->v1 == v0)) {
       line->side[1].sector = sect;
-      M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d, Front: 0x%p, Back: 0x%p)\n",
-        line, XY(v0->point), XY(v1->point), line->color, line->side[0].sector, line->side[1].sector
+      line->side[1].texture[0] = texture;
+      line->side[1].texture[1] = texture;
+      line->side[1].texture[2] = texture;
+
+      M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
+        line, XY(v0->point), XY(v1->point), line->side[0].sector, line->side[1].sector
       ));
       return line;
     }
@@ -63,17 +64,27 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
   this->linedefs[this->linedefs_count] = (linedef) {
     .v0 = v0,
     .v1 = v1,
-    .side[0].sector = sect,
-    .side[1].sector = NULL,
-    .color = linedef_color++,
+    .side[0] = {
+      .sector = sect,
+      .texture[0] = texture,
+      .texture[1] = texture,
+      .texture[2] = texture
+    },
+    .side[1] = {
+      .sector = NULL,
+      .texture[0] = TEXTURE_NONE,
+      .texture[1] = TEXTURE_NONE,
+      .texture[2] = TEXTURE_NONE
+    },
+    .length = math_vec2f_distance(v0->point, v1->point),
     .xmin = fminf(v0->point.x, v1->point.x),
     .xmax = fmaxf(v0->point.x, v1->point.x),
     .ymin = fminf(v0->point.y, v1->point.y),
     .ymax = fmaxf(v0->point.y, v1->point.y)
   };
 
-  M_DEBUG(printf("\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Color: %d, Front: 0x%p, Back: 0x%p)\n",
-    &this->linedefs[this->linedefs_count], XY(v0->point), XY(v1->point), linedef_color-1, sect, NULL
+  M_DEBUG(printf("\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
+    &this->linedefs[this->linedefs_count], XY(v0->point), XY(v1->point), sect, NULL
   ));
 
   return &this->linedefs[this->linedefs_count++];
@@ -90,7 +101,8 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
   sect->floor_height = poly->floor_height;
   sect->ceiling_height = poly->ceiling_height;
   sect->brightness = poly->brightness;
-  sect->color = sector_color++;
+  sect->floor_texture = poly->floor_texture;
+  sect->ceiling_texture = poly->ceiling_texture;
   sect->linedefs = NULL;
   sect->linedefs_count = 0;
 
@@ -102,7 +114,8 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
           this,
           sect,
           level_data_get_vertex(this, poly->vertices[i]),
-          level_data_get_vertex(this, poly->vertices[(i+1)%poly->vertices_count])
+          level_data_get_vertex(this, poly->vertices[(i+1)%poly->vertices_count]),
+          poly->wall_texture
         )
       )
     );

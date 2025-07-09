@@ -2,13 +2,14 @@
 #include "deps/nob.h"
 #include <string.h>
 
-#define BIN_FOLDER    "bin/"
-#define SRC_FOLDER    "src/"
-#define DEPS_FOLDER   "deps/"
-#define TESTS_FOLDER  "tests/"
-#define DEMO_FOLDER   "demo/"
-/* SDL3 sub-directory in DEPS folder */
-#define SDL3_FOLDER   "SDL3-devel-3.2.16-mingw/i686-w64-mingw32/"
+#define BIN_FOLDER        "bin/"
+#define SRC_FOLDER        "src/"
+#define DEPS_FOLDER       "deps/"
+#define TESTS_FOLDER      "tests/"
+#define DEMO_FOLDER       "demo/"
+/* SDL3 sub-directories in DEPS folder */
+#define SDL3_FOLDER       "SDL3-devel-3.2.16-mingw/i686-w64-mingw32/"
+#define SDL3_IMAGE_FOLDER "SDL3_image-3.2.4/i686-w64-mingw32/"
 
 /* Common source files between test and demo target */
 #define COMMON_SRC_FILES \
@@ -125,6 +126,7 @@ int main(int argc, char **argv)
       "-I"SRC_FOLDER"map_builder/include",
       "-I"DEMO_FOLDER,
       "-I"DEPS_FOLDER""SDL3_FOLDER"include",
+      "-I"DEPS_FOLDER""SDL3_IMAGE_FOLDER"include",
       "-I"DEPS_FOLDER"gpc",
       
       "-DDEBUG",
@@ -142,6 +144,7 @@ int main(int argc, char **argv)
 
       /* Linked libraries */
       DEPS_FOLDER""SDL3_FOLDER"lib/libSDL3.dll.a",
+      DEPS_FOLDER""SDL3_IMAGE_FOLDER"lib/libSDL3_image.dll.a",
       "-lm",
       "-msse2",
       "-mfpmath=sse",
@@ -151,7 +154,9 @@ int main(int argc, char **argv)
 
     if (!nob_cmd_run_sync_and_reset(&cmd)) return 1;
 
+    nob_copy_directory_recursively(DEMO_FOLDER"res", BIN_FOLDER"res");
     nob_copy_directory_recursively(DEPS_FOLDER""SDL3_FOLDER"bin/SDL3.dll", BIN_FOLDER"SDL3.dll");
+    nob_copy_directory_recursively(DEPS_FOLDER""SDL3_IMAGE_FOLDER"bin/SDL3_image.dll", BIN_FOLDER"SDL3_image.dll");
   }
 
   return 0;

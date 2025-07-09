@@ -15,7 +15,7 @@ static void
 map_builder_step_configure_back_sectors(map_builder*, level_data*);
 
 static void
-map_builder_insert_polygon(map_builder*, size_t, int32_t, int32_t, float, size_t, void*, int);
+map_builder_insert_polygon(map_builder*, size_t, int32_t, int32_t, float, texture_ref, texture_ref, texture_ref, size_t, void*, int);
 
 /*
  * Map data public API
@@ -27,12 +27,16 @@ map_builder_add_polygon(
   int32_t     floor_height,
   int32_t     ceiling_height,
   float       brightness,
+  texture_ref wall_texture,
+  texture_ref floor_texture,
+  texture_ref ceiling_texture,
   size_t      vertices_count,
   vec2f       vertices[]
 ) {
   map_builder_insert_polygon(
     this, this->polygons_count, floor_height, ceiling_height,
-    brightness, vertices_count, vertices, VEC2F_LIST
+    brightness, wall_texture, floor_texture, ceiling_texture,
+    vertices_count, vertices, VEC2F_LIST
   );
 }
 
@@ -195,6 +199,9 @@ map_builder_step_find_polygon_intersections(map_builder *this)
               pj->floor_height,
               pj->ceiling_height,
               pj->brightness,
+              pj->wall_texture,
+              pj->floor_texture,
+              pj->ceiling_texture,
               result.contour[ci].num_vertices,
               result.contour[ci].vertex,
               GPC_VERTEX_LIST
@@ -272,6 +279,9 @@ map_builder_insert_polygon(
   int32_t     floor_height,
   int32_t     ceiling_height,
   float       brightness,
+  texture_ref wall_texture,
+  texture_ref floor_texture,
+  texture_ref ceiling_texture,
   size_t      vertices_count,
   void        *vertices,
   int         vertices_list_type
@@ -296,7 +306,10 @@ map_builder_insert_polygon(
     .vertices_count = vertices_count,
     .floor_height = floor_height,
     .ceiling_height = ceiling_height,
-    .brightness = brightness
+    .brightness = brightness,
+    .wall_texture = wall_texture,
+    .floor_texture = floor_texture,
+    .ceiling_texture = ceiling_texture
   };
 
   this->polygons[insert_index].vertices = (vec2f*)malloc(vertices_count * sizeof(vec2f));
