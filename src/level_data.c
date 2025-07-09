@@ -50,9 +50,14 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
 
     if ((line->v0 == v0 && line->v1 == v1) || (line->v0 == v1 && line->v1 == v0)) {
       line->side[1].sector = sect;
-      line->side[1].texture[0] = texture;
-      line->side[1].texture[1] = texture;
-      line->side[1].texture[2] = texture;
+      
+      line->side[1].texture[0] = line->side[0].texture[0];
+      line->side[1].texture[1] = line->side[0].texture[1];
+      line->side[1].texture[2] = line->side[0].texture[2];
+
+      line->side[0].texture[0] = texture;
+      line->side[0].texture[1] = texture;
+      line->side[0].texture[2] = texture;
 
       M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
         line, XY(v0->point), XY(v1->point), line->side[0].sector, line->side[1].sector

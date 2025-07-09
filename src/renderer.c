@@ -665,7 +665,7 @@ static void draw_ceiling_segment(
   int32_t temp[4];
 #endif
 
-  for (y = from, yz = info->half_h - from; y < to; ++y, p += column->buffer_stride) {
+  for (y = from, yz = info->half_h - from - 1; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz--]) * column->theta_inverse;
     weight = math_min(1.f, distance * hit->point_distance_inverse);
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);

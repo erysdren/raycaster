@@ -14,6 +14,7 @@
 #define WALL_TEXTURE 0
 #define FLOOR_TEXTURE 1
 #define CEILING_TEXTURE 2
+#define WOOD_TEXTURE 3
 
 SDL_Window* window = NULL;
 SDL_Renderer *sdl_renderer = NULL;
@@ -31,7 +32,7 @@ static const int initial_window_width = 1024,
 static int scale = 1;
 static bool nearest = true;
 
-static SDL_Surface *textures[3];
+static SDL_Surface *textures[4];
 
 static struct {
   float forward, turn, raise, pitch;
@@ -101,6 +102,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
   textures[WALL_TEXTURE] = IMG_Load("res/wall.png");
   textures[FLOOR_TEXTURE] = IMG_Load("res/floor.png");
   textures[CEILING_TEXTURE] = IMG_Load("res/ceiling.png");
+  textures[WOOD_TEXTURE] = IMG_Load("res/wood.png");
 
   switch (level) {
   case 1: create_demo_level(); break;
@@ -344,7 +346,7 @@ static void create_demo_level()
     VEC2F(200, 50)
   ));
 
-  map_builder_add_polygon(&builder, 128, 128, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 128, 128, 1.f, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(100, 100),
     VEC2F(125, 100),
     VEC2F(125, 125),
@@ -447,28 +449,28 @@ static void create_semi_intersecting_sectors()
     VEC2F(250, 350)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(240, 240),
     VEC2F(260, 240),
     VEC2F(260, 260),
     VEC2F(240, 260)
   ));
 
-  map_builder_add_polygon(&builder, 56, 88, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 56, 88, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(240, 340),
     VEC2F(260, 340),
     VEC2F(260, 360),
     VEC2F(240, 360)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(400, 350),
     VEC2F(420, 350),
     VEC2F(420, 370),
     VEC2F(400, 370)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(400, 250),
     VEC2F(420, 250),
     VEC2F(420, 270),
