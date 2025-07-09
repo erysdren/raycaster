@@ -18,11 +18,8 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 * 🌲 Sprites
 * 🪞 Maybe portals or mirrors?
 
-![image](https://github.com/user-attachments/assets/94be15ab-71d8-4956-b850-2ef8935f49d4)
-![image](https://github.com/user-attachments/assets/6a2ae674-7da7-49c7-9dc1-e59675c8c460)
-![image](https://github.com/user-attachments/assets/fef181fa-d4b3-49cd-9148-dcaed470c521)
+![image](https://github.com/user-attachments/assets/d9ab0242-0829-4499-a30d-31665b33945e)
 ![image](https://github.com/user-attachments/assets/d8273d82-c590-4c58-a8dd-3c396a5b1353)
-![image](https://github.com/user-attachments/assets/2dd0107c-3aca-4c2f-8cbf-b8003d274dfd)
 ![image](https://github.com/user-attachments/assets/5a0f7275-709e-414f-873e-7df03bea65fb)
 
 ![SoftwareRenderingExample2025-07-0313-37-15-Trim-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/8ffa15b4-2766-43e5-907c-5362a0faff6d)
