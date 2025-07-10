@@ -31,6 +31,7 @@ static const int initial_window_width = 1024,
                  initial_window_height = 768;
 static int scale = 1;
 static bool nearest = true;
+static bool info_text_visible = true;
 
 static SDL_Surface *textures[4];
 
@@ -187,6 +188,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
       if (event->key.key == SDLK_M) {
         nearest = !nearest;
         SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
+      } else if (event->key.key == SDLK_H) {
+        info_text_visible = !info_text_visible;
       }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W || event->key.key == SDLK_S) { movement.forward = 0.f; }
@@ -247,21 +250,23 @@ SDL_AppIterate(void *userdata)
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
 
-  int y = 4, h = 10;
-
-  SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-  SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "CAMERA pos: (%.1f, %.1f, %.1f), dir: (%.3f, %.3f), plane: (%.3f, %.3f), FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
-  SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", cam.in_sector); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[E C] - Pitch up/down"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[M] - Toggle nearest/linear scaling"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[+ -] - Increase/decrease scale factor"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[O P] - Zoom out/in"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[Home End] - Raise/lower sector ceiling"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
-  SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector brightness"); y+=h;
+  if (info_text_visible) {
+    int y = 4, h = 10;
+    SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+    SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
+    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "CAMERA pos: (%.1f, %.1f, %.1f), dir: (%.3f, %.3f), plane: (%.3f, %.3f), FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
+    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", cam.in_sector); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[E C] - Pitch up/down"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[M] - Toggle nearest/linear scaling"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[+ -] - Increase/decrease scale factor"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[O P] - Zoom out/in"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[Home End] - Raise/lower sector ceiling"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector brightness"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[H] - Toggle on-screen info"); y+=h;
+  }
 
   SDL_RenderPresent(sdl_renderer);
 
