@@ -79,7 +79,7 @@ static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
 #endif
 
 static void check_sector_column(const renderer*, const frame_info*, column_info*, const sector*);
-static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, texture_ref, float, float);
+static void draw_wall_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, texture_ref, float, float);
 static void draw_floor_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_ceiling_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_column(const renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
@@ -347,6 +347,7 @@ static void draw_column(
     const float end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
 
     draw_wall_segment(
+      this,
       info,
       column,
       sect,
@@ -358,8 +359,6 @@ static void draw_column(
       wall_texture_step,
       wall_texture_x
     );
-
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
 
     if (sect->ceiling_texture != TEXTURE_NONE) {
       draw_ceiling_segment(
@@ -375,8 +374,6 @@ static void draw_column(
     } else {
       draw_sky_segment(this, info, column, column->top_limit, M_MIN(start_y, column->bottom_limit));
     }
-
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
 
     draw_floor_segment(
       this,
@@ -405,6 +402,7 @@ static void draw_column(
 
     if (top_segment > 0) {
       draw_wall_segment(
+        this,
         info,
         column,
         sect,
@@ -417,13 +415,13 @@ static void draw_column(
         wall_texture_x
       );
       new_top_limit = top_end_y;
-      M_DEBUG(INSERT_RENDER_BREAKPOINT);
     } else {
       new_top_limit = top_start_y;
     }
 
     if (bottom_segment > 0) {
       draw_wall_segment(
+        this,
         info,
         column,
         sect,
@@ -436,7 +434,6 @@ static void draw_column(
         wall_texture_x
       );
       new_bottom_limit = bottom_start_y;
-      M_DEBUG(INSERT_RENDER_BREAKPOINT);
     } else {
       new_bottom_limit = bottom_end_y;
     }
@@ -466,8 +463,6 @@ static void draw_column(
       M_MIN(bottom_end_y, column->bottom_limit),
       column->bottom_limit
     );
-
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
 
     column->top_limit = new_top_limit;
     column->bottom_limit = new_bottom_limit;
@@ -595,6 +590,7 @@ calculate_basic_brightness(const float base,
 }
 
 static void draw_wall_segment(
+  const renderer *this,
   const frame_info *info,
   column_info *column,
   const sector *sect,
@@ -650,6 +646,8 @@ static void draw_wall_segment(
 #else
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
+
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
   }
 }
 
@@ -713,6 +711,8 @@ static void draw_floor_segment(
 #else
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
+
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
   } 
 }
 
@@ -776,6 +776,8 @@ static void draw_ceiling_segment(
 #else
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
+
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
   }
 }
 
@@ -798,5 +800,6 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
   for (y = from; y < to; ++y, p += column->buffer_stride) {
     texture_sampler(info->sky_texture, sky_x, math_min(1.f, 0.5+(y-info->pitch_offset)/h), &texture_coordinates_normalized, 1, &rgb[0]);
     *p = 0xFF000000 | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
   }
 }

@@ -199,9 +199,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
       } else if (event->key.key == SDLK_H) {
         info_text_visible = !info_text_visible;
-      } else if (event->key.key == SDLK_R) {
+      }
+#ifdef DEBUG
+      if (event->key.key == SDLK_R) {
         renderer_step = demo_renderer_step;
       }
+#endif
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W || event->key.key == SDLK_S) { movement.forward = 0.f; }
       if (event->key.key == SDLK_A || event->key.key == SDLK_D) { movement.turn = 0.f; }
@@ -594,6 +597,6 @@ demo_renderer_step(const renderer *r)
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
   SDL_RenderPresent(sdl_renderer);
-  SDL_Delay(100);
+  SDL_Delay(5);
 }
 #endif
