@@ -15,6 +15,7 @@
 #define FLOOR_TEXTURE 1
 #define CEILING_TEXTURE 2
 #define WOOD_TEXTURE 3
+#define SKY_TEXTURE 4
 
 SDL_Window* window = NULL;
 SDL_Renderer *sdl_renderer = NULL;
@@ -33,7 +34,7 @@ static int scale = 1;
 static bool nearest = true;
 static bool info_text_visible = true;
 
-static SDL_Surface *textures[4];
+static SDL_Surface *textures[5];
 
 static struct {
   float forward, turn, raise, pitch;
@@ -44,6 +45,7 @@ static void create_grid_level();
 static void create_big_one();
 static void create_semi_intersecting_sectors();
 static void create_crossing_and_splitting_sectors();
+static void create_large_sky();
 static void process_camera_movement(const float delta_time);
 
 M_INLINED void
@@ -109,12 +111,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
   textures[FLOOR_TEXTURE] = IMG_Load("res/floor.png");
   textures[CEILING_TEXTURE] = IMG_Load("res/ceiling.png");
   textures[WOOD_TEXTURE] = IMG_Load("res/wood.png");
+  textures[SKY_TEXTURE] = IMG_Load("res/sky.png");
 
   switch (level) {
   case 1: create_demo_level(); break;
   case 2: create_big_one(); break;
   case 3: create_semi_intersecting_sectors(); break;
   case 4: create_crossing_and_splitting_sectors(); break;
+  case 5: create_large_sky(); break;
   default: create_grid_level(); break;
   }
  
@@ -504,6 +508,7 @@ static void create_semi_intersecting_sectors()
   ));
 
   demo_level = map_builder_build(&builder);
+  demo_level->sky_texture = SKY_TEXTURE;
 
   dynamic_light = level_data_add_light(demo_level, VEC3F(300, 400, 64), 300, 1.0f);
   light_z = dynamic_light->position.z;
@@ -535,6 +540,38 @@ create_crossing_and_splitting_sectors()
 
   dynamic_light = level_data_add_light(demo_level, VEC3F(250, 50, 64), 200, 0.5f);
   light_z = dynamic_light->position.z;
+
+  map_builder_free(&builder);
+}
+
+static void
+create_large_sky()
+{
+  map_builder builder = { 0 };
+
+  map_builder_add_polygon(&builder, 0, 256, 0.9f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+    VEC2F(-500, -500),
+    VEC2F(500, -500),
+    VEC2F(500, 500),
+    VEC2F(-500, 500)
+  ));
+
+  map_builder_add_polygon(&builder, 40, 256, 0.9f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+    VEC2F(-100, -100),
+    VEC2F(100, -100),
+    VEC2F(100, 100),
+    VEC2F(-100, 100)
+  ));
+
+  map_builder_add_polygon(&builder, 512, 512, 1.f, WOOD_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+    VEC2F(-10, -10),
+    VEC2F(10, -10),
+    VEC2F(10, 10),
+    VEC2F(-10, 10)
+  ));
+
+  demo_level = map_builder_build(&builder);
+  demo_level->sky_texture = SKY_TEXTURE;
 
   map_builder_free(&builder);
 }

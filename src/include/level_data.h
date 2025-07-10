@@ -20,6 +20,7 @@ typedef struct level_data {
   vec2f min,
         max;
   map_cache cache;
+  texture_ref sky_texture;
 } level_data;
 
 vertex*

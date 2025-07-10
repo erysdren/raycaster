@@ -50,6 +50,7 @@ map_builder_build(map_builder *this)
   level->linedefs_count = 0;
   level->vertices_count = 0;
   level->lights_count = 0;
+  level->sky_texture = TEXTURE_NONE;
 
   M_DEBUG(printf("Building level (0x%p) ...\n", level));
 

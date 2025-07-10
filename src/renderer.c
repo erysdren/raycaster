@@ -30,7 +30,8 @@ typedef struct {
         far_left,
         far_right;
   float unit_size, view_z;
-  int32_t half_w, half_h;
+  int32_t half_w, half_h, pitch_offset;
+  texture_ref sky_texture;
 } frame_info;
 
 /* Column-specific data */
@@ -82,6 +83,7 @@ static void draw_wall_segment(const frame_info*, column_info*, const sector*, co
 static void draw_floor_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_ceiling_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_column(const renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
+static void draw_sky_segment(const renderer *this, const frame_info*, const column_info*, uint32_t, uint32_t);
 
 M_INLINED void init_depth_values(renderer *this) {
   register size_t y, h = this->buffer_size.y;
@@ -137,9 +139,11 @@ void renderer_draw(
   info.far_left = vec2f_add(camera->position, vec2f_mul(vec2f_sub(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.far_right = vec2f_add(camera->position, vec2f_mul(vec2f_add(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.half_w = this->buffer_size.x >> 1;
-  info.half_h = half_h + (int32_t)floorf(camera->pitch * half_h);
+  info.pitch_offset = (int32_t)floorf(camera->pitch * half_h);
+  info.half_h = half_h + info.pitch_offset;
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
   info.view_z = camera->z;
+  info.sky_texture = camera->level->sky_texture;
 
 #ifdef LINE_VIS_CHECK
   refresh_sector_visibility(this, &info, camera->in_sector);
@@ -173,8 +177,6 @@ void renderer_draw(
     };
 
     check_sector_column(this, &info, &column, camera->in_sector);
-
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
   }
 
   M_DEBUG(renderer_step = NULL);
@@ -359,16 +361,20 @@ static void draw_column(
 
     M_DEBUG(INSERT_RENDER_BREAKPOINT);
 
-    draw_ceiling_segment(
-      this,
-      info,
-      column,
-      sect,
-      hit,
-      (sect->ceiling_height - info->view_z) * info->unit_size,
-      column->top_limit,
-      M_MIN(start_y, column->bottom_limit)
-    );
+    if (sect->ceiling_texture != TEXTURE_NONE) {
+      draw_ceiling_segment(
+        this,
+        info,
+        column,
+        sect,
+        hit,
+        (sect->ceiling_height - info->view_z) * info->unit_size,
+        column->top_limit,
+        M_MIN(start_y, column->bottom_limit)
+      );
+    } else {
+      draw_sky_segment(this, info, column, column->top_limit, M_MIN(start_y, column->bottom_limit));
+    }
 
     M_DEBUG(INSERT_RENDER_BREAKPOINT);
 
@@ -435,19 +441,21 @@ static void draw_column(
       new_bottom_limit = bottom_end_y;
     }
 
-    draw_ceiling_segment(
-      this,
-      info,
-      column,
-      sect,
-      hit,
-      (sect->ceiling_height - info->view_z) * info->unit_size,
-      column->top_limit,
-      M_MAX(top_start_y, column->top_limit)
-    );
-
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
-
+    if (sect->ceiling_texture != TEXTURE_NONE) {
+      draw_ceiling_segment(
+        this,
+        info,
+        column,
+        sect,
+        hit,
+        (sect->ceiling_height - info->view_z) * info->unit_size,
+        column->top_limit,
+        M_MAX(top_start_y, column->top_limit)
+      );
+    } else {
+      draw_sky_segment(this, info, column, column->top_limit, M_MAX(top_start_y, column->top_limit));
+    }
+      
     draw_floor_segment(
       this,
       info,
@@ -459,6 +467,8 @@ static void draw_column(
       column->bottom_limit
     );
 
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+
     column->top_limit = new_top_limit;
     column->bottom_limit = new_bottom_limit;
 
@@ -466,8 +476,6 @@ static void draw_column(
       column->finished = true;
       return;
     }
-
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
 
     /* Render back sector */
     check_sector_column(this, info, column, back_sector);
@@ -719,7 +727,7 @@ static void draw_ceiling_segment(
   uint32_t to
 ) {
   /* Camera above the ceiling */
-  if (from == to || info->view_z > sect->ceiling_height || sect->ceiling_texture == TEXTURE_NONE) {
+  if (from == to || info->view_z > sect->ceiling_height) {
     return;
   }
 
@@ -768,5 +776,27 @@ static void draw_ceiling_segment(
 #else
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
+  }
+}
+
+static void
+draw_sky_segment(const renderer *this, const frame_info *info, const column_info *column, uint32_t from, uint32_t to)
+{
+  if (from == to) {
+    return;
+  }
+
+  register uint16_t y;
+  uint8_t rgb[3];
+  float angle = atan2(column->ray_direction.x, column->ray_direction.y) * (180.0f / M_PI);
+  if (angle < 0.0f) {
+    angle += 360.0f;
+  }
+  float sky_x = angle / 360, h = (float)this->buffer_size.y; 
+  uint32_t *p = column->buffer_start + (from * column->buffer_stride);
+
+  for (y = from; y < to; ++y, p += column->buffer_stride) {
+    texture_sampler(info->sky_texture, sky_x, math_min(1.f, 0.5+(y-info->pitch_offset)/h), &texture_coordinates_normalized, 1, &rgb[0]);
+    *p = 0xFF000000 | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
   }
 }
