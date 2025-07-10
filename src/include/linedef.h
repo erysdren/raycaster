@@ -24,10 +24,6 @@ typedef struct linedef {
   int32_t max_floor_height,
           min_ceiling_height;
   float length, xmin, xmax, ymin, ymax;
-
-#ifdef LINE_VIS_CHECK
-  uint32_t last_visible_tick;
-#endif
 } linedef;
 
 void

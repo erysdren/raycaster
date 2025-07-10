@@ -15,7 +15,12 @@
 
 #define MAX_SECTOR_HISTORY 64
 
-bool (*texture_sampler)(texture_ref, int32_t, int32_t, uint8_t, uint8_t*);
+void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
+
+M_DEBUG(
+  #define INSERT_RENDER_BREAKPOINT if (renderer_step) { renderer_step(this); }
+  void (*renderer_step)(const renderer*) = NULL
+);
 
 /* Common frame info all column renderers can share */
 typedef struct {
@@ -68,15 +73,15 @@ static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
 #endif
 
 #ifdef LINE_VIS_CHECK
-static void
-check_sector_visibility(renderer*, const frame_info*, sector*);
+  static void
+  refresh_sector_visibility(renderer*, const frame_info*, sector*);
 #endif
 
-static void check_sector_column(renderer*, const frame_info*, column_info*, const sector*);
-static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, texture_ref, float, int32_t);
-static void draw_floor_segment(renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
-static void draw_ceiling_segment(renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
-static void draw_column(renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
+static void check_sector_column(const renderer*, const frame_info*, column_info*, const sector*);
+static void draw_wall_segment(const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, texture_ref, float, float);
+static void draw_floor_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
+static void draw_ceiling_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
+static void draw_column(const renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
 
 M_INLINED void init_depth_values(renderer *this) {
   register size_t y, h = this->buffer_size.y;
@@ -137,7 +142,7 @@ void renderer_draw(
   info.view_z = camera->z;
 
 #ifdef LINE_VIS_CHECK
-  check_sector_visibility(this, &info, camera->in_sector);
+  refresh_sector_visibility(this, &info, camera->in_sector);
 #endif
 
 #ifdef PARALLEL_RENDERING
@@ -162,13 +167,17 @@ void renderer_draw(
       .buffer_stride = this->buffer_size.x,
       .theta_inverse = 1.f / (math_dot2(camera->direction, ray) / math_length(ray)),
       .top_limit = 0.f,
-      .bottom_limit = this->buffer_size.y - 1,
+      .bottom_limit = this->buffer_size.y,
       .buffer_start = &this->buffer[x],
       .finished = false
     };
 
     check_sector_column(this, &info, &column, camera->in_sector);
+
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
   }
+
+  M_DEBUG(renderer_step = NULL);
 }
 
 /* ----- */
@@ -176,21 +185,30 @@ void renderer_draw(
 #ifdef LINE_VIS_CHECK
 
 static void
-check_sector_visibility(
+refresh_sector_visibility(
   renderer *this,
   const frame_info *info,
   sector *sect
 ) {
   register size_t i;
+  float sign;
+  uint8_t side;
   linedef *line;
   sector *back_sector;
 
   sect->last_visibility_check_tick = this->tick;
 
+  if (!sect->visible_linedefs) {
+    sect->visible_linedefs = malloc(sect->linedefs_count * sizeof(linedef*));
+  }
+  sect->visible_linedefs_count = 0;
+
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
+    side = line->side[0].sector == sect ? 0 : 1;
+    sign = math_sign(line->v0->point, line->v1->point, info->view_position);
 
-    if (line->last_visible_tick == this->tick) {
+    if ((side == 0 && sign > 0) || (side == 1 && sign < 0)) {
       continue;
     }
 
@@ -207,12 +225,11 @@ check_sector_visibility(
     if (line->v0->visible || line->v1->visible
       || math_find_line_intersection(line->v0->point, line->v1->point, info->view_position, info->far_left, NULL, NULL)
       || math_find_line_intersection(line->v0->point, line->v1->point, info->view_position, info->far_right, NULL, NULL)) {
-      line->last_visible_tick = this->tick;
-
+      sect->visible_linedefs[sect->visible_linedefs_count++] = line;
       back_sector = line->side[0].sector == sect ? line->side[1].sector : line->side[0].sector;
 
       if (back_sector && back_sector->last_visibility_check_tick != this->tick) {
-        check_sector_visibility(this, info, back_sector);
+        refresh_sector_visibility(this, info, back_sector);
       }
     }
   }
@@ -220,7 +237,9 @@ check_sector_visibility(
 
 #endif
 
-M_INLINED void sort_nearest(line_hit *arr, int n) {
+M_INLINED void
+sort_nearest(line_hit *arr, int n)
+{
   register int i, j;
   line_hit hit;
   for (i = 1; i < n; ++i) {
@@ -235,7 +254,7 @@ M_INLINED void sort_nearest(line_hit *arr, int n) {
 }
 
 static void check_sector_column(
-  renderer *this,
+  const renderer *this,
   const frame_info *info,
   column_info *column,
   const sector *sect
@@ -260,13 +279,12 @@ static void check_sector_column(
 
   column->sector_history[column->sector_depth++] = sect;
 
+#ifdef LINE_VIS_CHECK
+  for (i = 0; i < sect->visible_linedefs_count; ++i) {
+    line = sect->visible_linedefs[i];
+#else
   for (i = 0; i < sect->linedefs_count; ++i) {
     line = sect->linedefs[i];
-
-#ifdef LINE_VIS_CHECK
-    if (line->last_visible_tick != this->tick) {
-      continue;
-    }
 #endif
 
     if (hits_count < 16 &&
@@ -304,7 +322,7 @@ static void check_sector_column(
 }
 
 static void draw_column(
-  renderer *this,
+  const renderer *this,
   const frame_info *info,
   column_info *column,
   const sector *sect,
@@ -317,7 +335,7 @@ static void draw_column(
   const float ceiling_z_local    = info->half_h - ceiling_z_scaled + view_z_scaled;
   const float floor_z_local      = info->half_h - floor_z_scaled + view_z_scaled;
   const float wall_texture_step  = hit->planar_distance / info->unit_size;
-  const int32_t wall_texture_x   = hit->determinant * hit->line->length;
+  const float wall_texture_x     = hit->determinant * hit->line->length;
 
   sector *back_sector = hit->line->side[!hit->side].sector;
 
@@ -339,6 +357,8 @@ static void draw_column(
       wall_texture_x
     );
 
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+
     draw_ceiling_segment(
       this,
       info,
@@ -350,6 +370,8 @@ static void draw_column(
       M_MIN(start_y, column->bottom_limit)
     );
 
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+
     draw_floor_segment(
       this,
       info,
@@ -357,20 +379,23 @@ static void draw_column(
       sect,
       hit,
       (info->view_z - sect->floor_height) * info->unit_size,
-      end_y+1,
-      column->bottom_limit+1
+      end_y,
+      column->bottom_limit
     );
 
     column->finished = true;
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
-    const float top_segment = math_max(sect->ceiling_height - back_sector->ceiling_height, 0) * depth_scale_factor;
-    const float bottom_segment = math_max(back_sector->floor_height - sect->floor_height, 0) * depth_scale_factor;
+    const float top_segment = (sect->ceiling_height - back_sector->ceiling_height) * depth_scale_factor;
+    const float bottom_segment = (back_sector->floor_height - sect->floor_height) * depth_scale_factor;
 
     const float top_start_y = ceilf(math_clamp(ceiling_z_local, column->top_limit, column->bottom_limit));
-    const float top_end_y = floorf(math_clamp(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit));
-    const float bottom_end_y = floorf(math_clamp(floor_z_local, column->top_limit, column->bottom_limit));
+    const float top_end_y = ceilf(math_clamp(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit));
+    const float bottom_end_y = math_clamp(floor_z_local, column->top_limit, column->bottom_limit);
     const float bottom_start_y = math_clamp(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
+
+    float new_top_limit = column->top_limit;
+    float new_bottom_limit = column->bottom_limit;
 
     if (top_segment > 0) {
       draw_wall_segment(
@@ -385,6 +410,10 @@ static void draw_column(
         wall_texture_step,
         wall_texture_x
       );
+      new_top_limit = top_end_y;
+      M_DEBUG(INSERT_RENDER_BREAKPOINT);
+    } else {
+      new_top_limit = top_start_y;
     }
 
     if (bottom_segment > 0) {
@@ -393,13 +422,17 @@ static void draw_column(
         column,
         sect,
         hit,
-        floorf(bottom_start_y),
+        bottom_start_y,
         bottom_end_y,
         view_z_scaled,
         hit->line->side[hit->side].texture[LINE_TEXTURE_BOTTOM],
         wall_texture_step,
         wall_texture_x
       );
+      new_bottom_limit = bottom_start_y;
+      M_DEBUG(INSERT_RENDER_BREAKPOINT);
+    } else {
+      new_bottom_limit = bottom_end_y;
     }
 
     draw_ceiling_segment(
@@ -412,7 +445,9 @@ static void draw_column(
       column->top_limit,
       M_MAX(top_start_y, column->top_limit)
     );
-    
+
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+
     draw_floor_segment(
       this,
       info,
@@ -420,17 +455,19 @@ static void draw_column(
       sect,
       hit,
       (info->view_z - sect->floor_height) * info->unit_size,
-      M_MIN(bottom_end_y, column->bottom_limit)+1,
-      column->bottom_limit+1
+      M_MIN(bottom_end_y, column->bottom_limit),
+      column->bottom_limit
     );
 
-    if ((int)top_end_y == (int)bottom_start_y) {
+    column->top_limit = new_top_limit;
+    column->bottom_limit = new_bottom_limit;
+
+    if ((int)column->top_limit == (int)column->bottom_limit) {
       column->finished = true;
       return;
     }
 
-    column->top_limit = top_end_y;
-    column->bottom_limit = bottom_start_y;
+    M_DEBUG(INSERT_RENDER_BREAKPOINT);
 
     /* Render back sector */
     check_sector_column(this, info, column, back_sector);
@@ -474,12 +511,12 @@ calculate_vertical_surface_light(const sector *sect, vec3f pos, bool is_floor, s
     }
 
 #ifdef DYNAMIC_SHADOWS
-    if (map_cache_intersect_3d(&lt->level->cache, pos, lt->position)) {
-      continue;
-    }
+    v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
+      ? math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)))
+      : v;
+#else
+    v = math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)));
 #endif
-
-    v = math_max(v, lt->strength * math_min(1.f, dz / VERTICAL_FADE_DIST) * math_min(1.f, 1.f - (dsq * lt->radius_sq_inverse)));
   }
 
   return math_max(
@@ -513,12 +550,12 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, size_t num_lig
     }
 
 #ifdef DYNAMIC_SHADOWS
-    if (map_cache_intersect_3d(&lt->level->cache, pos, lt->position)) {
-      continue;
-    }
+    v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
+      ? math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)))
+      : v;
+#else
+    v = math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)));
 #endif
-
-    v = math_max(v, lt->strength * math_min(1.f, 1.f - (dsq * lt->radius_sq_inverse)));
   }
 
   return math_max(
@@ -559,37 +596,37 @@ static void draw_wall_segment(
   float view_z_scaled,
   texture_ref texture,
   float texture_step,
-  int32_t texture_x
+  float texture_x
 ) {
   if (from == to || texture == TEXTURE_NONE) {
     return;
   }
 
   register uint32_t y;
-  register float light = calculate_basic_brightness(
-      sect->brightness,
-#if LIGHT_STEPS > 0
-        hit->distance_steps
-#else
-        hit->light_falloff
-#endif
-  ), tex_pos = ((from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   uint8_t rgb[3] = { 0 };
   uint8_t lights_count = hit->line->side[hit->side].lights_count;
   struct light **lights = hit->line->side[hit->side].lights;
+  register float light = !lights_count ? calculate_basic_brightness(
+      sect->brightness,
+#if LIGHT_STEPS > 0
+      hit->distance_steps
+#else
+      hit->light_falloff
+#endif
+  ) : 0.f, texture_y = ((from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
 #endif
 
-  for (y = from; y <= to; ++y, p += column->buffer_stride, tex_pos += texture_step) {
-    texture_sampler(texture, texture_x, (int32_t)floorf(tex_pos), 1 + hit->distance_steps, &rgb[0]);
+  for (y = from; y < to; ++y, p += column->buffer_stride, texture_y += texture_step) {
+    texture_sampler(texture, texture_x, texture_y, &texture_coordinates_scaled, 1 + hit->distance_steps, &rgb[0]);
 
     light = lights_count ?
       calculate_horizontal_surface_light(
         sect,
-        VEC3F(hit->point.x, hit->point.y, -tex_pos),
+        VEC3F(hit->point.x, hit->point.y, -texture_y),
         lights_count,
         lights,
 #if LIGHT_STEPS > 0
@@ -609,7 +646,7 @@ static void draw_wall_segment(
 }
 
 static void draw_floor_segment(
-  renderer *this,
+  const renderer *this,
   const frame_info *info,
   column_info *column,
   const sector *sect,
@@ -634,13 +671,13 @@ static void draw_floor_segment(
   int32_t temp[4];
 #endif
 
-  for (y = from, yz = from - info->half_h; y < to; ++y, p += column->buffer_stride) {
+  for (y = from, yz = from - info->half_h + 1; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz++]) * column->theta_inverse;
     weight = math_min(1.f, distance * hit->point_distance_inverse);
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
 
-    texture_sampler(sect->floor_texture, (int)truncf(wx), (int)truncf(wy), 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->floor_texture, wx, wy, &texture_coordinates_scaled, 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
     light = lights_count ? calculate_vertical_surface_light(
       sect,
@@ -672,7 +709,7 @@ static void draw_floor_segment(
 }
 
 static void draw_ceiling_segment(
-  renderer *this,
+  const renderer *this,
   const frame_info *info,
   column_info *column,
   const sector *sect,
@@ -703,7 +740,7 @@ static void draw_ceiling_segment(
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
     
-    texture_sampler(sect->ceiling_texture, (int)truncf(wx), (int)truncf(wy), 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->ceiling_texture, wx, wy, &texture_coordinates_scaled, 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
     light = lights_count ? calculate_vertical_surface_light(
       sect,

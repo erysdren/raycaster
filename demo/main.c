@@ -46,8 +46,13 @@ static void create_semi_intersecting_sectors();
 static void create_crossing_and_splitting_sectors();
 static void process_camera_movement(const float delta_time);
 
-M_INLINED bool
-demo_texture_sampler(texture_ref texture, int32_t x, int32_t y, uint8_t, uint8_t *rgb);
+M_INLINED void
+demo_texture_sampler(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
+
+#ifdef DEBUG
+static void
+demo_renderer_step(const renderer*);
+#endif
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
@@ -190,6 +195,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
       } else if (event->key.key == SDLK_H) {
         info_text_visible = !info_text_visible;
+      } else if (event->key.key == SDLK_R) {
+        renderer_step = demo_renderer_step;
       }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W || event->key.key == SDLK_S) { movement.forward = 0.f; }
@@ -504,7 +511,8 @@ static void create_semi_intersecting_sectors()
   map_builder_free(&builder);
 }
 
-static void create_crossing_and_splitting_sectors()
+static void
+create_crossing_and_splitting_sectors()
 {
   map_builder builder = { 0 };
 
@@ -531,12 +539,24 @@ static void create_crossing_and_splitting_sectors()
   map_builder_free(&builder);
 }
 
-M_INLINED bool
-demo_texture_sampler(texture_ref texture, int32_t x, int32_t y, uint8_t mip_level, uint8_t *rgb)
+M_INLINED void
+demo_texture_sampler(texture_ref texture, float fx, float fy, texture_coordinates_func coords, uint8_t mip_level, uint8_t *rgb)
 {
-  SDL_Surface *surface = textures[texture];
-  x = (x / mip_level) * mip_level;
-  y = (y / mip_level) * mip_level;
-  memcpy(rgb, (Uint8 *)surface->pixels + (y & (surface->h-1)) * surface->pitch + (x & (surface->w-1)) * SDL_BYTESPERPIXEL(surface->format), 3);
-  return true;
+  int32_t x, y;
+  const SDL_Surface *surface = textures[texture];
+  coords(fx, fy, surface->w, surface->h, &x, &y);
+  memcpy(rgb, (Uint8 *)surface->pixels + y * surface->pitch + x * SDL_BYTESPERPIXEL(surface->format), 3);
 }
+
+#ifdef DEBUG
+static void
+demo_renderer_step(const renderer *r)
+{
+  SDL_UpdateTexture(texture, NULL, r->buffer, r->buffer_size.x*sizeof(pixel_type));
+  SDL_SetRenderDrawColor(sdl_renderer, 0, 128, 255, SDL_ALPHA_OPAQUE);
+  SDL_RenderClear(sdl_renderer);
+  SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
+  SDL_RenderPresent(sdl_renderer);
+  SDL_Delay(100);
+}
+#endif

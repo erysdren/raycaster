@@ -111,6 +111,11 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
   sect->linedefs = NULL;
   sect->linedefs_count = 0;
 
+#ifdef LINE_VIS_CHECK
+  sect->visible_linedefs = NULL;
+  sect->visible_linedefs_count = 0;
+#endif
+
   for (i = 0; i < poly->vertices_count; ++i) {
     linedef_update_floor_ceiling_limits(
       sector_add_linedef(

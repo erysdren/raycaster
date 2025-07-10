@@ -14,11 +14,17 @@ typedef struct sector {
   int32_t     floor_height,
               ceiling_height;
   size_t      linedefs_count;
+#ifdef LINE_VIS_CHECK
+  size_t      visible_linedefs_count;
+#endif
   float       brightness;
   texture_ref floor_texture,
               ceiling_texture;
   uint32_t    last_visibility_check_tick;
   linedef     **linedefs;
+#ifdef LINE_VIS_CHECK
+  linedef     **visible_linedefs;
+#endif
   uint8_t     lights_count;
   light       *lights[MAX_LIGHTS_PER_SURFACE];
 } sector;

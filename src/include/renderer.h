@@ -21,4 +21,6 @@ void renderer_resize(renderer *this, vec2u new_size);
 void renderer_destroy(renderer *this);
 void renderer_draw(renderer *this, camera *camera);
 
+M_DEBUG(extern void (*renderer_step)(const renderer*));
+
 #endif

@@ -132,21 +132,20 @@ map_cache_intersect_3d(const map_cache *this, vec3f _start, vec3f _end)
 
   int ix = (int)floorf(start.x / CELL_SIZE);
   int iy = (int)floorf(start.y / CELL_SIZE);
-  int ix_end = (int)floorf(end.x / CELL_SIZE);
-  int iy_end = (int)floorf(end.y / CELL_SIZE);
 
-  // printf("Go from (%f, %f) %d, %d to (%f, %f) %d, %d:\n", start.x, start.y, ix, iy, end.x, end.y, ix_end, iy_end);
-
+  const int ix_end = (int)floorf(end.x / CELL_SIZE);
+  const int iy_end = (int)floorf(end.y / CELL_SIZE);
   const int step_x = (dx > 0) ? 1 : (dx < 0) ? -1 : 0;
   const int step_y = (dy > 0) ? 1 : (dy < 0) ? -1 : 0;
   const float tDeltaX = (step_x != 0) ? CELL_SIZE * fdx : INFINITY;
   const float tDeltaY = (step_y != 0) ? CELL_SIZE * fdy : INFINITY;
   const float x_offset = (step_x > 0) ? (CELL_SIZE * (ix + 1) - start.x) : (start.x - CELL_SIZE * ix);
   const float y_offset = (step_y > 0) ? (CELL_SIZE * (iy + 1) - start.y) : (start.y - CELL_SIZE * iy);
-
   register float tMaxX = (step_x != 0) ? x_offset * fdx : INFINITY;
   register float tMaxY = (step_y != 0) ? y_offset * fdy : INFINITY;
   register float t = 0.f;
+
+  // printf("Go from (%f, %f) %d, %d to (%f, %f) %d, %d:\n", start.x, start.y, ix, iy, end.x, end.y, ix_end, iy_end);
 
   while (1) {
     if (collide(this, ix, iy, _start.z + t * dz, _start.z + ((tMaxX < tMaxY) ? tMaxX : tMaxY) * dz, dz, _start, _end)) {
