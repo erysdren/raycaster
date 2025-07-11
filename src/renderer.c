@@ -39,7 +39,8 @@ typedef struct {
   const sector *sector_history[MAX_SECTOR_HISTORY];
   vec2f ray_start,
         ray_end,
-        ray_direction;
+        ray_direction,
+        ray_direction_unit;
   float theta_inverse, top_limit, bottom_limit;
   uint32_t index, sector_depth, buffer_stride;
   pixel_type *buffer_start;
@@ -158,14 +159,16 @@ void renderer_draw(
       camera->direction.x + (camera->plane.x * cam_x),
       camera->direction.y + (camera->plane.y * cam_x)
     );
+    const vec2f ray_end = VEC2F(
+      camera->position.x + (ray.x * RENDERER_DRAW_DISTANCE),
+      camera->position.y + (ray.y * RENDERER_DRAW_DISTANCE)
+    );
 
     column_info column = (column_info) {
       .ray_start = camera->position,
-      .ray_end = VEC2F(
-        camera->position.x + (ray.x * RENDERER_DRAW_DISTANCE),
-        camera->position.y + (ray.y * RENDERER_DRAW_DISTANCE)
-      ),
-      .ray_direction = ray,
+      .ray_end = ray_end,
+      .ray_direction = vec2f_sub(ray_end, camera->position),
+      .ray_direction_unit = ray,
       .index = x,
       .sector_depth = 0,
       .buffer_stride = this->buffer_size.x,
@@ -290,7 +293,7 @@ static void check_sector_column(
 #endif
 
     if (hits_count < 16 &&
-        math_find_line_intersection(line->v0->point, line->v1->point, column->ray_start, column->ray_end, &intersection, &intersectiond)) {
+        math_find_line_intersection_cached(line->v0->point, column->ray_start, line->direction, column->ray_direction, &intersection, &intersectiond)) {
       planar_distance = math_line_segment_point_perpendicular_distance(info->near_left, info->near_right, intersection);
       point_distance = planar_distance * column->theta_inverse;
 
@@ -481,8 +484,9 @@ static void draw_column(
  * There are three light functions here:
  * 
  * When a surface is affected by a dynamic light:
- *   1. For vertical surfaces with a little falloff/attenuation as the light approaches and goes below it
- *   2. For horizontal surfaces
+ *   1. For horizontal surfaces (floors, ceilings) with a little falloff/attenuation
+ *      as the light approaches and goes below it
+ *   2. For vertical surfaces (walls)
  * 
  * When it's not:
  *   3. Basic brightness and dimming
@@ -491,7 +495,7 @@ static void draw_column(
 #define VERTICAL_FADE_DIST 2.5f
 
 M_INLINED float
-calculate_vertical_surface_light(const sector *sect, vec3f pos, bool is_floor, size_t num_lights, light **lights,
+calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor, size_t num_lights, light **lights,
 #if LIGHT_STEPS > 0
   uint8_t steps
 #else
@@ -515,10 +519,10 @@ calculate_vertical_surface_light(const sector *sect, vec3f pos, bool is_floor, s
 
 #ifdef DYNAMIC_SHADOWS
     v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
-      ? math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)))
+      ? math_max(v, lt->strength * math_min(1.f, dz / VERTICAL_FADE_DIST) * (1.f - (dsq * lt->radius_sq_inverse)))
       : v;
 #else
-    v = math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)));
+    v = math_max(v, lt->strength * math_min(1.f, dz / VERTICAL_FADE_DIST) * (1.f - (dsq * lt->radius_sq_inverse)));
 #endif
   }
 
@@ -534,7 +538,7 @@ calculate_vertical_surface_light(const sector *sect, vec3f pos, bool is_floor, s
 
 
 M_INLINED float
-calculate_horizontal_surface_light(const sector *sect, vec3f pos, size_t num_lights, light **lights,
+calculate_vertical_surface_light(const sector *sect, vec3f pos, size_t num_lights, light **lights,
 #if LIGHT_STEPS > 0
   uint8_t steps
 #else
@@ -628,7 +632,7 @@ static void draw_wall_segment(
     texture_sampler(texture, texture_x, texture_y, &texture_coordinates_scaled, 1 + hit->distance_steps, &rgb[0]);
 
     light = lights_count ?
-      calculate_horizontal_surface_light(
+      calculate_vertical_surface_light(
         sect,
         VEC3F(hit->point.x, hit->point.y, -texture_y),
         lights_count,
@@ -685,7 +689,7 @@ static void draw_floor_segment(
 
     texture_sampler(sect->floor_texture, wx, wy, &texture_coordinates_scaled, 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
-    light = lights_count ? calculate_vertical_surface_light(
+    light = lights_count ? calculate_horizontal_surface_light(
       sect,
       VEC3F(wx, wy, sect->floor_height),
       true,
@@ -750,7 +754,7 @@ static void draw_ceiling_segment(
     
     texture_sampler(sect->ceiling_texture, wx, wy, &texture_coordinates_scaled, 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
-    light = lights_count ? calculate_vertical_surface_light(
+    light = lights_count ? calculate_horizontal_surface_light(
       sect,
       VEC3F(wx, wy, sect->ceiling_height),
       false,
@@ -790,7 +794,7 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
 
   register uint16_t y;
   uint8_t rgb[3];
-  float angle = atan2(column->ray_direction.x, column->ray_direction.y) * (180.0f / M_PI);
+  float angle = atan2(column->ray_direction_unit.x, column->ray_direction_unit.y) * (180.0f / M_PI);
   if (angle < 0.0f) {
     angle += 360.0f;
   }

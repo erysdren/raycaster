@@ -70,7 +70,7 @@ map_cache_process_level_data(map_cache *this, level_data *data)
 }
 
 M_INLINED bool
-collide(const map_cache *this, int x, int y, float current_z, float next_z, float dz, vec3f start, vec3f end)
+collide(const map_cache *this, int x, int y, float current_z, float next_z, float dz, vec3f start, vec3f end, vec2f start_xy, vec2f ray_dir)
 {
   const cache_cell *cell = &this->cells[y*this->w+x];
 
@@ -78,8 +78,6 @@ collide(const map_cache *this, int x, int y, float current_z, float next_z, floa
     return false;
   }
 
-  const vec2f start_xy = VEC2F(start.x, start.y);
-  const vec2f end_xy = VEC2F(end.x, end.y);
   register size_t li;
   float det, z;
   linedef *line;
@@ -97,7 +95,7 @@ collide(const map_cache *this, int x, int y, float current_z, float next_z, floa
       }
     }
 
-    if (math_find_line_intersection(start_xy, end_xy, line->v0->point, line->v1->point, NULL, &det) && det > MATHS_EPSILON) {
+    if (math_find_line_intersection_cached(start_xy, line->v0->point, ray_dir, line->direction, NULL, &det) && det > MATHS_EPSILON) {
       if (!line->side[1].sector) {
         return true;
       }
@@ -122,8 +120,12 @@ map_cache_intersect_3d(const map_cache *this, vec3f _start, vec3f _end)
   float fdx = 1.f / fabsf(dx);
   float fdy = 1.f / fabsf(dy);
 
-  vec2f start = vec2f_sub(VEC2F(_start.x, _start.y), this->origin);
-  vec2f end = vec2f_sub(VEC2F(_end.x, _end.y), this->origin);
+  const vec2f ray_start_xy = VEC2F(_start.x, _start.y);
+  const vec2f ray_end_xy = VEC2F(_end.x, _end.y);
+  const vec2f ray_direction_xy = vec2f_sub(ray_end_xy, ray_start_xy);
+
+  vec2f start = vec2f_sub(ray_start_xy, this->origin);
+  vec2f end = vec2f_sub(ray_end_xy, this->origin);
 
   start.x += (dx < 0) ? -0.001f : (dx > 0) ? 0.001f : 0.f;
   start.y += (dy < 0) ? -0.001f : (dy > 0) ? 0.001f : 0.f;
@@ -148,7 +150,7 @@ map_cache_intersect_3d(const map_cache *this, vec3f _start, vec3f _end)
   // printf("Go from (%f, %f) %d, %d to (%f, %f) %d, %d:\n", start.x, start.y, ix, iy, end.x, end.y, ix_end, iy_end);
 
   while (1) {
-    if (collide(this, ix, iy, _start.z + t * dz, _start.z + ((tMaxX < tMaxY) ? tMaxX : tMaxY) * dz, dz, _start, _end)) {
+    if (collide(this, ix, iy, _start.z + t * dz, _start.z + ((tMaxX < tMaxY) ? tMaxX : tMaxY) * dz, dz, _start, _end, ray_start_xy, ray_direction_xy)) {
       return true;
     }
 

@@ -103,6 +103,51 @@ M_INLINED bool math_find_line_intersection(
   return true;
 }
 
+/* Slightly more optimised ray check where line directions have been precalculated */
+M_INLINED bool math_find_line_intersection_cached(
+  vec2f A,
+  vec2f C,
+  vec2f BA,
+  vec2f DC,
+  vec2f *r,
+  float *determinant
+) {
+  register const vec2f AC = vec2f_sub(A, C);
+  register float cross = math_cross(BA, DC);
+
+  if (fabsf(cross) < MATHS_EPSILON) {
+    return false;
+  }
+
+  register float denom = 1.f / cross;
+  register float uA, uB;
+
+  // calculate the direction of the lines
+  uB = math_cross(BA, AC) * denom;
+
+  if (uB < 0.f || uB > 1.f) {
+    return false;
+  }
+
+  uA = math_cross(DC, AC) * denom;
+
+  if (uA < 0.f || uA > 1.f) {
+    return false;
+  }
+
+  // if uA and uB are between [0...1], lines are colliding
+  if (r) {
+    (*r).x = A.x + (uA * BA.x);
+    (*r).y = A.y + (uA * BA.y);
+  }
+
+  if (determinant) {
+    *determinant = uA;
+  }
+
+  return true;
+}
+
 M_INLINED bool math_point_in_triangle(vec2f point, vec2f v0, vec2f v1, vec2f v2) {
   register float d0 = math_sign(point, v0, v1), d1 = math_sign(point, v1, v2), d2 = math_sign(point, v2, v0);
   return !(((d0 < 0) || (d1 < 0) || (d2 < 0)) && ((d0 > 0) || (d1 > 0) || (d2 > 0)));

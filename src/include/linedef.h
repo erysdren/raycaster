@@ -21,6 +21,7 @@ typedef struct linedef {
     light *lights[MAX_LIGHTS_PER_SURFACE];
     texture_ref texture[3];
   } side[2];
+  vec2f direction;
   int32_t max_floor_height,
           min_ceiling_height;
   float length, xmin, xmax, ymin, ymax;

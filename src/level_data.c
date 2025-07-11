@@ -81,6 +81,7 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
       .texture[1] = TEXTURE_NONE,
       .texture[2] = TEXTURE_NONE
     },
+    .direction = vec2f_sub(v1->point, v0->point),
     .length = math_vec2f_distance(v0->point, v1->point),
     .xmin = fminf(v0->point.x, v1->point.x),
     .xmax = fmaxf(v0->point.x, v1->point.x),
