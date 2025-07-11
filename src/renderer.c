@@ -795,7 +795,7 @@ static void draw_ceiling_segment(
 static void
 draw_sky_segment(const renderer *this, const frame_info *info, const column_info *column, uint32_t from, uint32_t to)
 {
-  if (from == to) {
+  if (from == to || info->sky_texture == TEXTURE_NONE) {
     return;
   }
 
