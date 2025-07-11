@@ -46,6 +46,7 @@ static void create_big_one();
 static void create_semi_intersecting_sectors();
 static void create_crossing_and_splitting_sectors();
 static void create_large_sky();
+static void load_level(int);
 static void process_camera_movement(const float delta_time);
 
 M_INLINED void
@@ -113,16 +114,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
   textures[WOOD_TEXTURE] = IMG_Load("res/wood.png");
   textures[SKY_TEXTURE] = IMG_Load("res/sky.png");
 
-  switch (level) {
-  case 1: create_demo_level(); break;
-  case 2: create_big_one(); break;
-  case 3: create_semi_intersecting_sectors(); break;
-  case 4: create_crossing_and_splitting_sectors(); break;
-  case 5: create_large_sky(); break;
-  default: create_grid_level(); break;
-  }
- 
-  camera_init(&cam, demo_level);
+  load_level(level);
 
   last_ticks = SDL_GetTicks();
 
@@ -205,6 +197,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         renderer_step = demo_renderer_step;
       }
 #endif
+
+      if (event->key.key == SDLK_1) { load_level(0); }
+      else if (event->key.key == SDLK_2) { load_level(1); }
+      else if (event->key.key == SDLK_3) { load_level(2); }
+      else if (event->key.key == SDLK_4) { load_level(3); }
+      else if (event->key.key == SDLK_5) { load_level(4); }
+      else if (event->key.key == SDLK_6) { load_level(5); }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W || event->key.key == SDLK_S) { movement.forward = 0.f; }
       if (event->key.key == SDLK_A || event->key.key == SDLK_D) { movement.turn = 0.f; }
@@ -280,6 +279,7 @@ SDL_AppIterate(void *userdata)
     SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector brightness"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[H] - Toggle on-screen info"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[1 ... 6] - Change level"); y+=h;
   }
 
   SDL_RenderPresent(sdl_renderer);
@@ -318,6 +318,8 @@ static void create_grid_level()
 
   map_builder builder = { 0 };
 
+  srand(1311858591);
+
   for (y = 0; y < h; ++y) {
     for (x = 0; x < w; ++x) {
       if (rand() % 20 == 5) {
@@ -337,6 +339,8 @@ static void create_grid_level()
   }
 
   demo_level = map_builder_build(&builder);
+
+
 
   // TODO: Vertices could be moved real-time but related linedefs need to be updated too
   /*for (x = 0; x < demo_level->vertices_count; ++x) {
@@ -516,6 +520,7 @@ static void create_semi_intersecting_sectors()
 
   dynamic_light = level_data_add_light(demo_level, VEC3F(300, 400, 64), 300, 1.0f);
   light_z = dynamic_light->position.z;
+  light_movement_range = 48;
 
   map_builder_free(&builder);
 }
@@ -544,6 +549,7 @@ create_crossing_and_splitting_sectors()
 
   dynamic_light = level_data_add_light(demo_level, VEC3F(250, 50, 64), 200, 0.5f);
   light_z = dynamic_light->position.z;
+  light_movement_range = 24;
 
   map_builder_free(&builder);
 }
@@ -595,6 +601,27 @@ create_large_sky()
   demo_level->sky_texture = SKY_TEXTURE;
 
   map_builder_free(&builder);
+}
+
+static void
+load_level(int n)
+{
+  if (demo_level) {
+    free(demo_level);
+  }
+
+  dynamic_light = NULL;
+
+  switch (n) {
+  case 1: create_demo_level(); break;
+  case 2: create_big_one(); break;
+  case 3: create_semi_intersecting_sectors(); break;
+  case 4: create_crossing_and_splitting_sectors(); break;
+  case 5: create_large_sky(); break;
+  default: create_grid_level(); break;
+  }
+  
+  camera_init(&cam, demo_level);
 }
 
 M_INLINED void

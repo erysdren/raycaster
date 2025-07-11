@@ -12,7 +12,7 @@ typedef struct {
         direction,
         plane;
   float fov, z, pitch;
-  const level_data *level;
+  level_data *level;
   sector *in_sector;
 } camera;
 

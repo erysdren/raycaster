@@ -12,6 +12,7 @@ void camera_init(camera *this, level_data *level) {
   this->position = vec2f_make(70, 70);
   this->direction = vec2f_make(1, 0);
   this->plane = vec2f_make(0.f * this->fov, -1.f * this->fov);
+  this->in_sector = NULL;
 
   find_current_sector(this);
 }
