@@ -338,10 +338,11 @@ static void create_grid_level()
 
   demo_level = map_builder_build(&builder);
 
-  for (x = 0; x < demo_level->vertices_count; ++x) {
+  // TODO: Vertices could be moved real-time but related linedefs need to be updated too
+  /*for (x = 0; x < demo_level->vertices_count; ++x) {
     demo_level->vertices[x].point.x += (-24 + rand() % 48);
     demo_level->vertices[x].point.y += (-24 + rand() % 48);
-  }
+  }*/
   
   map_builder_free(&builder);
 }
