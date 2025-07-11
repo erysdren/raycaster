@@ -1,4 +1,4 @@
 @ECHO off
-cd bin
+cd build
 demo.exe %*
 cd ..

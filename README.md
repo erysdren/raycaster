@@ -81,11 +81,15 @@ That sector can also hold more lines that are not part of the outer boundary. Th
 The general concept is to have **sectors** that define floor and ceiling height (and light in the future) and where each sector has some **linedefs** which can have a reference to the sector behind it. You start drawing from the sector the camera is currently in --- for each column you check that sector's visible linedefs for intersections and sort them by distance. If the linedef has no back sector, you draw a full wall segment and terminate that column. If there is a back sector, you draw an upper and lower wall segments based on the floor and ceiling height difference compared to current sector, and then move on the sector behind and repeat. You keep track of sectors that have been visited in each column to avoid cycling. As mentioned earlier, this is not an optimal algorithm but it's simple, and since drawing only happens within a column where global state is not mutated, it's easily parallelizable (thanks to OMP in this case).
 
 ### Getting started
-The library uses [nob.h](https://github.com/tsoding/nob.h) to bootstrap the build command to build the test and demo target.
+The library uses CMake. You can use CMake GUI or command line arguments to set renderer related options.
 
-1. Use `gcc -o build build.c` to create the builder (or `CC`, depending on your compiler situation)
-2. Then run `build demo` or `build tests`
-3. Demo application accepts a `-level <number>` argument to try out a couple of levels (0 to 3)
+1. Generate make files `cmake -S . -B build`
+2. Build everything `cmake --build .`
+
+On Windows you can use the batch files to quickly run the demo and tests targets.
+
+1. `./demo -level <int>` to run the demo (level 0 to 5). There's also `-f` option for fullscreen and `-s <int>` to set the scaling value
+2. `./tests` to run the unit tests
 
 # What now?
 If any of this is interesting and you want to ask anything, or contribute even, then we can chat on [Discord](https://discord.gg/X379hyV37f) 👋

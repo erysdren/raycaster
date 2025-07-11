@@ -1,2 +1,4 @@
 @ECHO off
-bin\tests.exe
+cd build
+ctest %*
+cd ..
