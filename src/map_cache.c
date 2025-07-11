@@ -135,8 +135,17 @@ map_cache_intersect_3d(const map_cache *this, vec3f _start, vec3f _end)
   int ix = (int)floorf(start.x / CELL_SIZE);
   int iy = (int)floorf(start.y / CELL_SIZE);
 
+  if (ix < 0 || iy < 0 || ix >= this->w || iy >= this->h) {
+    return true;
+  }
+
   const int ix_end = (int)floorf(end.x / CELL_SIZE);
   const int iy_end = (int)floorf(end.y / CELL_SIZE);
+
+  if (ix_end < 0 || iy_end < 0 || ix_end >= this->w || iy_end >= this->h) {
+    return true;
+  }
+
   const int step_x = (dx > 0) ? 1 : (dx < 0) ? -1 : 0;
   const int step_y = (dy > 0) ? 1 : (dy < 0) ? -1 : 0;
   const float tDeltaX = (step_x != 0) ? CELL_SIZE * fdx : INFINITY;
