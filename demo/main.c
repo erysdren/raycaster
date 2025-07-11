@@ -552,25 +552,42 @@ create_large_sky()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 256, 0.9f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+  /* First area */
+  map_builder_add_polygon(&builder, 0, 256, 0.75f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(-500, -500),
     VEC2F(500, -500),
     VEC2F(500, 500),
     VEC2F(-500, 500)
   ));
 
-  map_builder_add_polygon(&builder, 40, 256, 0.9f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+  map_builder_add_polygon(&builder, 40, 512, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(-100, -100),
     VEC2F(100, -100),
     VEC2F(100, 100),
     VEC2F(-100, 100)
   ));
 
-  map_builder_add_polygon(&builder, 512, 512, 1.f, WOOD_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 192, 256, 1.f, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(-10, -10),
     VEC2F(10, -10),
     VEC2F(10, 10),
     VEC2F(-10, 10)
+  ));
+
+  /* Second area */
+  map_builder_add_polygon(&builder, 0, 256, 0.75f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+    VEC2F(1000, -500),
+    VEC2F(2000, -500),
+    VEC2F(2000, 500),
+    VEC2F(1000, 500)
+  ));
+
+  /* Corridor between them */
+  map_builder_add_polygon(&builder, 20, 128, 0.25f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+    VEC2F(500, -50),
+    VEC2F(1000, -50),
+    VEC2F(1000, 50),
+    VEC2F(500, 50)
   ));
 
   demo_level = map_builder_build(&builder);

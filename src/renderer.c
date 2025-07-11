@@ -400,26 +400,30 @@ static void draw_column(
     const float bottom_end_y = math_clamp(floor_z_local, column->top_limit, column->bottom_limit);
     const float bottom_start_y = math_clamp(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
 
+    const bool back_sector_has_sky = back_sector->ceiling_texture == TEXTURE_NONE;
+
     float new_top_limit = column->top_limit;
     float new_bottom_limit = column->bottom_limit;
 
-    if (top_segment > 0) {
-      draw_wall_segment(
-        this,
-        info,
-        column,
-        sect,
-        hit,
-        top_start_y,
-        top_end_y,
-        view_z_scaled,
-        hit->line->side[hit->side].texture[LINE_TEXTURE_TOP],
-        wall_texture_step,
-        wall_texture_x
-      );
-      new_top_limit = top_end_y;
-    } else {
-      new_top_limit = top_start_y;
+    if (!back_sector_has_sky) {
+      if (top_segment > 0) {
+        draw_wall_segment(
+          this,
+          info,
+          column,
+          sect,
+          hit,
+          top_start_y,
+          top_end_y,
+          view_z_scaled,
+          hit->line->side[hit->side].texture[LINE_TEXTURE_TOP],
+          wall_texture_step,
+          wall_texture_x
+        );
+        new_top_limit = top_end_y;
+      } else {
+        new_top_limit = top_start_y;
+      }
     }
 
     if (bottom_segment > 0) {
@@ -450,8 +454,11 @@ static void draw_column(
         hit,
         (sect->ceiling_height - info->view_z) * info->unit_size,
         column->top_limit,
-        M_MAX(top_start_y, column->top_limit)
+        top_start_y
       );
+      if (back_sector_has_sky) {
+        new_top_limit = top_start_y;
+      }
     } else {
       draw_sky_segment(this, info, column, column->top_limit, M_MAX(top_start_y, column->top_limit));
     }
@@ -463,7 +470,7 @@ static void draw_column(
       sect,
       hit,
       (info->view_z - sect->floor_height) * info->unit_size,
-      M_MIN(bottom_end_y, column->bottom_limit),
+      bottom_end_y,
       column->bottom_limit
     );
 
@@ -606,7 +613,7 @@ static void draw_wall_segment(
   float texture_step,
   float texture_x
 ) {
-  if (from == to || texture == TEXTURE_NONE) {
+  if (from >= to || texture == TEXTURE_NONE) {
     return;
   }
 
@@ -666,7 +673,7 @@ static void draw_floor_segment(
   uint32_t to
 ) {
   /* Camera below the floor */
-  if (from == to || info->view_z < sect->floor_height || sect->floor_texture == TEXTURE_NONE) {
+  if (from >= to || info->view_z < sect->floor_height || sect->floor_texture == TEXTURE_NONE) {
     return;
   }
 
@@ -731,7 +738,7 @@ static void draw_ceiling_segment(
   uint32_t to
 ) {
   /* Camera above the ceiling */
-  if (from == to || info->view_z > sect->ceiling_height) {
+  if (from >= to || info->view_z > sect->ceiling_height) {
     return;
   }
 
