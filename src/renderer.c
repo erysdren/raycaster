@@ -91,7 +91,7 @@ M_INLINED void init_depth_values(renderer *this) {
   register size_t y, h = this->buffer_size.y;
   this->depth_values = malloc(h*sizeof(float));
   for (y = 0; y < h; ++y) {
-    this->depth_values[y] = !y ? 1.f : 1.f / y;
+    this->depth_values[y] = 1.f / (y+1);
   }
 }
 
@@ -689,7 +689,7 @@ static void draw_floor_segment(
   int32_t temp[4];
 #endif
 
-  for (y = from, yz = from - info->half_h + 1; y < to; ++y, p += column->buffer_stride) {
+  for (y = from, yz = from - info->half_h; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz++]) * column->theta_inverse;
     weight = math_min(1.f, distance * hit->point_distance_inverse);
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
@@ -754,7 +754,7 @@ static void draw_ceiling_segment(
   int32_t temp[4];
 #endif
 
-  for (y = from, yz = info->half_h - from; y < to; ++y, p += column->buffer_stride) {
+  for (y = from, yz = info->half_h - from - 1; y < to; ++y, p += column->buffer_stride) {
     distance = (distance_from_view * this->depth_values[yz--]) * column->theta_inverse;
     weight = math_min(1.f, distance * hit->point_distance_inverse);
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
