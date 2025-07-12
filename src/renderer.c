@@ -10,6 +10,7 @@
 #endif
 
 #ifdef VECTORIZED_LIGHT_MUL
+  #include <emmintrin.h>
   #include <xmmintrin.h>
 #endif
 
@@ -17,10 +18,10 @@
 
 void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
 
-M_DEBUG(
+#ifdef DEBUG
   #define INSERT_RENDER_BREAKPOINT if (renderer_step) { renderer_step(this); }
-  void (*renderer_step)(const renderer*) = NULL
-);
+  void (*renderer_step)(const renderer*) = NULL;
+#endif
 
 /* Common frame info all column renderers can share */
 typedef struct {
@@ -124,7 +125,7 @@ void renderer_draw(
   renderer *this,
   camera *camera
 ) {
-  uint32_t x;
+  int32_t x;
   frame_info info;
 
   assert(this->buffer);
@@ -151,7 +152,7 @@ void renderer_draw(
 #endif
 
 #ifdef PARALLEL_RENDERING
-  #pragma omp parallel for simd
+  #pragma omp parallel for
 #endif
   for (x = 0; x < this->buffer_size.x; ++x) {
     const float cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;

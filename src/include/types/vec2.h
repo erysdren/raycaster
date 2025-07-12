@@ -5,7 +5,6 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include <math.h>
 
 #define DECLARE_VEC2_T(T, NAME)                                                   \
 typedef struct {                                                                  \

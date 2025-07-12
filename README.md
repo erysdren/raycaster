@@ -83,8 +83,10 @@ The general concept is to have **sectors** that define floor and ceiling height 
 ### Getting started
 The library uses CMake. You can use CMake GUI or command line arguments to set renderer related options.
 
-1. Generate make files `cmake -S . -B build`
-2. Build everything `cmake --build .`
+1. Generate makefiles `cmake -S . -B build` and write them to `build` directory 
+2. Build everything `cmake --build ./build` in the build directory (or just `.` if you cd in there)
+
+> ℹ️ MSVC might need an additional `--config Debug|Release` in there
 
 On Windows you can use the batch files to quickly run the demo and tests targets.
 

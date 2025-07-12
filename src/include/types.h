@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <float.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #include "types/vec2.h"
 DECLARE_VEC2_T(float, vec2f)

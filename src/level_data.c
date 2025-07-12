@@ -73,13 +73,15 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
       .sector = sect,
       .texture[0] = texture,
       .texture[1] = texture,
-      .texture[2] = texture
+      .texture[2] = texture,
+      .lights_count = 0
     },
     .side[1] = {
       .sector = NULL,
       .texture[0] = TEXTURE_NONE,
       .texture[1] = TEXTURE_NONE,
-      .texture[2] = TEXTURE_NONE
+      .texture[2] = TEXTURE_NONE,
+      .lights_count = 0
     },
     .direction = vec2f_sub(v1->point, v0->point),
     .length = math_vec2f_distance(v0->point, v1->point),
@@ -111,6 +113,7 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
   sect->ceiling_texture = poly->ceiling_texture;
   sect->linedefs = NULL;
   sect->linedefs_count = 0;
+  sect->lights_count = 0;
 
 #ifdef LINE_VIS_CHECK
   sect->visible_linedefs = NULL;

@@ -198,12 +198,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
       }
 #endif
 
-      if (event->key.key == SDLK_1) { load_level(0); }
-      else if (event->key.key == SDLK_2) { load_level(1); }
-      else if (event->key.key == SDLK_3) { load_level(2); }
-      else if (event->key.key == SDLK_4) { load_level(3); }
-      else if (event->key.key == SDLK_5) { load_level(4); }
-      else if (event->key.key == SDLK_6) { load_level(5); }
+      if (event->key.key == SDLK_0) { load_level(0); }
+      else if (event->key.key == SDLK_1) { load_level(1); }
+      else if (event->key.key == SDLK_2) { load_level(2); }
+      else if (event->key.key == SDLK_3) { load_level(3); }
+      else if (event->key.key == SDLK_4) { load_level(4); }
+      else if (event->key.key == SDLK_5) { load_level(5); }
     } else if (event->type == SDL_EVENT_KEY_UP) {
       if (event->key.key == SDLK_W || event->key.key == SDLK_S) { movement.forward = 0.f; }
       if (event->key.key == SDLK_A || event->key.key == SDLK_D) { movement.turn = 0.f; }
@@ -279,7 +279,7 @@ SDL_AppIterate(void *userdata)
     SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector brightness"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[H] - Toggle on-screen info"); y+=h;
-    SDL_RenderDebugText(sdl_renderer, 4, y, "[1 ... 6] - Change level"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[0 ... 5] - Change level"); y+=h;
   }
 
   SDL_RenderPresent(sdl_renderer);

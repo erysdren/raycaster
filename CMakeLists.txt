@@ -18,21 +18,36 @@ set(RENDERER_DEFINES
 )
 
 # Does the demo target need these flags, or just the renderer?
-set(RENDERER_FLAGS
-  -Wall
-  -Wfatal-errors
-  -g
-  -no-pie
-  -ffast-math
-  -funroll-loops
-  -fomit-frame-pointer
-  # -flto
-  -O3
-  -msse2
-  -mfpmath=sse
-  $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp>
-  $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp-simd>
-)
+if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
+  list(APPEND RENDERER_FLAGS
+    -Wall
+    -Wfatal-errors
+    -g
+    -no-pie
+    -ffast-math
+    -funroll-loops
+    -fomit-frame-pointer
+    # -flto
+    -O3
+    -msse2
+    -mfpmath=sse
+    $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp>
+    $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp-simd>
+  )
+elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  list(APPEND RENDERER_FLAGS
+    /W3
+    /Zi
+    # /Od
+    /Oy
+    /Oi
+    $<$<CONFIG:Debug>:/Ot>
+    $<$<CONFIG:Release>:/Ox>
+    /fp:fast
+    /arch:SSE2
+    $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:/openmp>
+  )
+endif()
 
 # CMake had me separate the renderer from the demo/tests, so I'm unable to get LTO working at this time,
 # since they're built separately, but I think it made no difference anyway
@@ -64,6 +79,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL3_image)
 
+
 ############
 # RENDERER #
 ############
@@ -91,8 +107,12 @@ target_compile_options(renderer
 
 file(GLOB DEMO_SOURCES CONFIGURE_DEPENDS demo/*.c)
 add_executable(demo ${DEMO_SOURCES})
-target_link_libraries(demo PRIVATE renderer SDL3::SDL3 SDL3_image::SDL3_image m)
-target_link_options(demo PRIVATE $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp>)
+target_link_libraries(demo PRIVATE renderer SDL3::SDL3 SDL3_image::SDL3_image)
+
+if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
+  target_link_options(demo PRIVATE $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp>)
+endif()
+
 target_compile_definitions(demo PRIVATE ${RENDERER_DEFINES})
 target_compile_options(demo PRIVATE ${RENDERER_FLAGS})
 add_custom_command(TARGET demo POST_BUILD

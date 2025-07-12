@@ -1,5 +1,4 @@
 #include "camera.h"
-#include <math.h>
 #include <stdio.h>
 
 static void find_current_sector(camera *this);
