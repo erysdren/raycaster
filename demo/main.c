@@ -31,6 +31,7 @@ static float delta_time;
 static const int initial_window_width = 1024,
                  initial_window_height = 768;
 static int scale = 1;
+static bool fullscreen = false;
 static bool nearest = true;
 static bool info_text_visible = true;
 
@@ -66,7 +67,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
   int i;
   int level = 0;
-  bool fullscreen = false;
 
   for (i = 1; i < argc; ++i) {
     if (!strcmp(argv[i], "-level")) {
@@ -191,6 +191,9 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
       } else if (event->key.key == SDLK_H) {
         info_text_visible = !info_text_visible;
+      } else if (event->key.key == SDLK_F) {
+        fullscreen = !fullscreen;
+        SDL_SetWindowFullscreen(window, fullscreen);
       }
 #ifdef DEBUG
       if (event->key.key == SDLK_R) {
@@ -279,6 +282,7 @@ SDL_AppIterate(void *userdata)
     SDL_RenderDebugText(sdl_renderer, 4, y, "[PgUp PgDn] - Raise/lower sector floor"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[K L] - Change sector brightness"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[H] - Toggle on-screen info"); y+=h;
+    SDL_RenderDebugText(sdl_renderer, 4, y, "[F] - Toggle fullscreen"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[0 ... 5] - Change level"); y+=h;
   }
 
