@@ -12,15 +12,15 @@ typedef pixel_type* frame_buffer;
 typedef struct {
   volatile frame_buffer buffer;
   volatile float *depth_values;
-  vec2u buffer_size;
+  vec2i buffer_size;
   uint32_t tick;
 } renderer;
 
-void renderer_init(renderer *this, vec2u size);
-void renderer_resize(renderer *this, vec2u new_size);
+void renderer_init(renderer *this, vec2i size);
+void renderer_resize(renderer *this, vec2i new_size);
 void renderer_destroy(renderer *this);
 void renderer_draw(renderer *this, camera *camera);
 
-M_DEBUG(extern void (*renderer_step)(const renderer*));
+IF_DEBUG(extern void (*renderer_step)(const renderer*))
 
 #endif

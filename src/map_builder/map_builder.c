@@ -52,17 +52,17 @@ map_builder_build(map_builder *this)
   level->lights_count = 0;
   level->sky_texture = TEXTURE_NONE;
 
-  M_DEBUG(printf("Building level (0x%p) ...\n", level));
+  IF_DEBUG(printf("Building level (0x%p) ...\n", level))
 
   /* ------------ */
  
-  M_DEBUG(printf("1. Find all polygon intersections ...\n"));
+  IF_DEBUG(printf("1. Find all polygon intersections ...\n"))
  
   map_builder_step_find_polygon_intersections(this);
 
   /* ------------ */
  
-  M_DEBUG(printf("2. Creating sectors and linedefs (from %d polys) ...\n", this->polygons_count));
+  IF_DEBUG(printf("2. Creating sectors and linedefs (from %d polys) ...\n", this->polygons_count));
 
   for (i = 0; i < this->polygons_count; ++i) {
     level_data_create_sector_from_polygon(level, &this->polygons[i]);
@@ -70,19 +70,19 @@ map_builder_build(map_builder *this)
 
   /* ------------ */
 
-  M_DEBUG(printf("3. Configure back sectors ...\n"));
+  IF_DEBUG(printf("3. Configure back sectors ...\n"))
 
   map_builder_step_configure_back_sectors(this, level);
 
   /* ------------ */
 
-  M_DEBUG(printf("4. Prepare map cache ...\n"));
+  IF_DEBUG(printf("4. Prepare map cache ...\n"))
 
   map_cache_process_level_data(&level->cache, level);
 
   /* ------------ */
 
-  M_DEBUG(printf("DONE!\n"));
+  IF_DEBUG(printf("DONE!\n"))
 
   return level;
 }
@@ -130,8 +130,8 @@ polygon_add_new_vertices_from(
       i2 = (i + 1) % this->vertices_count;
       if (math_point_on_line_segment(other->vertices[j], this->vertices[i], this->vertices[i2], PRECISION_LOW) &&
           polygon_vertices_contains_point(this, other->vertices[j]) == false) {
-        M_DEBUG(printf("\tInserting (%d,%d) of 0x%p between (%d,%d) and (%d,%d) in 0x%p\n",
-          XY(other->vertices[j]), other, XY(this->vertices[i]), XY(this->vertices[i2]), this));
+        IF_DEBUG(printf("\tInserting (%d,%d) of 0x%p between (%d,%d) and (%d,%d) in 0x%p\n",
+          XY(other->vertices[j]), other, XY(this->vertices[i]), XY(this->vertices[i2]), this))
         polygon_insert_point(this, other->vertices[j], this->vertices[i], this->vertices[i2]);
         break;
       }
@@ -173,7 +173,7 @@ map_builder_step_find_polygon_intersections(map_builder *this)
         continue;
       }
 
-      M_DEBUG(printf("\tIntersect Polygon %d (0x%p) with Polygon %d (0x%p)\n", i, pi, j, pj));
+      IF_DEBUG(printf("\tIntersect Polygon %d (0x%p) with Polygon %d (0x%p)\n", i, pi, j, pj))
 
       gpc_polygon subject = { 0 }, clip = { 0 }, result = { 0 };
 
@@ -239,7 +239,8 @@ map_builder_step_find_polygon_intersections(map_builder *this)
 static void
 map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
 {
-  int i, j, k, new_count;
+  int i, j, new_count;
+  size_t k;
   sector *front, *back;
   linedef *line;
 
@@ -260,7 +261,7 @@ map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
         if (sector_connects_vertices(back, line->v0, line->v1)) { continue; }
        
         if (polygon_is_point_inside(&this->polygons[i], line->v0->point, false) && polygon_is_point_inside(&this->polygons[i], line->v1->point, false)) {
-          M_DEBUG(printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, XY(line->v0->point), XY(line->v1->point), j, i));
+          IF_DEBUG(printf("\t\tAdd contained line %d (%d,%d) <-> (%d,%d) of sector %d INTO sector %d\n", k, XY(line->v0->point), XY(line->v1->point), j, i))
           line->side[1].sector = back;
           line->side[1].texture[0] = line->side[0].texture[0];
           line->side[1].texture[1] = line->side[0].texture[1];
@@ -290,9 +291,9 @@ map_builder_insert_polygon(
   void        *vertices,
   int         vertices_list_type
 ) {
-  int i;
+  size_t i;
 
-  M_DEBUG(printf("Insert polygon (%d vertices) [%d, %d] at index %d:\n", vertices_count, floor_height, ceiling_height, insert_index));
+  IF_DEBUG(printf("Insert polygon (%d vertices) [%d, %d] at index %d:\n", vertices_count, floor_height, ceiling_height, insert_index))
 
   if (!this->polygons) {
     this->polygons = (polygon*)malloc(sizeof(polygon));
@@ -331,7 +332,7 @@ map_builder_insert_polygon(
     polygon_reverse_vertices(&this->polygons[insert_index]);
   }
 
-  M_DEBUG(for (i=0; i < vertices_count; ++i) {
+  IF_DEBUG(for (i=0; i < vertices_count; ++i) {
     printf("\t(%d, %d)\n", XY(this->polygons[insert_index].vertices[i]));
   })
 

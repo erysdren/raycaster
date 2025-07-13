@@ -1,4 +1,2 @@
 @ECHO off
-cd build
-ctest %*
-cd ..
+ctest --test-dir ./build %*

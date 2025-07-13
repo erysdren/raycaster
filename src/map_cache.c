@@ -7,14 +7,15 @@
 void
 map_cache_process_level_data(map_cache *this, level_data *data)
 {
-  register size_t i, x, y;
-  const int16_t cells_w = math_max(1, ceilf((data->max.x - data->min.x) / CELL_SIZE));
-  const int16_t cells_h = math_max(1, ceilf((data->max.y - data->min.y) / CELL_SIZE));
+  register size_t i;
+  int16_t x, y;
+  const int16_t cells_w = (int16_t)math_max(1, ceilf((data->max.x - data->min.x) / CELL_SIZE));
+  const int16_t cells_h = (int16_t)math_max(1, ceilf((data->max.y - data->min.y) / CELL_SIZE));
   vec2f v0, v1, p0, p1, p2, p3;
   linedef *line;
   cache_cell *cell;
 
-  M_DEBUG(printf(
+  IF_DEBUG(printf(
     "\tLevel bounds:\n"
     "\t\tMin: %f, %f\n"
     "\t\tMax: %f, %f\n"
@@ -66,7 +67,7 @@ map_cache_process_level_data(map_cache *this, level_data *data)
     }
   }
 
-  M_DEBUG(printf("Time taken: %.3fs\n", (double)(clock() - begin) / CLOCKS_PER_SEC));
+  IF_DEBUG(printf("Time taken: %.3fs\n", (double)(clock() - begin) / CLOCKS_PER_SEC))
 }
 
 M_INLINED bool
@@ -148,12 +149,12 @@ map_cache_intersect_3d(const map_cache *this, vec3f _start, vec3f _end)
 
   const int step_x = (dx > 0) ? 1 : (dx < 0) ? -1 : 0;
   const int step_y = (dy > 0) ? 1 : (dy < 0) ? -1 : 0;
-  const float tDeltaX = (step_x != 0) ? CELL_SIZE * fdx : INFINITY;
-  const float tDeltaY = (step_y != 0) ? CELL_SIZE * fdy : INFINITY;
+  const float tDeltaX = (step_x != 0) ? CELL_SIZE * fdx : FLT_MAX;
+  const float tDeltaY = (step_y != 0) ? CELL_SIZE * fdy : FLT_MAX;
   const float x_offset = (step_x > 0) ? (CELL_SIZE * (ix + 1) - start.x) : (start.x - CELL_SIZE * ix);
   const float y_offset = (step_y > 0) ? (CELL_SIZE * (iy + 1) - start.y) : (start.y - CELL_SIZE * iy);
-  register float tMaxX = (step_x != 0) ? x_offset * fdx : INFINITY;
-  register float tMaxY = (step_y != 0) ? y_offset * fdy : INFINITY;
+  register float tMaxX = (step_x != 0) ? x_offset * fdx : FLT_MAX;
+  register float tMaxY = (step_y != 0) ? y_offset * fdy : FLT_MAX;
   register float t = 0.f;
 
   // printf("Go from (%f, %f) %d, %d to (%f, %f) %d, %d:\n", start.x, start.y, ix, iy, end.x, end.y, ix_end, iy_end);

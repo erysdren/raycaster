@@ -81,7 +81,7 @@ static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
 #endif
 
 static void check_sector_column(const renderer*, const frame_info*, column_info*, const sector*);
-static void draw_wall_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, int32_t from, int32_t to, float, texture_ref, float, float);
+static void draw_wall_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, uint32_t from, uint32_t to, float, texture_ref, float, float);
 static void draw_floor_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_ceiling_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_column(const renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
@@ -97,7 +97,7 @@ M_INLINED void init_depth_values(renderer *this) {
 
 void renderer_init(
   renderer *this,
-  vec2u size
+  vec2i size
 ) {
   this->buffer_size = size;
   this->buffer = malloc(size.x * size.y * sizeof(pixel_type));
@@ -106,7 +106,7 @@ void renderer_init(
 
 void renderer_resize(
   renderer *this,
-  vec2u new_size
+  vec2i new_size
 ) {
   this->buffer_size = new_size;
   this->buffer = realloc(this->buffer, new_size.x * new_size.y * sizeof(pixel_type));
@@ -183,7 +183,7 @@ void renderer_draw(
     check_sector_column(this, &info, &column, camera->in_sector);
   }
 
-  M_DEBUG(renderer_step = NULL);
+  IF_DEBUG(renderer_step = NULL)
 }
 
 /* ----- */
@@ -607,8 +607,8 @@ static void draw_wall_segment(
   column_info *column,
   const sector *sect,
   const line_hit *hit,
-  int32_t from,
-  int32_t to,
+  uint32_t from,
+  uint32_t to,
   float view_z_scaled,
   texture_ref texture,
   float texture_step,
@@ -630,7 +630,7 @@ static void draw_wall_segment(
 #else
       hit->light_falloff
 #endif
-  ) : 0.f, texture_y = ((from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
+  ) : 0.f, texture_y = (((float)from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -659,7 +659,7 @@ static void draw_wall_segment(
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
 
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
   }
 }
 
@@ -695,7 +695,7 @@ static void draw_floor_segment(
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
 
-    texture_sampler(sect->floor_texture, wx, wy, &texture_coordinates_scaled, 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->floor_texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
     light = lights_count ? calculate_horizontal_surface_light(
       sect,
@@ -724,7 +724,7 @@ static void draw_floor_segment(
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
 
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
   } 
 }
 
@@ -760,7 +760,7 @@ static void draw_ceiling_segment(
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
     
-    texture_sampler(sect->ceiling_texture, wx, wy, &texture_coordinates_scaled, 1 + (distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->ceiling_texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
     light = lights_count ? calculate_horizontal_surface_light(
       sect,
@@ -789,7 +789,7 @@ static void draw_ceiling_segment(
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
 
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
   }
 }
 
@@ -802,7 +802,7 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
 
   register uint16_t y;
   uint8_t rgb[3];
-  float angle = atan2(column->ray_direction_unit.x, column->ray_direction_unit.y) * (180.0f / M_PI);
+  float angle = atan2f(column->ray_direction_unit.x, column->ray_direction_unit.y) * (180.0f / M_PI);
   if (angle < 0.0f) {
     angle += 360.0f;
   }
@@ -810,8 +810,8 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
   uint32_t *p = column->buffer_start + (from * column->buffer_stride);
 
   for (y = from; y < to; ++y, p += column->buffer_stride) {
-    texture_sampler(info->sky_texture, sky_x, math_min(1.f, 0.5+(y-info->pitch_offset)/h), &texture_coordinates_normalized, 1, &rgb[0]);
+    texture_sampler(info->sky_texture, sky_x, math_min(1.f, 0.5f+(y-info->pitch_offset)/h), &texture_coordinates_normalized, 1, &rgb[0]);
     *p = 0xFF000000 | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
-    M_DEBUG(INSERT_RENDER_BREAKPOINT);
+    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
   }
 }

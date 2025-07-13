@@ -96,7 +96,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
   SDL_SetRenderVSync(sdl_renderer, 1);
 
-  renderer_init(&rend, VEC2U(initial_window_width / scale, initial_window_height / scale));
+  renderer_init(&rend, VEC2I(initial_window_width / scale, initial_window_height / scale));
 
   if (!rend.buffer) {
     return -1;
@@ -152,7 +152,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         int w, h;
         SDL_GetWindowSize(window, &w, &h);
         printf("Resize buffer to %dx%d\n", w / scale, h / scale);
-        renderer_resize(&rend, VEC2U(w / scale, h / scale));
+        renderer_resize(&rend, VEC2I(w / scale, h / scale));
         SDL_DestroyTexture(texture);
         texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
         SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
@@ -215,7 +215,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 
     } else if (event->type == SDL_EVENT_WINDOW_RESIZED) {
       printf("Resize buffer to %dx%d\n", event->window.data1 / scale, event->window.data2 / scale);
-      renderer_resize(&rend, VEC2U(event->window.data1 / scale, event->window.data2 / scale));
+      renderer_resize(&rend, VEC2I(event->window.data1 / scale, event->window.data2 / scale));
       SDL_DestroyTexture(texture);
       texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, rend.buffer_size.x, rend.buffer_size.y);
       SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
@@ -271,7 +271,7 @@ SDL_AppIterate(void *userdata)
     SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
     SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
     SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "CAMERA pos: (%.1f, %.1f, %.1f), dir: (%.3f, %.3f), plane: (%.3f, %.3f), FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
-    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", cam.in_sector); y+=h;
+    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", (void*)cam.in_sector); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[E C] - Pitch up/down"); y+=h;

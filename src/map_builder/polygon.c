@@ -15,7 +15,8 @@ bool polygon_vertices_contains_point(const polygon *this, vec2f point)
 
 bool polygon_is_point_inside(const polygon *this, vec2f point, bool include_edges)
 {
-  register int i, wn = 0;
+  register size_t i;
+  int wn = 0;
   vec2f v0, v1;
 
   /* Winding number algorithm */

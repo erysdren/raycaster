@@ -47,8 +47,9 @@ sector_update_floor_ceiling_limits(sector*);
 M_INLINED bool
 sector_point_inside(const sector *this, vec2f point)
 {
-  register int i, wn = 0;
-  register const linedef *line;
+  register size_t i;
+  const linedef *line;
+  int wn = 0;
 
   /* Winding number algorithm */
   for (i = 0; i < this->linedefs_count; ++i) {

@@ -29,8 +29,8 @@ texture_coordinates_scaled(float fx, float fy, int w, int h, int32_t *x, int32_t
 
 M_INLINED void
 texture_coordinates_normalized(float fx, float fy, int w, int h, int32_t *x, int32_t *y) {
-  *x = (fx * (w-1)); // / mip_level) * mip_level;
-  *y = (fy * (h-1)); // / mip_level) * mip_level;
+  *x = (int32_t)(fx * (w-1)); // / mip_level) * mip_level;
+  *y = (int32_t)(fy * (h-1)); // / mip_level) * mip_level;
 }
 
 #endif

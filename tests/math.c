@@ -77,9 +77,9 @@ TEST(math, line_segment_point_perpendicular_distance)
 
 TEST(math, sign)
 {
-  int32_t s0 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(2, 5));
-  int32_t s1 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(7, 5));
-  int32_t s2 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(5, 5));
+  const float s0 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(2, 5));
+  const float s1 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(7, 5));
+  const float s2 = math_sign(VEC2F(0, 0), VEC2F(10, 10), VEC2F(5, 5));
 
   TEST_ASSERT(s0 > 0);
   TEST_ASSERT(s1 < 0);

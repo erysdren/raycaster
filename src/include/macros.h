@@ -24,9 +24,9 @@
 #endif
 
 #ifdef DEBUG
-  #define M_DEBUG(S) S;
+  #define IF_DEBUG(S) S;
 #else
-  #define M_DEBUG(S)
+  #define IF_DEBUG(S)
 #endif
 
 // https://stackoverflow.com/questions/2124339/c-preprocessor-va-args-number-of-arguments

@@ -21,6 +21,8 @@ set(RENDERER_DEFINES
 if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
   list(APPEND RENDERER_FLAGS
     -Wall
+    # -Wextra
+    -Wpedantic
     -Wfatal-errors
     -g
     -no-pie
@@ -42,7 +44,7 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     /Oy
     /Oi
     $<$<CONFIG:Debug>:/Ot>
-    $<$<CONFIG:Release>:/Ox>
+    $<$<CONFIG:Release>:/O2>
     /fp:fast
     /arch:SSE2
     $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:/openmp>

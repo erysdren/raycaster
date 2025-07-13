@@ -59,9 +59,9 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
       line->side[0].texture[1] = texture;
       line->side[0].texture[2] = texture;
 
-      M_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
+      IF_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
         line, XY(v0->point), XY(v1->point), line->side[0].sector, line->side[1].sector
-      ));
+      ))
       return line;
     }
   }
@@ -91,9 +91,9 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
     .ymax = fmaxf(v0->point.y, v1->point.y)
   };
 
-  M_DEBUG(printf("\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
+  IF_DEBUG(printf("\t\tNew linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
     &this->linedefs[this->linedefs_count], XY(v0->point), XY(v1->point), sect, NULL
-  ));
+  ))
 
   return &this->linedefs[this->linedefs_count++];
 }
@@ -104,7 +104,7 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
 
   sector *sect = &this->sectors[this->sectors_count++];
 
-  M_DEBUG(printf("\tNew sector (0x%p):\n", sect));
+  IF_DEBUG(printf("\tNew sector (0x%p):\n", sect))
 
   sect->floor_height = poly->floor_height;
   sect->ceiling_height = poly->ceiling_height;
