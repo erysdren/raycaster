@@ -71,8 +71,8 @@ TEST(map_builder, concave_polygon)
   TEST_ASSERT_EQUAL(5, level->linedefs_count);
   TEST_ASSERT_EQUAL(1, level->sectors_count);
 
-  TEST_ASSERT_EQUAL_INT(0, level->sectors[0].floor_height);
-  TEST_ASSERT_EQUAL_INT(128, level->sectors[0].ceiling_height);
+  TEST_ASSERT_EQUAL_INT(0, level->sectors[0].floor.height);
+  TEST_ASSERT_EQUAL_INT(128, level->sectors[0].ceiling.height);
   TEST_ASSERT_EQUAL_DOUBLE(0.5, level->sectors[0].brightness);
 
   for (i = 0; i < level->linedefs_count; ++i) {

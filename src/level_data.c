@@ -8,7 +8,10 @@ static bool
 linedef_contains_light(const linedef*, int, const light*);
 
 static bool
-sector_contains_light(const sector*, const light*);
+sector_floor_contains_light(const sector*, const light*);
+
+static bool
+sector_ceiling_contains_light(const sector*, const light*);
 
 /* FIND a vertex at given point OR CREATE a new one */
 vertex* level_data_get_vertex(level_data *this, vec2f point)
@@ -106,14 +109,15 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
 
   IF_DEBUG(printf("\tNew sector (0x%p):\n", sect))
 
-  sect->floor_height = poly->floor_height;
-  sect->ceiling_height = poly->ceiling_height;
+  sect->floor.height = poly->floor_height;
+  sect->floor.texture = poly->floor_texture;
+  sect->floor.lights_count = 0;
+  sect->ceiling.height = poly->ceiling_height;
+  sect->ceiling.texture = poly->ceiling_texture;
+  sect->ceiling.lights_count = 0;
   sect->brightness = poly->brightness;
-  sect->floor_texture = poly->floor_texture;
-  sect->ceiling_texture = poly->ceiling_texture;
   sect->linedefs = NULL;
   sect->linedefs_count = 0;
-  sect->lights_count = 0;
 
 #ifdef LINE_VIS_CHECK
   sect->visible_linedefs = NULL;
@@ -161,16 +165,17 @@ void
 level_data_update_lights(level_data *this)
 {
   int i, si, li, side;
-  float sign;
+  float sign, lz;
   light *lite;
   sector *sect;
   linedef *line;
   vec2f pos2d;
-  bool sector_lit;
+  bool sector_floor_lit, sector_ceiling_lit;
 
   for (si = 0; si < this->sectors_count; ++si) {
     sect = &this->sectors[si];
-    sect->lights_count = 0;
+    sect->floor.lights_count = 0;
+    sect->ceiling.lights_count = 0;
 
     for (li = 0; li < sect->linedefs_count; ++li) {
       line = sect->linedefs[li];
@@ -187,11 +192,22 @@ level_data_update_lights(level_data *this)
     /* Find all sectors the light circle touches */
     for (si = 0; si < this->sectors_count; ++si) {
       sect = &this->sectors[si];
-      sector_lit = sector_contains_light(sect, lite);
+      sector_floor_lit = sector_floor_contains_light(sect, lite);
+      sector_ceiling_lit = sector_ceiling_contains_light(sect, lite);
 
-      if (!sector_lit && sect->lights_count < MAX_LIGHTS_PER_SURFACE && sector_point_inside(sect, pos2d)) {
-        sect->lights[sect->lights_count++] = lite;
-        sector_lit = true;
+      if (sector_point_inside(sect, pos2d)) {
+        if (!sector_floor_lit && sect->floor.lights_count < MAX_LIGHTS_PER_SURFACE) {
+          if ((lz = lite->position.z - sect->floor.height) && lz > 0 && lz <= lite->radius) {
+            sect->floor.lights[sect->floor.lights_count++] = lite;
+          }
+          sector_floor_lit = true;
+        }
+        if (!sector_ceiling_lit && sect->ceiling.lights_count < MAX_LIGHTS_PER_SURFACE) {
+          if ((lz = sect->ceiling.height - lite->position.z) && lz > 0 && lz <= lite->radius) {
+            sect->ceiling.lights[sect->ceiling.lights_count++] = lite;
+          }
+          sector_ceiling_lit = true;
+        }
       }
 
       for (li = 0; li < sect->linedefs_count; ++li) {
@@ -206,9 +222,18 @@ level_data_update_lights(level_data *this)
          * in the renderer later on.
          */
         if (math_line_segment_point_distance(line->v0->point, line->v1->point, pos2d) <= lite->radius) {
-          if (!sector_lit && sect->lights_count < MAX_LIGHTS_PER_SURFACE) {
-            sect->lights[sect->lights_count++] = lite;
-            sector_lit = true;
+          if (!sector_floor_lit && sect->floor.lights_count < MAX_LIGHTS_PER_SURFACE) {
+            if ((lz = lite->position.z - sect->floor.height) && lz > 0 && lz <= lite->radius) {
+              sect->floor.lights[sect->floor.lights_count++] = lite;
+            }
+            sector_floor_lit = true;
+          }
+
+          if (!sector_ceiling_lit && sect->ceiling.lights_count < MAX_LIGHTS_PER_SURFACE) {
+            if ((lz = sect->ceiling.height - lite->position.z) && lz > 0 && lz <= lite->radius) {
+              sect->ceiling.lights[sect->ceiling.lights_count++] = lite;
+            }
+            sector_ceiling_lit = true;
           }
 
           if ((side == 0 ? (sign < 0) : (sign > 0)) &&
@@ -226,7 +251,7 @@ level_data_update_lights(level_data *this)
 
         /* 1 - Check floor polygon vertices */
         if (!sector_lit && sect->lights_count < MAX_LIGHTS_PER_SURFACE) {
-          if (!level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->floor_height), lite->position, sect)) {
+          if (!level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->floor.height), lite->position, sect)) {
             sect->lights[sect->lights_count++] = lite;
             sector_lit = true;
           }
@@ -237,10 +262,10 @@ level_data_update_lights(level_data *this)
             line->side[side].lights_count < MAX_LIGHTS_PER_SURFACE &&
             !linedef_contains_light(line, side, lite)
         ) {
-          if (!level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->floor_height), lite->position, sect) ||
-              !level_data_intersect_3d(this, VEC3F(line->v1->point.x, line->v1->point.y, sect->floor_height), lite->position, sect) ||
-              !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->ceiling_height), lite->position, sect) ||
-              !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->ceiling_height), lite->position, sect
+          if (!level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->floor.height), lite->position, sect) ||
+              !level_data_intersect_3d(this, VEC3F(line->v1->point.x, line->v1->point.y, sect->floor.height), lite->position, sect) ||
+              !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->ceiling.height), lite->position, sect) ||
+              !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->ceiling.height), lite->position, sect
           )) {
             line->side[side].lights[line->side[side].lights_count++] = lite;
           }
@@ -304,7 +329,7 @@ level_data_intersect_3d(const level_data *this, vec3f p0, vec3f p1, const sector
         }
         any_hits = 1;
         z = z0+(z1-z0)*det;
-        if (z < back->floor_height || z > back->ceiling_height) {
+        if (z < back->floor.height || z > back->ceiling.height) {
           return true;
         }
         // printf("%p line %d back %p\n", sect, li, back);
@@ -337,11 +362,23 @@ linedef_contains_light(const linedef *this, int side, const light *lt)
 }
 
 static bool
-sector_contains_light(const sector *this, const light *lt)
+sector_floor_contains_light(const sector *this, const light *lt)
 {
   size_t i;
-  for (i = 0; i < this->lights_count; ++i) {
-    if (this->lights[i] == lt) {
+  for (i = 0; i < this->floor.lights_count; ++i) {
+    if (this->floor.lights[i] == lt) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool
+sector_ceiling_contains_light(const sector *this, const light *lt)
+{
+  size_t i;
+  for (i = 0; i < this->ceiling.lights_count; ++i) {
+    if (this->ceiling.lights[i] == lt) {
       return true;
     }
   }

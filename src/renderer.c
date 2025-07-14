@@ -335,8 +335,8 @@ static void draw_column(
   line_hit const *hit
 ) {
   const float depth_scale_factor = info->unit_size * hit->planar_distance_inv;
-  const float ceiling_z_scaled   = sect->ceiling_height * depth_scale_factor;
-  const float floor_z_scaled     = sect->floor_height * depth_scale_factor;
+  const float ceiling_z_scaled   = sect->ceiling.height * depth_scale_factor;
+  const float floor_z_scaled     = sect->floor.height * depth_scale_factor;
   const float view_z_scaled      = info->view_z * depth_scale_factor;
   const float ceiling_z_local    = info->half_h - ceiling_z_scaled + view_z_scaled;
   const float floor_z_local      = info->half_h - floor_z_scaled + view_z_scaled;
@@ -345,7 +345,7 @@ static void draw_column(
 
   sector *back_sector = hit->line->side[!hit->side].sector;
 
-  if (!back_sector || (back_sector && back_sector->floor_height == back_sector->ceiling_height)) {
+  if (!back_sector || (back_sector && back_sector->floor.height == back_sector->ceiling.height)) {
     /* Draw a full wall */
     const float start_y = ceilf(M_MAX(ceiling_z_local, column->top_limit));
     const float end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
@@ -364,14 +364,14 @@ static void draw_column(
       wall_texture_x
     );
 
-    if (sect->ceiling_texture != TEXTURE_NONE) {
+    if (sect->ceiling.texture != TEXTURE_NONE) {
       draw_ceiling_segment(
         this,
         info,
         column,
         sect,
         hit,
-        (sect->ceiling_height - info->view_z) * info->unit_size,
+        (sect->ceiling.height - info->view_z) * info->unit_size,
         column->top_limit,
         M_MIN(start_y, column->bottom_limit)
       );
@@ -385,7 +385,7 @@ static void draw_column(
       column,
       sect,
       hit,
-      (info->view_z - sect->floor_height) * info->unit_size,
+      (info->view_z - sect->floor.height) * info->unit_size,
       end_y,
       column->bottom_limit
     );
@@ -393,15 +393,15 @@ static void draw_column(
     column->finished = true;
   } else {
     /* Draw top and bottom segments of the wall and the sector behind */
-    const float top_segment = (sect->ceiling_height - back_sector->ceiling_height) * depth_scale_factor;
-    const float bottom_segment = (back_sector->floor_height - sect->floor_height) * depth_scale_factor;
+    const float top_segment = (sect->ceiling.height - back_sector->ceiling.height) * depth_scale_factor;
+    const float bottom_segment = (back_sector->floor.height - sect->floor.height) * depth_scale_factor;
 
     const float top_start_y = ceilf(math_clamp(ceiling_z_local, column->top_limit, column->bottom_limit));
     const float top_end_y = ceilf(math_clamp(ceiling_z_local + top_segment, column->top_limit, column->bottom_limit));
     const float bottom_end_y = math_clamp(floor_z_local, column->top_limit, column->bottom_limit);
     const float bottom_start_y = math_clamp(floor_z_local - bottom_segment, column->top_limit, column->bottom_limit);
 
-    const bool back_sector_has_sky = back_sector->ceiling_texture == TEXTURE_NONE;
+    const bool back_sector_has_sky = back_sector->ceiling.texture == TEXTURE_NONE;
 
     float new_top_limit = column->top_limit;
     float new_bottom_limit = column->bottom_limit;
@@ -446,14 +446,14 @@ static void draw_column(
       new_bottom_limit = bottom_end_y;
     }
 
-    if (sect->ceiling_texture != TEXTURE_NONE) {
+    if (sect->ceiling.texture != TEXTURE_NONE) {
       draw_ceiling_segment(
         this,
         info,
         column,
         sect,
         hit,
-        (sect->ceiling_height - info->view_z) * info->unit_size,
+        (sect->ceiling.height - info->view_z) * info->unit_size,
         column->top_limit,
         top_start_y
       );
@@ -470,7 +470,7 @@ static void draw_column(
       column,
       sect,
       hit,
-      (info->view_z - sect->floor_height) * info->unit_size,
+      (info->view_z - sect->floor.height) * info->unit_size,
       bottom_end_y,
       column->bottom_limit
     );
@@ -517,7 +517,7 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
   for (i = 0; i < num_lights; ++i) {
     lt = lights[i];
 
-    if ((dz = is_floor ? (lt->position.z - sect->floor_height) : (sect->ceiling_height - lt->position.z)) < 0.f) {
+    if ((dz = is_floor ? (lt->position.z - sect->floor.height) : (sect->ceiling.height - lt->position.z)) < 0.f) {
       continue;
     }
 
@@ -674,7 +674,7 @@ static void draw_floor_segment(
   uint32_t to
 ) {
   /* Camera below the floor */
-  if (from >= to || info->view_z < sect->floor_height || sect->floor_texture == TEXTURE_NONE) {
+  if (from >= to || info->view_z < sect->floor.height || sect->floor.texture == TEXTURE_NONE) {
     return;
   }
 
@@ -682,8 +682,8 @@ static void draw_floor_segment(
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   uint8_t rgb[3];
-  uint8_t lights_count = sect->lights_count;
-  struct light **lights = ((sector*)sect)->lights;
+  uint8_t lights_count = sect->floor.lights_count;
+  struct light **lights = ((sector*)sect)->floor.lights;
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -695,11 +695,11 @@ static void draw_floor_segment(
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
 
-    texture_sampler(sect->floor_texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->floor.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
     light = lights_count ? calculate_horizontal_surface_light(
       sect,
-      VEC3F(wx, wy, sect->floor_height),
+      VEC3F(wx, wy, sect->floor.height),
       true,
       lights_count,
       lights,
@@ -739,7 +739,7 @@ static void draw_ceiling_segment(
   uint32_t to
 ) {
   /* Camera above the ceiling */
-  if (from >= to || info->view_z > sect->ceiling_height) {
+  if (from >= to || info->view_z > sect->ceiling.height) {
     return;
   }
 
@@ -747,8 +747,8 @@ static void draw_ceiling_segment(
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
   uint8_t rgb[3];
-  uint8_t lights_count = sect->lights_count;
-  struct light **lights = ((sector*)sect)->lights;
+  uint8_t lights_count = sect->ceiling.lights_count;
+  struct light **lights = ((sector*)sect)->ceiling.lights;
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];
@@ -760,11 +760,11 @@ static void draw_ceiling_segment(
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
     
-    texture_sampler(sect->ceiling_texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->ceiling.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
     light = lights_count ? calculate_horizontal_surface_light(
       sect,
-      VEC3F(wx, wy, sect->ceiling_height),
+      VEC3F(wx, wy, sect->ceiling.height),
       false,
       lights_count,
       lights,

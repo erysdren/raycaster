@@ -165,18 +165,18 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
       }
 
       if (event->key.key == SDLK_HOME) {
-        cam.in_sector->ceiling_height += 2;
+        cam.in_sector->ceiling.height += 2;
         sector_update_floor_ceiling_limits(cam.in_sector);
       } else if (event->key.key == SDLK_END) {
-        cam.in_sector->ceiling_height = M_MAX(cam.in_sector->floor_height, cam.in_sector->ceiling_height - 2);
+        cam.in_sector->ceiling.height = M_MAX(cam.in_sector->floor.height, cam.in_sector->ceiling.height - 2);
         sector_update_floor_ceiling_limits(cam.in_sector);
       }
 
       if (event->key.key == SDLK_PAGEUP) {
-        cam.in_sector->floor_height = M_MIN(cam.in_sector->ceiling_height, cam.in_sector->floor_height + 2);
+        cam.in_sector->floor.height = M_MIN(cam.in_sector->ceiling.height, cam.in_sector->floor.height + 2);
         sector_update_floor_ceiling_limits(cam.in_sector);
       } else if (event->key.key == SDLK_PAGEDOWN) {
-        cam.in_sector->floor_height -= 2;
+        cam.in_sector->floor.height -= 2;
         sector_update_floor_ceiling_limits(cam.in_sector);
       }
 
