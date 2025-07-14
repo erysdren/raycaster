@@ -81,7 +81,7 @@ static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
 #endif
 
 static void check_sector_column(const renderer*, const frame_info*, column_info*, const sector*);
-static void draw_wall_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, uint32_t from, uint32_t to, float, texture_ref, float, float);
+static void draw_wall_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, uint32_t from, uint32_t to, float, texture_ref);
 static void draw_floor_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_ceiling_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
 static void draw_column(const renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
@@ -340,8 +340,6 @@ static void draw_column(
   const float view_z_scaled      = info->view_z * depth_scale_factor;
   const float ceiling_z_local    = info->half_h - ceiling_z_scaled + view_z_scaled;
   const float floor_z_local      = info->half_h - floor_z_scaled + view_z_scaled;
-  const float wall_texture_step  = hit->planar_distance / info->unit_size;
-  const float wall_texture_x     = hit->determinant * hit->line->length;
 
   sector *back_sector = hit->line->side[!hit->side].sector;
 
@@ -359,9 +357,7 @@ static void draw_column(
       start_y,
       end_y,
       view_z_scaled,
-      hit->line->side[hit->side].texture[LINE_TEXTURE_MIDDLE],
-      wall_texture_step,
-      wall_texture_x
+      hit->line->side[hit->side].texture[LINE_TEXTURE_MIDDLE]
     );
 
     if (sect->ceiling.texture != TEXTURE_NONE) {
@@ -417,9 +413,7 @@ static void draw_column(
           top_start_y,
           top_end_y,
           view_z_scaled,
-          hit->line->side[hit->side].texture[LINE_TEXTURE_TOP],
-          wall_texture_step,
-          wall_texture_x
+          hit->line->side[hit->side].texture[LINE_TEXTURE_TOP]
         );
         new_top_limit = top_end_y;
       } else {
@@ -437,9 +431,7 @@ static void draw_column(
         bottom_start_y,
         bottom_end_y,
         view_z_scaled,
-        hit->line->side[hit->side].texture[LINE_TEXTURE_BOTTOM],
-        wall_texture_step,
-        wall_texture_x
+        hit->line->side[hit->side].texture[LINE_TEXTURE_BOTTOM]
       );
       new_bottom_limit = bottom_start_y;
     } else {
@@ -517,13 +509,11 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
   for (i = 0; i < num_lights; ++i) {
     lt = lights[i];
 
-    if ((dz = is_floor ? (lt->position.z - sect->floor.height) : (sect->ceiling.height - lt->position.z)) < 0.f) {
-      continue;
-    }
-
     if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
       continue;
     }
+
+    dz = is_floor ? (lt->position.z - sect->floor.height) : (sect->ceiling.height - lt->position.z);
 
 #ifdef DYNAMIC_SHADOWS
     v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
@@ -610,27 +600,28 @@ static void draw_wall_segment(
   uint32_t from,
   uint32_t to,
   float view_z_scaled,
-  texture_ref texture,
-  float texture_step,
-  float texture_x
+  texture_ref texture
 ) {
   if (from >= to || texture == TEXTURE_NONE) {
     return;
   }
 
   register uint32_t y;
-  uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[3] = { 0 };
-  uint8_t lights_count = hit->line->side[hit->side].lights_count;
-  struct light **lights = hit->line->side[hit->side].lights;
-  register float light = !lights_count ? calculate_basic_brightness(
+  const float texture_step  = hit->planar_distance / info->unit_size;
+  const float texture_x     = hit->determinant * hit->line->length;
+  const uint16_t segment    = (uint16_t)floorf((hit->line->segments - 1) * hit->determinant);
+  uint32_t *p               = column->buffer_start + (from*column->buffer_stride);
+  uint8_t rgb[3]            = { 0 };
+  uint8_t lights_count      = hit->line->side[hit->side].segments[segment].lights_count;
+  struct light **lights     = hit->line->side[hit->side].segments[segment].lights;
+  register float light      = !lights_count ? calculate_basic_brightness(
       sect->brightness,
 #if LIGHT_STEPS > 0
       hit->distance_steps
 #else
       hit->light_falloff
 #endif
-  ) : 0.f, texture_y = (((float)from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
+  ) : 0.f, texture_y        = (((float)from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
 
 #ifdef VECTORIZED_LIGHT_MUL
   int32_t temp[4];

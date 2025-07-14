@@ -52,7 +52,7 @@ map_builder_build(map_builder *this)
   level->lights_count = 0;
   level->sky_texture = TEXTURE_NONE;
 
-  IF_DEBUG(printf("Building level (0x%p) ...\n", level))
+  IF_DEBUG(printf("Building level (0x%p) ...\n", (void*)level))
 
   /* ------------ */
  
@@ -131,7 +131,7 @@ polygon_add_new_vertices_from(
       if (math_point_on_line_segment(other->vertices[j], this->vertices[i], this->vertices[i2], PRECISION_LOW) &&
           polygon_vertices_contains_point(this, other->vertices[j]) == false) {
         IF_DEBUG(printf("\tInserting (%d,%d) of 0x%p between (%d,%d) and (%d,%d) in 0x%p\n",
-          XY(other->vertices[j]), other, XY(this->vertices[i]), XY(this->vertices[i2]), this))
+          XY(other->vertices[j]), (void*)other, XY(this->vertices[i]), XY(this->vertices[i2]), (void*)this))
         polygon_insert_point(this, other->vertices[j], this->vertices[i], this->vertices[i2]);
         break;
       }
@@ -173,7 +173,7 @@ map_builder_step_find_polygon_intersections(map_builder *this)
         continue;
       }
 
-      IF_DEBUG(printf("\tIntersect Polygon %d (0x%p) with Polygon %d (0x%p)\n", i, pi, j, pj))
+      IF_DEBUG(printf("\tIntersect Polygon %d (0x%p) with Polygon %d (0x%p)\n", i, (void*)pi, j, (void*)pj))
 
       gpc_polygon subject = { 0 }, clip = { 0 }, result = { 0 };
 
@@ -269,6 +269,7 @@ map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
           back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
           linedef_update_floor_ceiling_limits(line);
+          linedef_create_segments_for_side(line, 1);
         }
       }
 
