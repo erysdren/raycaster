@@ -249,12 +249,20 @@ level_data_update_lights(level_data *this)
          * vertices has a line of sight to the light.
          */
 
-        /* 1 - Check floor polygon vertices */
-        if (!sector_lit && sect->lights_count < MAX_LIGHTS_PER_SURFACE) {
-          if (!level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->floor.height), lite->position, sect)) {
-            sect->lights[sect->lights_count++] = lite;
-            sector_lit = true;
+        /* 1 - Check floor & ceiling surface vertices */
+        if (!sector_floor_lit && sect->floor.lights_count < MAX_LIGHTS_PER_SURFACE) {
+          if ((lz = lite->position.z - sect->floor.height) && lz > 0 && lz <= lite->radius &&
+              !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->floor.height), lite->position, sect)) {
+            sect->floor.lights[sect->floor.lights_count++] = lite;
           }
+          sector_floor_lit = true;
+        }
+        if (!sector_ceiling_lit && sect->ceiling.lights_count < MAX_LIGHTS_PER_SURFACE) {
+          if ((lz = sect->ceiling.height - lite->position.z) && lz > 0 && lz <= lite->radius &&
+              !level_data_intersect_3d(this, VEC3F(line->v0->point.x, line->v0->point.y, sect->ceiling.height), lite->position, sect)) {
+            sect->ceiling.lights[sect->ceiling.lights_count++] = lite;
+          }
+          sector_ceiling_lit = true;
         }
 
         /* 2 - Check four corners of the wall */
