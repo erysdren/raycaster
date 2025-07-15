@@ -14,8 +14,6 @@ typedef struct sector {
   struct {
     int32_t     height;
     texture_ref texture;
-    uint8_t     lights_count;
-    light       *lights[MAX_LIGHTS_PER_SURFACE];
   } floor, ceiling;
   size_t      linedefs_count;  
   float       brightness;

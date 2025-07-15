@@ -27,6 +27,7 @@ void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uin
 
 /* Common frame info all column renderers can share */
 typedef struct {
+  level_data *level;
   vec2f view_position,
         near_left,
         near_right,
@@ -71,7 +72,7 @@ typedef struct {
 // static const float LIGHT_STEP_DISTANCE = DIMMING_DISTANCE / RAYCASTER_LIGHT_STEPS;
 static const float LIGHT_STEP_DISTANCE_INVERSE = 1.f / (DIMMING_DISTANCE / RAYCASTER_LIGHT_STEPS);
 static const float LIGHT_STEP_VALUE_CHANGE = 1.f / RAYCASTER_LIGHT_STEPS;
-static const float LIGHT_STEP_VALUE_CHANGE_INVERSE = 1.f / LIGHT_STEP_VALUE_CHANGE;
+static const float LIGHT_STEP_VALUE_CHANGE_INVERSE = 1.f / (1.f / RAYCASTER_LIGHT_STEPS);
 #else
 static const float LIGHT_STEP_DISTANCE_INVERSE = 1.f / (DIMMING_DISTANCE / 4);
 static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
@@ -153,6 +154,7 @@ renderer_draw(
 
   int32_t half_h = this->buffer_size.y >> 1;
 
+  info.level = camera->level;
   info.view_position = camera->position;
   info.near_left = vec2f_sub(camera->position, camera->plane),
   info.near_right = vec2f_add(camera->position, camera->plane);
@@ -531,11 +533,14 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
   for (i = 0; i < num_lights; ++i) {
     lt = lights[i];
 
-    if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
+    /* Too far off the floor or ceiling */
+    if ((dz = is_floor ? (lt->position.z - sect->floor.height) : (sect->ceiling.height - lt->position.z)) && (dz < 0.f)) {
       continue;
     }
 
-    dz = is_floor ? (lt->position.z - sect->floor.height) : (sect->ceiling.height - lt->position.z);
+    if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
+      continue;
+    }
 
 #ifdef RAYCASTER_DYNAMIC_SHADOWS
     v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
@@ -696,9 +701,8 @@ draw_floor_segment(
   register uint32_t y, yz;
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[3];
-  uint8_t lights_count = sect->floor.lights_count;
-  struct light **lights = ((sector*)sect)->floor.lights;
+  uint8_t rgb[3], lights_count;
+  map_cache_cell *cell;
 
 #ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
   int32_t temp[4];
@@ -709,6 +713,8 @@ draw_floor_segment(
     weight = math_min(1.f, distance * hit->point_distance_inverse);
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
+    cell = map_cache_cell_at(&info->level->cache, VEC2F(wx, wy));
+    lights_count = cell ? cell->lights_count : 0;
 
     texture_sampler(sect->floor.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
@@ -717,7 +723,7 @@ draw_floor_segment(
       VEC3F(wx, wy, sect->floor.height),
       true,
       lights_count,
-      lights,
+      cell ? cell->lights : NULL,
 #if RAYCASTER_LIGHT_STEPS > 0
       distance * LIGHT_STEP_DISTANCE_INVERSE
 #else
@@ -762,9 +768,8 @@ draw_ceiling_segment(
   register uint32_t y, yz;
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[3];
-  uint8_t lights_count = sect->ceiling.lights_count;
-  struct light **lights = ((sector*)sect)->ceiling.lights;
+  uint8_t rgb[3], lights_count;
+  map_cache_cell *cell;
 
 #ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
   int32_t temp[4];
@@ -775,7 +780,9 @@ draw_ceiling_segment(
     weight = math_min(1.f, distance * hit->point_distance_inverse);
     wx = (weight * hit->point.x) + ((1-weight) * column->ray_start.x);
     wy = (weight * hit->point.y) + ((1-weight) * column->ray_start.y);
-    
+    cell = map_cache_cell_at(&info->level->cache, VEC2F(wx, wy));
+    lights_count = cell ? cell->lights_count : 0;
+
     texture_sampler(sect->ceiling.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
 
     light = lights_count ? calculate_horizontal_surface_light(
@@ -783,7 +790,7 @@ draw_ceiling_segment(
       VEC3F(wx, wy, sect->ceiling.height),
       false,
       lights_count,
-      lights,
+      cell ? cell->lights : NULL,
 #if RAYCASTER_LIGHT_STEPS > 0
       distance * LIGHT_STEP_DISTANCE_INVERSE
 #else

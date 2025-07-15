@@ -20,10 +20,7 @@ typedef struct light {
   struct level_data *level;
 } light;
 
-M_INLINED void
-light_set_position(light *this, vec3f position) {
-  this->position = position;
-  level_data_update_lights(this->level);
-}
+void
+light_set_position(light *this, vec3f position);
 
 #endif

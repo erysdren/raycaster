@@ -2,7 +2,17 @@
 #include "level_data.h"
 #include <time.h>
 
-#define CELL_SIZE 76.f
+
+/* FORWARD DECLARATIONS */
+
+static bool
+collide(const map_cache*, int, int, float, float, float, vec3f, vec3f, vec2f, vec2f);
+
+static void
+map_cache_add_or_remove_light_at_position(map_cache*, light*, vec3f, bool);
+
+
+/* PUBLIC API */
 
 void
 map_cache_process_level_data(map_cache *this, level_data *data)
@@ -13,7 +23,7 @@ map_cache_process_level_data(map_cache *this, level_data *data)
   const int16_t cells_h = (int16_t)math_max(1, ceilf((data->max.y - data->min.y) / CELL_SIZE));
   vec2f v0, v1, p0, p1, p2, p3;
   linedef *line;
-  cache_cell *cell;
+  map_cache_cell *cell;
 
   IF_DEBUG(printf(
     "\tLevel bounds:\n"
@@ -30,12 +40,14 @@ map_cache_process_level_data(map_cache *this, level_data *data)
   this->w = cells_w;
   this->h = cells_h;
   this->origin = data->min;
-  this->cells = (cache_cell*)malloc(sizeof(cache_cell)*cells_w*cells_h);
+  this->cells = malloc(sizeof(map_cache_cell)*cells_w*cells_h);
 
   for (y = 0; y < cells_h; ++y) {
     for (x = 0; x < cells_w; ++x) {
       cell = &this->cells[y*cells_w + x];
       cell->count = 0;
+      cell->lights_count = 0;
+
       p0 = VEC2F(x*CELL_SIZE, y*CELL_SIZE);
       p1 = VEC2F(x*CELL_SIZE+CELL_SIZE, y*CELL_SIZE);
       p2 = VEC2F(x*CELL_SIZE+CELL_SIZE, y*CELL_SIZE+CELL_SIZE);
@@ -70,46 +82,11 @@ map_cache_process_level_data(map_cache *this, level_data *data)
   IF_DEBUG(printf("Time taken: %.3fs\n", (double)(clock() - begin) / CLOCKS_PER_SEC))
 }
 
-M_INLINED bool
-collide(const map_cache *this, int x, int y, float current_z, float next_z, float dz, vec3f start, vec3f end, vec2f start_xy, vec2f ray_dir)
+void
+map_cache_process_light(map_cache *this, light *light, vec3f previous_position)
 {
-  const cache_cell *cell = &this->cells[y*this->w+x];
-
-  if (cell->count == 0) {
-    return false;
-  }
-
-  register size_t li;
-  float det, z;
-  linedef *line;
-
-  for (li = 0; li < cell->count; ++li) {
-    line = cell->linedefs[li];
-
-    if (dz < 0) {
-      if (line->max_floor_height < next_z && line->min_ceiling_height > current_z) {
-        continue;
-      }
-    } else {
-      if (line->max_floor_height < current_z && line->min_ceiling_height > next_z) {
-        continue;
-      }
-    }
-
-    if (math_find_line_intersection_cached(start_xy, line->v0->point, ray_dir, line->direction, NULL, &det) && det > MATHS_EPSILON) {
-      if (!line->side[1].sector) {
-        return true;
-      }
-
-      z = start.z + dz*det;
-
-      if (z < line->max_floor_height || z > line->min_ceiling_height) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  map_cache_add_or_remove_light_at_position(this, light, previous_position, false);
+  map_cache_add_or_remove_light_at_position(this, light, light->position, true);
 }
 
 bool
@@ -180,4 +157,94 @@ map_cache_intersect_3d(const map_cache *this, vec3f _start, vec3f _end)
   }
 
   return false;
+}
+
+
+/* PRIVATE FUNCTIONS */
+
+M_INLINED bool
+collide(const map_cache *this, int x, int y, float current_z, float next_z, float dz, vec3f start, vec3f end, vec2f start_xy, vec2f ray_dir)
+{
+  const map_cache_cell *cell = &this->cells[y*this->w+x];
+
+  if (cell->count == 0) {
+    return false;
+  }
+
+  register size_t li;
+  float det, z;
+  linedef *line;
+
+  for (li = 0; li < cell->count; ++li) {
+    line = cell->linedefs[li];
+
+    if (dz < 0) {
+      if (line->max_floor_height < next_z && line->min_ceiling_height > current_z) {
+        continue;
+      }
+    } else {
+      if (line->max_floor_height < current_z && line->min_ceiling_height > next_z) {
+        continue;
+      }
+    }
+
+    if (math_find_line_intersection_cached(start_xy, line->v0->point, ray_dir, line->direction, NULL, &det) && det > MATHS_EPSILON) {
+      if (!line->side[1].sector) {
+        return true;
+      }
+
+      z = start.z + dz*det;
+
+      if (z < line->max_floor_height || z > line->min_ceiling_height) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+static void
+map_cache_add_or_remove_light_at_position(map_cache *this, light *l, vec3f position, bool add)
+{
+  uint16_t x, y;
+  uint8_t i,j;
+  map_cache_cell *cell;
+
+  const vec2f light_pos_local = VEC2F(
+    math_max(0, l->position.x - this->origin.x),
+    math_max(0, l->position.y - this->origin.y)
+  );
+
+  /* Find all cells this light touches */
+  const vec2u cell_min = VEC2U(
+    M_MAX(0, (light_pos_local.x - l->radius) / CELL_SIZE),
+    M_MAX(0, (light_pos_local.y - l->radius) / CELL_SIZE)
+  );
+  const vec2u cell_max = VEC2U(
+    M_MIN(this->w - 1, (light_pos_local.x + l->radius) / CELL_SIZE),
+    M_MIN(this->h - 1, (light_pos_local.y + l->radius) / CELL_SIZE)
+  );
+
+  for (y = cell_min.y; y <= cell_max.y; ++y) {
+    for (x = cell_min.x; x <= cell_max.x; ++x) {
+      cell = &this->cells[y*this->w+x];
+
+      if (add) {
+        if (cell->lights_count < MAX_LIGHTS_PER_SURFACE) {
+          cell->lights[cell->lights_count++] = l;
+        }
+      } else {
+        for (i = 0; i < cell->lights_count; ++i) {
+          if (cell->lights[i] == l) {
+            for (j = i; j < cell->lights_count-1; ++j) {
+              cell->lights[j] = cell->lights[j+1];
+            }
+            cell->lights_count --;
+            break;
+          }
+        }
+      }
+    }
+  }
 }
