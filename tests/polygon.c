@@ -64,8 +64,6 @@ TEST(polygon, insert_point)
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(100, 0), poly.vertices[1]);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(100, 100), poly.vertices[2]);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(50, 100), poly.vertices[3]);
-
-  free(vertices);
 }
 
 TEST(polygon, remove_point)
@@ -87,8 +85,6 @@ TEST(polygon, remove_point)
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(0, 0), poly.vertices[0]);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(100, 0), poly.vertices[1]);
   TEST_ASSERT_EQUAL_VEC2F(VEC2F(0, 100), poly.vertices[2]);
-
-  free(vertices);
 }
 
 TEST(polygon, overlaps_polygon)

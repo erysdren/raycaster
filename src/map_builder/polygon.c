@@ -118,7 +118,7 @@ void polygon_remove_point(polygon *this, vec2f point)
 
   for (i = 0; i < this->vertices_count; ++i) {
     if (VEC2F_EQUAL(this->vertices[i], point)) {
-      for (j = i; j < this->vertices_count; ++j) {
+      for (j = i; j < this->vertices_count-1; ++j) {
         this->vertices[j] = this->vertices[j+1];
       }
       this->vertices = realloc(this->vertices, (--this->vertices_count)*sizeof(vec2f));
