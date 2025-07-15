@@ -1,7 +1,7 @@
 #include "sector.h"
 
 bool
-sector_references_vertex(sector *this, vertex *v, size_t linedefs_count)
+sector_references_vertex(const sector *this, vertex *v, size_t linedefs_count)
 {
   register size_t i;
   for (i = 0; i < (linedefs_count ? linedefs_count : this->linedefs_count); ++i) {
@@ -13,7 +13,7 @@ sector_references_vertex(sector *this, vertex *v, size_t linedefs_count)
 }
 
 bool
-sector_connects_vertices(sector *this, vertex *v0, vertex *v1)
+sector_connects_vertices(const sector *this, vertex *v0, vertex *v1)
 {
   register size_t i;
   for (i = 0; i < this->linedefs_count; ++i) {

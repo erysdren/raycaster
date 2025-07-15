@@ -30,6 +30,9 @@ polygon_overlaps_polygon(const polygon*, const polygon*);
 bool
 polygon_contains_polygon(const polygon*, const polygon*, bool);
 
+float
+polygon_signed_area(const polygon*);
+
 void
 polygon_insert_point(polygon*, vec2f, vec2f, vec2f);
 
@@ -38,8 +41,5 @@ polygon_remove_point(polygon*, vec2f);
 
 void
 polygon_reverse_vertices(polygon*);
-
-float
-polygon_signed_area(const polygon*);
 
 #endif

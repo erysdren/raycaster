@@ -17,23 +17,21 @@ typedef struct sector {
     uint8_t     lights_count;
     light       *lights[MAX_LIGHTS_PER_SURFACE];
   } floor, ceiling;
-  size_t      linedefs_count;
-#ifdef LINE_VIS_CHECK
-  size_t      visible_linedefs_count;
-#endif
+  size_t      linedefs_count;  
   float       brightness;
   uint32_t    last_visibility_check_tick;
   linedef     **linedefs;
 #ifdef LINE_VIS_CHECK
   linedef     **visible_linedefs;
+  size_t      visible_linedefs_count;
 #endif
 } sector;
 
 bool
-sector_references_vertex(sector*, vertex*, size_t);
+sector_references_vertex(const sector*, vertex*, size_t);
 
 bool
-sector_connects_vertices(sector*, vertex*, vertex*);
+sector_connects_vertices(const sector*, vertex*, vertex*);
 
 linedef*
 sector_add_linedef(sector*, linedef*);

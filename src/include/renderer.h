@@ -16,10 +16,17 @@ typedef struct {
   uint32_t tick;
 } renderer;
 
-void renderer_init(renderer *this, vec2i size);
-void renderer_resize(renderer *this, vec2i new_size);
-void renderer_destroy(renderer *this);
-void renderer_draw(renderer *this, camera *camera);
+void
+renderer_init(renderer *this, vec2i size);
+
+void
+renderer_resize(renderer *this, vec2i new_size);
+
+void
+renderer_destroy(renderer *this);
+
+void
+renderer_draw(renderer *this, camera *camera);
 
 IF_DEBUG(extern void (*renderer_step)(const renderer*))
 

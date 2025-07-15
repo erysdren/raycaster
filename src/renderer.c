@@ -80,12 +80,23 @@ static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
   refresh_sector_visibility(renderer*, const frame_info*, sector*);
 #endif
 
-static void check_sector_column(const renderer*, const frame_info*, column_info*, const sector*);
-static void draw_wall_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, uint32_t from, uint32_t to, float, texture_ref);
-static void draw_floor_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
-static void draw_ceiling_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
-static void draw_column(const renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
-static void draw_sky_segment(const renderer *this, const frame_info*, const column_info*, uint32_t, uint32_t);
+static void
+check_sector_column(const renderer*, const frame_info*, column_info*, const sector*);
+
+static void
+draw_wall_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, uint32_t from, uint32_t to, float, texture_ref);
+
+static void
+draw_floor_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
+
+static void
+draw_ceiling_segment(const renderer*, const frame_info*, column_info*, const sector*, const line_hit*, float, uint32_t from, uint32_t to);
+
+static void
+draw_column(const renderer*, const frame_info*, column_info*, const sector*, line_hit const*);
+
+static void
+draw_sky_segment(const renderer *this, const frame_info*, const column_info*, uint32_t, uint32_t);
 
 M_INLINED void init_depth_values(renderer *this) {
   register size_t y, h = this->buffer_size.y;
@@ -95,7 +106,8 @@ M_INLINED void init_depth_values(renderer *this) {
   }
 }
 
-void renderer_init(
+void
+renderer_init(
   renderer *this,
   vec2i size
 ) {
@@ -104,7 +116,8 @@ void renderer_init(
   init_depth_values(this);
 }
 
-void renderer_resize(
+void
+renderer_resize(
   renderer *this,
   vec2i new_size
 ) {
@@ -114,14 +127,17 @@ void renderer_resize(
   init_depth_values(this);
 }
 
-void renderer_destroy(renderer *this) {
+void
+renderer_destroy(renderer *this)
+{
   if (this->buffer) {
     free(this->buffer);
     this->buffer = NULL;
   }
 }
 
-void renderer_draw(
+void
+renderer_draw(
   renderer *this,
   camera *camera
 ) {
@@ -259,7 +275,8 @@ sort_nearest(line_hit *arr, int n)
   }
 }
 
-static void check_sector_column(
+static void
+check_sector_column(
   const renderer *this,
   const frame_info *info,
   column_info *column,
@@ -327,7 +344,8 @@ static void check_sector_column(
   } while(++i < hits_count && !column->finished);
 }
 
-static void draw_column(
+static void
+draw_column(
   const renderer *this,
   const frame_info *info,
   column_info *column,
@@ -591,7 +609,8 @@ calculate_basic_brightness(const float base,
   );
 }
 
-static void draw_wall_segment(
+static void
+draw_wall_segment(
   const renderer *this,
   const frame_info *info,
   column_info *column,
@@ -654,7 +673,8 @@ static void draw_wall_segment(
   }
 }
 
-static void draw_floor_segment(
+static void
+draw_floor_segment(
   const renderer *this,
   const frame_info *info,
   column_info *column,
@@ -719,7 +739,8 @@ static void draw_floor_segment(
   } 
 }
 
-static void draw_ceiling_segment(
+static void
+draw_ceiling_segment(
   const renderer *this,
   const frame_info *info,
   column_info *column,

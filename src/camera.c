@@ -1,9 +1,12 @@
 #include "camera.h"
 #include <stdio.h>
 
-static void find_current_sector(camera *this);
+static void
+find_current_sector(camera *this);
 
-void camera_init(camera *this, level_data *level) {
+void
+camera_init(camera *this, level_data *level)
+{
   this->level = level;
   this->fov = 1.0; /* ~90 degrees */
   this->pitch = 0.f;
@@ -16,7 +19,9 @@ void camera_init(camera *this, level_data *level) {
   find_current_sector(this);
 }
 
-void camera_move(camera *this, float distance) {
+void
+camera_move(camera *this, float distance)
+{
   this->position = vec2f_add(this->position, vec2f_mul(this->direction, distance));
 
   if (!sector_point_inside(this->in_sector, this->position)) {
@@ -24,7 +29,9 @@ void camera_move(camera *this, float distance) {
   }
 }
 
-void camera_rotate(camera *this, float rotation) {
+void
+camera_rotate(camera *this, float rotation)
+{
   const float oldDirX = this->direction.x;
   const float oldPlaneX = this->plane.x;
 
@@ -34,12 +41,16 @@ void camera_rotate(camera *this, float rotation) {
   this->plane.y = (oldPlaneX * sin(rotation)) + (this->plane.y * cos(rotation));
 }
 
-void camera_set_fov(camera *this, float fov) {
+void
+camera_set_fov(camera *this, float fov)
+{
   this->fov = fov;
   this->plane = vec2f_make(this->direction.y*fov, -this->direction.x*fov);
 }
 
-static void find_current_sector(camera *this) {
+static void
+find_current_sector(camera *this)
+{
   register size_t i;
 
   for (i = 0; i < this->level->sectors_count; ++i) {

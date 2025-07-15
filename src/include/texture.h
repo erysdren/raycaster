@@ -22,13 +22,15 @@ debug_texture_sampler(texture_ref texture, float x, float y, texture_coordinates
 }
 
 M_INLINED void
-texture_coordinates_scaled(float fx, float fy, int w, int h, int32_t *x, int32_t *y) {
+texture_coordinates_scaled(float fx, float fy, int w, int h, int32_t *x, int32_t *y)
+{
   *x = (int32_t)floorf(fx) & (w-1); // / mip_level) * mip_level;
   *y = (int32_t)floorf(fy) & (h-1); // / mip_level) * mip_level;
 }
 
 M_INLINED void
-texture_coordinates_normalized(float fx, float fy, int w, int h, int32_t *x, int32_t *y) {
+texture_coordinates_normalized(float fx, float fy, int w, int h, int32_t *x, int32_t *y)
+{
   *x = (int32_t)(fx * (w-1)); // / mip_level) * mip_level;
   *y = (int32_t)(fy * (h-1)); // / mip_level) * mip_level;
 }

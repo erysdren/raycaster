@@ -1,8 +1,8 @@
 #ifndef RAYCAST_CUSTOM_TYPES_ASSERTS
 #define RAYCAST_CUSTOM_TYPES_ASSERTS
 
-M_INLINED
-void assert_vec2f_equal(const vec2f exp, const vec2f act, unsigned int line)
+M_INLINED void
+assert_vec2f_equal(const vec2f exp, const vec2f act, unsigned int line)
 {
   char message[48];
   sprintf(message, "(%.2f, %.2f) != (%.2f, %.2f)", exp.x, exp.y, act.x, act.y);

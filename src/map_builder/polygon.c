@@ -2,18 +2,22 @@
 #include "maths.h"
 #include <stdio.h>
 
-bool polygon_vertices_contains_point(const polygon *this, vec2f point)
+bool
+polygon_vertices_contains_point(const polygon *this, vec2f point)
 {
   register size_t i;
+
   for (i = 0; i < this->vertices_count; ++i) {
     if (VEC2F_EQUAL(this->vertices[i], point)) {
       return true;
     }
   }
+
   return false;
 }
 
-bool polygon_is_point_inside(const polygon *this, vec2f point, bool include_edges)
+bool
+polygon_is_point_inside(const polygon *this, vec2f point, bool include_edges)
 {
   register size_t i;
   int wn = 0;
@@ -46,7 +50,8 @@ bool polygon_is_point_inside(const polygon *this, vec2f point, bool include_edge
   return wn == 1 || wn == -1;
 }
 
-bool polygon_overlaps_polygon(const polygon *this, const polygon *other)
+bool
+polygon_overlaps_polygon(const polygon *this, const polygon *other)
 {
   size_t i, j, i2, j2;
 
@@ -79,7 +84,8 @@ bool polygon_overlaps_polygon(const polygon *this, const polygon *other)
   return false;
 }
 
-bool polygon_contains_polygon(const polygon *this, const polygon *other, bool include_edges)
+bool
+polygon_contains_polygon(const polygon *this, const polygon *other, bool include_edges)
 {
   size_t i;
 
@@ -93,7 +99,23 @@ bool polygon_contains_polygon(const polygon *this, const polygon *other, bool in
   return true;
 }
 
-void polygon_insert_point(polygon *this, vec2f point, vec2f after, vec2f before)
+float
+polygon_signed_area(const polygon *this)
+{
+  size_t i;
+  float area = 0.f;
+  
+  for (i = 0; i < this->vertices_count; ++i) {
+    vec2f v0 = this->vertices[i];
+    vec2f v1 = this->vertices[(i + 1) % this->vertices_count];
+    area += math_cross(v0, v1);
+  }
+
+  return area * 0.5;
+}
+
+void
+polygon_insert_point(polygon *this, vec2f point, vec2f after, vec2f before)
 {
   register size_t i,i2,j;
 
@@ -112,7 +134,8 @@ void polygon_insert_point(polygon *this, vec2f point, vec2f after, vec2f before)
   }
 }
 
-void polygon_remove_point(polygon *this, vec2f point)
+void
+polygon_remove_point(polygon *this, vec2f point)
 {
   size_t i, j;
 
@@ -138,18 +161,4 @@ polygon_reverse_vertices(polygon *this)
     this->vertices[j] = this->vertices[i];
     this->vertices[i] = temp_swap;
   }
-}
-
-float polygon_signed_area(const polygon *this)
-{
-  size_t i;
-  float area = 0.f;
-  
-  for (i = 0; i < this->vertices_count; ++i) {
-    vec2f v0 = this->vertices[i];
-    vec2f v1 = this->vertices[(i + 1) % this->vertices_count];
-    area += math_cross(v0, v1);
-  }
-
-  return area * 0.5;
 }
