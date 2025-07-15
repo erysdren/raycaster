@@ -23,7 +23,7 @@
 #define M_PACKED
 #endif
 
-#ifdef DEBUG
+#ifdef RAYCASTER_DEBUG
   #define IF_DEBUG(S) S;
 #else
   #define IF_DEBUG(S)

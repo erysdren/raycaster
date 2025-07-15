@@ -1,25 +1,25 @@
 cmake_minimum_required(VERSION 3.20)
 project(raycaster C)
 
-option(RENDERER_DEBUG "Enable debug mode" ON)
-option(RENDERER_LINE_VIS_CHECK "Enable linedef visibility checks" ON)
-option(RENDERER_PARALLEL_RENDERING "Enable OpenMP parallel rendering" ON)
-option(RENDERER_VECTORIZED_LIGHT_MUL "Enable vectorized light multiplication" ON)
-option(RENDERER_DYNAMIC_SHADOWS "Enable dynamic shadows" ON)
-set(RENDERER_LIGHT_STEPS 0 CACHE STRING "Number of light steps (0 for smooth lighting)")
+option(RAYCASTER_DEBUG "Enable raycaster debug mode" ON)
+option(RAYCASTER_PRERENDER_VISCHECK "Enable linedef visibility checks before rendering a frame" ON)
+option(RAYCASTER_PARALLEL_RENDERING "Enable OpenMP parallel rendering" ON)
+option(RAYCASTER_SIMD_PIXEL_LIGHTING "Enables SIMD codepath when multiplying texture RGB with light value" ON)
+option(RAYCASTER_DYNAMIC_SHADOWS "Enable raytraced shadows" ON)
+set(RAYCASTER_LIGHT_STEPS 0 CACHE STRING "Number of light steps [0...255] (0 = smooth lighting, higher values = less banding)")
 
-set(RENDERER_DEFINES
-  $<$<BOOL:${RENDERER_DEBUG}>:DEBUG>
-  LIGHT_STEPS=${RENDERER_LIGHT_STEPS}
-  $<$<BOOL:${RENDERER_LINE_VIS_CHECK}>:LINE_VIS_CHECK>
-  $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:PARALLEL_RENDERING>
-  $<$<BOOL:${RENDERER_VECTORIZED_LIGHT_MUL}>:VECTORIZED_LIGHT_MUL>
-  $<$<BOOL:${RENDERER_DYNAMIC_SHADOWS}>:DYNAMIC_SHADOWS>
+set(RAYCASTER_DEFINES
+  $<$<BOOL:${RAYCASTER_DEBUG}>:RAYCASTER_DEBUG>
+  $<$<BOOL:${RAYCASTER_PRERENDER_VISCHECK}>:RAYCASTER_PRERENDER_VISCHECK>
+  $<$<BOOL:${RAYCASTER_PARALLEL_RENDERING}>:RAYCASTER_PARALLEL_RENDERING>
+  $<$<BOOL:${RAYCASTER_SIMD_PIXEL_LIGHTING}>:RAYCASTER_SIMD_PIXEL_LIGHTING>
+  $<$<BOOL:${RAYCASTER_DYNAMIC_SHADOWS}>:RAYCASTER_DYNAMIC_SHADOWS>
+  RAYCASTER_LIGHT_STEPS=${RAYCASTER_LIGHT_STEPS}
 )
 
 # Does the demo target need these flags, or just the renderer?
 if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
-  list(APPEND RENDERER_FLAGS
+  list(APPEND RAYCASTER_FLAGS
     -Wall
     # -Wextra
     -Wpedantic
@@ -33,11 +33,12 @@ if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
     -O3
     -msse2
     -mfpmath=sse
-    $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp>
-    $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp-simd>
+    $<$<BOOL:${RAYCASTER_PARALLEL_RENDERING}>:-fopenmp>
+    $<$<BOOL:${RAYCASTER_PARALLEL_RENDERING}>:-fopenmp-simd>
   )
+
 elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-  list(APPEND RENDERER_FLAGS
+  list(APPEND RAYCASTER_FLAGS
     /W3
     /Zi
     # /Od
@@ -47,8 +48,9 @@ elseif (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     $<$<CONFIG:Release>:/O2>
     /fp:fast
     /arch:SSE2
-    $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:/openmp>
+    $<$<BOOL:${RAYCASTER_PARALLEL_RENDERING}>:/openmp>
   )
+
 endif()
 
 # CMake had me separate the renderer from the demo/tests, so I'm unable to get LTO working at this time,
@@ -94,10 +96,10 @@ target_include_directories(renderer
     ${CMAKE_CURRENT_SOURCE_DIR}/src/map_builder/include
     ${CMAKE_CURRENT_SOURCE_DIR}/deps/gpc
 )
-target_compile_definitions(renderer PRIVATE ${RENDERER_DEFINES})
+target_compile_definitions(renderer PRIVATE ${RAYCASTER_DEFINES})
 target_compile_options(renderer
   PRIVATE
-    ${RENDERER_FLAGS}
+    ${RAYCASTER_FLAGS}
     # Uncomment if profiling with gprof
     # -pg
 )
@@ -112,21 +114,25 @@ add_executable(demo ${DEMO_SOURCES})
 target_link_libraries(demo PRIVATE renderer SDL3::SDL3 SDL3_image::SDL3_image)
 
 if (CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")
-  target_link_options(demo PRIVATE $<$<BOOL:${RENDERER_PARALLEL_RENDERING}>:-fopenmp>)
+  target_link_options(demo PRIVATE $<$<BOOL:${RAYCASTER_PARALLEL_RENDERING}>:-fopenmp>)
 endif()
 
-target_compile_definitions(demo PRIVATE ${RENDERER_DEFINES})
-target_compile_options(demo PRIVATE ${RENDERER_FLAGS})
+target_compile_definitions(demo PRIVATE ${RAYCASTER_DEFINES})
+target_compile_options(demo PRIVATE ${RAYCASTER_FLAGS})
+
 add_custom_command(TARGET demo POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     $<TARGET_RUNTIME_DLLS:demo>
     $<TARGET_FILE_DIR:demo>
   COMMAND_EXPAND_LISTS
+  COMMENT "Copying DLL files"
 )
+
 add_custom_command(TARGET demo POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/demo/res"
     $<TARGET_FILE_DIR:demo>/res
+  COMMENT "Copying demo resources"
 )
 
 
@@ -143,7 +149,7 @@ target_include_directories(tests
     ${CMAKE_CURRENT_SOURCE_DIR}/deps/unity/extras/fixture/src
 )
 target_compile_definitions(tests PRIVATE
-  ${RENDERER_DEFINES}
+  ${RAYCASTER_DEFINES}
   UNITY_INCLUDE_PRINT_FORMATTED
   UNITY_INCLUDE_DOUBLE
 )

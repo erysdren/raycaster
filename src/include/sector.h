@@ -21,7 +21,7 @@ typedef struct sector {
   float       brightness;
   uint32_t    last_visibility_check_tick;
   linedef     **linedefs;
-#ifdef LINE_VIS_CHECK
+#ifdef RAYCASTER_PRERENDER_VISCHECK
   linedef     **visible_linedefs;
   size_t      visible_linedefs_count;
 #endif

@@ -28,6 +28,8 @@ renderer_destroy(renderer *this);
 void
 renderer_draw(renderer *this, camera *camera);
 
-IF_DEBUG(extern void (*renderer_step)(const renderer*))
+#if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
+  extern void (*renderer_step)(const renderer*);
+#endif
 
 #endif

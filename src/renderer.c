@@ -5,11 +5,11 @@
 #include <stdio.h>
 #include <assert.h>
 
-#ifdef PARALLEL_RENDERING
+#ifdef RAYCASTER_PARALLEL_RENDERING
   #include <omp.h>
 #endif
 
-#ifdef VECTORIZED_LIGHT_MUL
+#ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
   #include <emmintrin.h>
   #include <xmmintrin.h>
 #endif
@@ -18,9 +18,11 @@
 
 void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
 
-#ifdef DEBUG
+#if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
   #define INSERT_RENDER_BREAKPOINT if (renderer_step) { renderer_step(this); }
   void (*renderer_step)(const renderer*) = NULL;
+#else
+  #define INSERT_RENDER_BREAKPOINT
 #endif
 
 /* Common frame info all column renderers can share */
@@ -58,24 +60,24 @@ typedef struct {
   linedef *line;
   uint8_t side;
   uint8_t distance_steps;
-#if !defined LIGHT_STEPS || (LIGHT_STEPS == 0)
+#if !defined RAYCASTER_LIGHT_STEPS || (RAYCASTER_LIGHT_STEPS == 0)
   float light_falloff;
 #endif
 } line_hit;
 
 #define DIMMING_DISTANCE 4096.f
 
-#if LIGHT_STEPS > 0
-// static const float LIGHT_STEP_DISTANCE = DIMMING_DISTANCE / LIGHT_STEPS;
-static const float LIGHT_STEP_DISTANCE_INVERSE = 1.f / (DIMMING_DISTANCE / LIGHT_STEPS);
-static const float LIGHT_STEP_VALUE_CHANGE = 1.f / LIGHT_STEPS;
+#if RAYCASTER_LIGHT_STEPS > 0
+// static const float LIGHT_STEP_DISTANCE = DIMMING_DISTANCE / RAYCASTER_LIGHT_STEPS;
+static const float LIGHT_STEP_DISTANCE_INVERSE = 1.f / (DIMMING_DISTANCE / RAYCASTER_LIGHT_STEPS);
+static const float LIGHT_STEP_VALUE_CHANGE = 1.f / RAYCASTER_LIGHT_STEPS;
 static const float LIGHT_STEP_VALUE_CHANGE_INVERSE = 1.f / LIGHT_STEP_VALUE_CHANGE;
 #else
 static const float LIGHT_STEP_DISTANCE_INVERSE = 1.f / (DIMMING_DISTANCE / 4);
 static const float DIMMING_DISTANCE_INVERSE = 1.f / DIMMING_DISTANCE;
 #endif
 
-#ifdef LINE_VIS_CHECK
+#ifdef RAYCASTER_PRERENDER_VISCHECK
   static void
   refresh_sector_visibility(renderer*, const frame_info*, sector*);
 #endif
@@ -163,11 +165,11 @@ renderer_draw(
   info.view_z = camera->z;
   info.sky_texture = camera->level->sky_texture;
 
-#ifdef LINE_VIS_CHECK
+#ifdef RAYCASTER_PRERENDER_VISCHECK
   refresh_sector_visibility(this, &info, camera->in_sector);
 #endif
 
-#ifdef PARALLEL_RENDERING
+#ifdef RAYCASTER_PARALLEL_RENDERING
   #pragma omp parallel for
 #endif
   for (x = 0; x < this->buffer_size.x; ++x) {
@@ -199,12 +201,14 @@ renderer_draw(
     check_sector_column(this, &info, &column, camera->in_sector);
   }
 
-  IF_DEBUG(renderer_step = NULL)
+#if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
+  renderer_step = NULL;
+#endif
 }
 
 /* ----- */
 
-#ifdef LINE_VIS_CHECK
+#ifdef RAYCASTER_PRERENDER_VISCHECK
 
 static void
 refresh_sector_visibility(
@@ -302,7 +306,7 @@ check_sector_column(
 
   column->sector_history[column->sector_depth++] = sect;
 
-#ifdef LINE_VIS_CHECK
+#ifdef RAYCASTER_PRERENDER_VISCHECK
   for (i = 0; i < sect->visible_linedefs_count; ++i) {
     line = sect->visible_linedefs[i];
 #else
@@ -325,7 +329,7 @@ check_sector_column(
         .line = line,
         .side = line->side[0].sector == sect ? 0 : 1,
         .distance_steps = (uint8_t)(point_distance * LIGHT_STEP_DISTANCE_INVERSE),
-#if !defined LIGHT_STEPS || (LIGHT_STEPS == 0)
+#if !defined RAYCASTER_LIGHT_STEPS || (RAYCASTER_LIGHT_STEPS == 0)
         .light_falloff = point_distance * DIMMING_DISTANCE_INVERSE
 #endif
       };
@@ -514,7 +518,7 @@ draw_column(
 
 M_INLINED float
 calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor, size_t num_lights, light **lights,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
   uint8_t steps
 #else
   float light_falloff
@@ -533,7 +537,7 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
 
     dz = is_floor ? (lt->position.z - sect->floor.height) : (sect->ceiling.height - lt->position.z);
 
-#ifdef DYNAMIC_SHADOWS
+#ifdef RAYCASTER_DYNAMIC_SHADOWS
     v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
       ? math_max(v, lt->strength * math_min(1.f, dz / VERTICAL_FADE_DIST) * (1.f - (dsq * lt->radius_sq_inverse)))
       : v;
@@ -544,7 +548,7 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
 
   return math_max(
     0.f,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
     ((uint8_t)(v * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
 #else
     v - light_falloff
@@ -555,7 +559,7 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
 
 M_INLINED float
 calculate_vertical_surface_light(const sector *sect, vec3f pos, size_t num_lights, light **lights,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
   uint8_t steps
 #else
   float light_falloff
@@ -572,7 +576,7 @@ calculate_vertical_surface_light(const sector *sect, vec3f pos, size_t num_light
       continue;
     }
 
-#ifdef DYNAMIC_SHADOWS
+#ifdef RAYCASTER_DYNAMIC_SHADOWS
     v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
       ? math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)))
       : v;
@@ -583,7 +587,7 @@ calculate_vertical_surface_light(const sector *sect, vec3f pos, size_t num_light
 
   return math_max(
     0.f,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
     ((uint8_t)(v * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
 #else
     v - light_falloff
@@ -593,7 +597,7 @@ calculate_vertical_surface_light(const sector *sect, vec3f pos, size_t num_light
 
 M_INLINED float
 calculate_basic_brightness(const float base,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
   uint8_t steps
 #else
   float light_falloff
@@ -601,7 +605,7 @@ calculate_basic_brightness(const float base,
 ) {
   return math_max(
     0.f,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
     ((uint8_t)(base * LIGHT_STEP_VALUE_CHANGE_INVERSE) * LIGHT_STEP_VALUE_CHANGE) - (steps * LIGHT_STEP_VALUE_CHANGE)
 #else
     base - light_falloff
@@ -635,14 +639,14 @@ draw_wall_segment(
   struct light **lights     = hit->line->side[hit->side].segments[segment].lights;
   register float light      = !lights_count ? calculate_basic_brightness(
       sect->brightness,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
       hit->distance_steps
 #else
       hit->light_falloff
 #endif
   ) : 0.f, texture_y        = (((float)from - info->half_h - view_z_scaled /*+ floor_z_scaled*/) * texture_step);
 
-#ifdef VECTORIZED_LIGHT_MUL
+#ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
   int32_t temp[4];
 #endif
 
@@ -655,21 +659,21 @@ draw_wall_segment(
         VEC3F(hit->point.x, hit->point.y, -texture_y),
         lights_count,
         lights,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
         hit->distance_steps
 #else
         hit->light_falloff
 #endif
       ) : light;
 
-#ifdef VECTORIZED_LIGHT_MUL
+#ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
     _mm_storeu_si128((__m128i*)temp, _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, rgb[2], rgb[1], rgb[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f))));
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
 
-    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
+    INSERT_RENDER_BREAKPOINT
   }
 }
 
@@ -696,7 +700,7 @@ draw_floor_segment(
   uint8_t lights_count = sect->floor.lights_count;
   struct light **lights = ((sector*)sect)->floor.lights;
 
-#ifdef VECTORIZED_LIGHT_MUL
+#ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
   int32_t temp[4];
 #endif
 
@@ -714,28 +718,28 @@ draw_floor_segment(
       true,
       lights_count,
       lights,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
       distance * LIGHT_STEP_DISTANCE_INVERSE
 #else
       distance * DIMMING_DISTANCE_INVERSE
 #endif
     ) : calculate_basic_brightness(
       sect->brightness,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
       distance * LIGHT_STEP_DISTANCE_INVERSE
 #else
       distance * DIMMING_DISTANCE_INVERSE
 #endif
     );
 
-#ifdef VECTORIZED_LIGHT_MUL
+#ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
     _mm_storeu_si128((__m128i*)temp, _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, rgb[2], rgb[1], rgb[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f))));
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
 
-    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
+    INSERT_RENDER_BREAKPOINT
   } 
 }
 
@@ -762,7 +766,7 @@ draw_ceiling_segment(
   uint8_t lights_count = sect->ceiling.lights_count;
   struct light **lights = ((sector*)sect)->ceiling.lights;
 
-#ifdef VECTORIZED_LIGHT_MUL
+#ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
   int32_t temp[4];
 #endif
 
@@ -780,28 +784,28 @@ draw_ceiling_segment(
       false,
       lights_count,
       lights,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
       distance * LIGHT_STEP_DISTANCE_INVERSE
 #else
       distance * DIMMING_DISTANCE_INVERSE
 #endif
     ) : calculate_basic_brightness(
       sect->brightness,
-#if LIGHT_STEPS > 0
+#if RAYCASTER_LIGHT_STEPS > 0
       distance * LIGHT_STEP_DISTANCE_INVERSE
 #else
       distance * DIMMING_DISTANCE_INVERSE
 #endif
     );
 
-#ifdef VECTORIZED_LIGHT_MUL
+#ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
     _mm_storeu_si128((__m128i*)temp, _mm_cvtps_epi32(_mm_min_ps(_mm_mul_ps(_mm_set_ps(0, rgb[2], rgb[1], rgb[0]), _mm_set1_ps(light)), _mm_set1_ps(255.0f))));
     *p = 0xFF000000 | (temp[0] << 16) | (temp[1] << 8) | temp[2];
 #else
     *p = 0xFF000000|((uint8_t)math_min((rgb[0]*light),255)<<16)|((uint8_t)math_min((rgb[1]*light),255)<<8)|(uint8_t)math_min((rgb[2]*light),255);
 #endif
 
-    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
+    INSERT_RENDER_BREAKPOINT
   }
 }
 
@@ -824,6 +828,6 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
   for (y = from; y < to; ++y, p += column->buffer_stride) {
     texture_sampler(info->sky_texture, sky_x, math_min(1.f, 0.5f+(y-info->pitch_offset)/h), &texture_coordinates_normalized, 1, &rgb[0]);
     *p = 0xFF000000 | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
-    IF_DEBUG(INSERT_RENDER_BREAKPOINT)
+    INSERT_RENDER_BREAKPOINT
   }
 }

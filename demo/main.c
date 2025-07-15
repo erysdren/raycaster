@@ -53,7 +53,7 @@ static void process_camera_movement(const float delta_time);
 M_INLINED void
 demo_texture_sampler(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
 
-#ifdef DEBUG
+#if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
 static void
 demo_renderer_step(const renderer*);
 #endif
@@ -195,7 +195,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         fullscreen = !fullscreen;
         SDL_SetWindowFullscreen(window, fullscreen);
       }
-#ifdef DEBUG
+#if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
       if (event->key.key == SDLK_R) {
         renderer_step = demo_renderer_step;
       }
@@ -262,7 +262,12 @@ SDL_AppIterate(void *userdata)
 
   SDL_UpdateTexture(texture, NULL, rend.buffer, rend.buffer_size.x*sizeof(pixel_type));
 
+#ifdef RAYCASTER_DEBUG
   SDL_SetRenderDrawColor(sdl_renderer, 255, 0, 255, SDL_ALPHA_OPAQUE);
+#else
+  SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+#endif
+
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
 
@@ -637,7 +642,7 @@ demo_texture_sampler(texture_ref texture, float fx, float fy, texture_coordinate
   memcpy(rgb, (Uint8 *)surface->pixels + y * surface->pitch + x * SDL_BYTESPERPIXEL(surface->format), 3);
 }
 
-#ifdef DEBUG
+#if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
 static void
 demo_renderer_step(const renderer *r)
 {
@@ -646,6 +651,6 @@ demo_renderer_step(const renderer *r)
   SDL_RenderClear(sdl_renderer);
   SDL_RenderTexture(sdl_renderer, texture, NULL, NULL);
   SDL_RenderPresent(sdl_renderer);
-  SDL_Delay(5);
+  SDL_Delay(4);
 }
 #endif

@@ -124,7 +124,7 @@ sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
   sect->linedefs = NULL;
   sect->linedefs_count = 0;
 
-#ifdef LINE_VIS_CHECK
+#ifdef RAYCASTER_PRERENDER_VISCHECK
   sect->visible_linedefs = NULL;
   sect->visible_linedefs_count = 0;
 #endif
@@ -228,7 +228,7 @@ level_data_update_lights(level_data *this)
         for (segi = 0; segi < line->segments; ++segi) {
           seg = &line->side[side].segments[segi];
 
-#ifdef DYNAMIC_SHADOWS
+#ifdef RAYCASTER_DYNAMIC_SHADOWS
           /*
            * In dynamic shadow mode, a surface is lightable when the line simply
            * intersects the light circle. Pixel perfect ray check is performed
