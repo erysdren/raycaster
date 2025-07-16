@@ -11,11 +11,17 @@
 #include <string.h>
 #include <stdio.h>
 
-#define WALL_TEXTURE 0
-#define FLOOR_TEXTURE 1
-#define CEILING_TEXTURE 2
-#define WOOD_TEXTURE 3
-#define SKY_TEXTURE 4
+#define SMALL_BRICKS_TEXTURE 0
+#define LARGE_BRICKS_TEXTURE 1
+#define FLOOR_TEXTURE 2
+#define CEILING_TEXTURE 3
+#define WOOD_TEXTURE 4
+#define SKY_TEXTURE 5
+#define METAL_GRATING 6
+#define METAL_BARS 7
+#define GRASS_TEXTURE 8
+#define DIRT_TEXTURE 9
+#define STONEWALL_TEXTURE 10
 
 SDL_Window* window = NULL;
 SDL_Renderer *sdl_renderer = NULL;
@@ -35,7 +41,7 @@ static bool fullscreen = false;
 static bool nearest = true;
 static bool info_text_visible = true;
 
-static SDL_Surface *textures[5];
+static SDL_Surface *textures[32];
 
 static struct {
   float forward, turn, raise, pitch;
@@ -108,11 +114,17 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
   SDL_SetTextureScaleMode(texture, nearest?SDL_SCALEMODE_NEAREST:SDL_SCALEMODE_LINEAR);
 
-  textures[WALL_TEXTURE] = IMG_Load("res/wall.png");
+  textures[SMALL_BRICKS_TEXTURE] = IMG_Load("res/small_bricks.png");
+  textures[LARGE_BRICKS_TEXTURE] = IMG_Load("res/large_bricks.png");
   textures[FLOOR_TEXTURE] = IMG_Load("res/floor.png");
   textures[CEILING_TEXTURE] = IMG_Load("res/ceiling.png");
   textures[WOOD_TEXTURE] = IMG_Load("res/wood.png");
   textures[SKY_TEXTURE] = IMG_Load("res/sky.png");
+  textures[METAL_GRATING] = IMG_Load("res/grating.png");
+  textures[METAL_BARS] = IMG_Load("res/bars.png");
+  textures[GRASS_TEXTURE] = IMG_Load("res/grass.png");
+  textures[DIRT_TEXTURE] = IMG_Load("res/dirt.png");
+  textures[STONEWALL_TEXTURE] = IMG_Load("res/stonewall.png");
 
   load_level(level);
 
@@ -275,8 +287,8 @@ SDL_AppIterate(void *userdata)
     int y = 4, h = 10;
     SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
     SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
-    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "CAMERA pos: (%.1f, %.1f, %.1f), dir: (%.3f, %.3f), plane: (%.3f, %.3f), FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
-    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "Current sector: 0x%p", (void*)cam.in_sector); y+=h;
+    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "[Camera] Pos: (%.1f, %.1f, %.1f) | Dir: (%.3f, %.3f) | Plane: (%.3f, %.3f) | FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
+    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "[Sector] Ptr: 0x%p | Floor: %d | Ceiling: %d | Bright: %.2f", (void*)cam.in_sector, cam.in_sector->floor.height, cam.in_sector->ceiling.height, cam.in_sector->brightness); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[E C] - Pitch up/down"); y+=h;
@@ -338,7 +350,7 @@ static void create_grid_level()
         c = 1024 - 32 * (rand() % 24);
       }
 
-      map_builder_add_polygon(&builder, f, c, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+      map_builder_add_polygon(&builder, f, c, 1.f, WALLTEX(SMALL_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
         VEC2F(x*size, y*size),
         VEC2F(x*size + size, y*size),
         VEC2F(x*size + size, y*size + size),
@@ -348,8 +360,6 @@ static void create_grid_level()
   }
 
   demo_level = map_builder_build(&builder);
-
-
 
   // TODO: Vertices could be moved real-time but related linedefs need to be updated too
   /*for (x = 0; x < demo_level->vertices_count; ++x) {
@@ -364,7 +374,7 @@ static void create_demo_level()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 144, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 144, 0.8f, WALLTEX(STONEWALL_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(400, 400),
@@ -372,35 +382,35 @@ static void create_demo_level()
     VEC2F(0, 400)
   ));
 
-  map_builder_add_polygon(&builder, -32, 160, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, -32, 176, 1.1f, WALLTEX(STONEWALL_TEXTURE), FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(50, 50),
     VEC2F(50, 200),
     VEC2F(200, 200),
     VEC2F(200, 50)
   ));
 
-  map_builder_add_polygon(&builder, 128, 128, 1.f, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 128, 128, 1.f, WALLTEX(WOOD_TEXTURE), WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(100, 100),
     VEC2F(125, 100),
     VEC2F(125, 125),
     VEC2F(100, 125)
   ));
 
-  map_builder_add_polygon(&builder, 32, 96, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 32, 128, 0.5f, WALLTEX(STONEWALL_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(400, 0),
     VEC2F(300, -256),
     VEC2F(0, -128)
   ));
 
-  map_builder_add_polygon(&builder, -128, 256, 0.25f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, -128, 256, 0.25f, WALLTEX(STONEWALL_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(400, 400),
     VEC2F(200, 300),
     VEC2F(100, 1000),
     VEC2F(500, 1000)
   ));
 
-  map_builder_add_polygon(&builder, 0, 224, 1.5f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 214, 1.5f, WALLTEX(STONEWALL_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(275, 500),
     VEC2F(325, 500),
     VEC2F(325, 700),
@@ -408,6 +418,14 @@ static void create_demo_level()
   ));
 
   demo_level = map_builder_build(&builder);
+  demo_level->sky_texture = SKY_TEXTURE;
+
+  /* Configure some transparent textures */
+  linedef_set_middle_texture(
+    level_data_find_linedef(demo_level, VEC2F(0, 0), VEC2F(400, 0)),
+    METAL_BARS
+  );
+
   map_builder_free(&builder);
 }
 
@@ -415,7 +433,7 @@ static void create_big_one()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 2048, 0.25f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 2048, 0.25f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(6144, 0),
     VEC2F(6144, 6144),
@@ -437,7 +455,7 @@ static void create_big_one()
         c = 1440 - 32 * (rand() % 24);
       }
 
-      map_builder_add_polygon(&builder, f, c, 0.5f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+      map_builder_add_polygon(&builder, f, c, 0.5f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
         VEC2F(512+x*size,        512+y*size),
         VEC2F(512+x*size + size, 512+y*size),
         VEC2F(512+x*size + size, 512+y*size + size),
@@ -461,63 +479,77 @@ static void create_semi_intersecting_sectors()
 
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, base_light, WALLTEX(SMALL_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 0),
     VEC2F(500, 0),
     VEC2F(500, 500),
     VEC2F(0, 500)
   ));
 
-  map_builder_add_polygon(&builder, 32, 96, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 40, 86, base_light, WALLTEX(SMALL_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(0, 200),
     VEC2F(50, 200),
     VEC2F(50, 400),
     VEC2F(0, 400)
   ));
 
-  map_builder_add_polygon(&builder, 32, 256, base_light, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+  map_builder_add_polygon(&builder, -20, 192, 0.35, WALLTEX(SMALL_BRICKS_TEXTURE), DIRT_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(250, 250),
     VEC2F(2000, 250),
     VEC2F(2000, 350),
     VEC2F(250, 350)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 86, base_light, WALLTEX(SMALL_BRICKS_TEXTURE), FLOOR_TEXTURE, SMALL_BRICKS_TEXTURE, VERTICES(
+    VEC2F(512, 350),
+    VEC2F(640, 350),
+    VEC2F(640, 364),
+    VEC2F(512, 364)
+  ));
+
+  map_builder_add_polygon(&builder, 0, 128, 0.15f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+    VEC2F(512, 364),
+    VEC2F(640, 364),
+    VEC2F(640, 480),
+    VEC2F(512, 480)
+  ));
+
+  map_builder_add_polygon(&builder, 56, 96, base_light, WALLTEX(WOOD_TEXTURE), WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(240, 240),
     VEC2F(260, 240),
     VEC2F(260, 260),
     VEC2F(240, 260)
   ));
 
-  map_builder_add_polygon(&builder, 56, 88, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 56, 88, base_light, WALLTEX(WOOD_TEXTURE), WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(240, 340),
     VEC2F(260, 340),
     VEC2F(260, 360),
     VEC2F(240, 360)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 56, 96, base_light, WALLTEX(WOOD_TEXTURE), WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(400, 350),
     VEC2F(420, 350),
     VEC2F(420, 370),
     VEC2F(400, 370)
   ));
 
-  map_builder_add_polygon(&builder, 56, 96, base_light, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 16, 96, base_light, WALLTEX(WOOD_TEXTURE), WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(400, 250),
     VEC2F(420, 250),
     VEC2F(420, 270),
     VEC2F(400, 270)
   ));
 
-  map_builder_add_polygon(&builder, 24, 128, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 20, 108, base_light, WALLTEX(SMALL_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(240, 250),
     VEC2F(250, 260),
     VEC2F(250, 350),
     VEC2F(240, 350)
   ));
 
-  map_builder_add_polygon(&builder, -128, 256, base_light, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, -128, 256, base_light, WALLTEX(SMALL_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(-100, 500),
     VEC2F(100, 100),
     VEC2F(100, -100),
@@ -531,6 +563,12 @@ static void create_semi_intersecting_sectors()
   light_z = dynamic_light->position.z;
   light_movement_range = 48;
 
+  /* Configure some transparent textures */
+  linedef_set_middle_texture(
+    level_data_find_linedef(demo_level, VEC2F(512, 364), VEC2F(640, 364)),
+    METAL_GRATING
+  );
+
   map_builder_free(&builder);
 }
 
@@ -539,7 +577,7 @@ create_crossing_and_splitting_sectors()
 {
   map_builder builder = { 0 };
 
-  map_builder_add_polygon(&builder, 0, 128, 0.1f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, 0.1f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(-500, 0),
     VEC2F(1000, 0),
     VEC2F(1000, 100),
@@ -547,7 +585,7 @@ create_crossing_and_splitting_sectors()
   ));
 
   /* This sector will split the first one so you end up with 3 sectors */
-  map_builder_add_polygon(&builder, 16, 112, 0.1f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, -32, 96, 0.1f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(225, -250),
     VEC2F(325, -250),
     VEC2F(325, 250),
@@ -556,7 +594,7 @@ create_crossing_and_splitting_sectors()
 
   demo_level = map_builder_build(&builder);
 
-  dynamic_light = level_data_add_light(demo_level, VEC3F(250, 50, 64), 200, 0.5f);
+  dynamic_light = level_data_add_light(demo_level, VEC3F(250, 50, 50), 200, 0.5f);
   light_z = dynamic_light->position.z;
   light_movement_range = 24;
 
@@ -569,21 +607,21 @@ create_large_sky()
   map_builder builder = { 0 };
 
   /* First area */
-  map_builder_add_polygon(&builder, 0, 256, 0.75f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 256, 0.75f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(-500, -500),
     VEC2F(500, -500),
     VEC2F(500, 500),
     VEC2F(-500, 500)
   ));
 
-  map_builder_add_polygon(&builder, 40, 512, 1.f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+  map_builder_add_polygon(&builder, 32, 512, 1.f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(-100, -100),
     VEC2F(100, -100),
     VEC2F(100, 100),
     VEC2F(-100, 100)
   ));
 
-  map_builder_add_polygon(&builder, 192, 256, 1.f, WOOD_TEXTURE, WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 192, 256, 1.f, WALLTEX(WOOD_TEXTURE), WOOD_TEXTURE, WOOD_TEXTURE, VERTICES(
     VEC2F(-10, -10),
     VEC2F(10, -10),
     VEC2F(10, 10),
@@ -591,7 +629,7 @@ create_large_sky()
   ));
 
   /* Second area */
-  map_builder_add_polygon(&builder, 0, 256, 0.75f, WALL_TEXTURE, FLOOR_TEXTURE, TEXTURE_NONE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 256, 0.75f, WALLTEX(LARGE_BRICKS_TEXTURE), GRASS_TEXTURE, TEXTURE_NONE, VERTICES(
     VEC2F(1000, -500),
     VEC2F(2000, -500),
     VEC2F(2000, 500),
@@ -599,7 +637,7 @@ create_large_sky()
   ));
 
   /* Corridor between them */
-  map_builder_add_polygon(&builder, 20, 128, 0.25f, WALL_TEXTURE, FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 32, 128, 0.25f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(500, -50),
     VEC2F(1000, -50),
     VEC2F(1000, 50),
@@ -639,7 +677,7 @@ demo_texture_sampler(texture_ref texture, float fx, float fy, texture_coordinate
   int32_t x, y;
   const SDL_Surface *surface = textures[texture];
   coords(fx, fy, surface->w, surface->h, &x, &y);
-  memcpy(rgb, (Uint8 *)surface->pixels + y * surface->pitch + x * SDL_BYTESPERPIXEL(surface->format), 3);
+  memcpy(rgb, (Uint8 *)surface->pixels + y * surface->pitch + x * SDL_BYTESPERPIXEL(surface->format), 4);
 }
 
 #if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)

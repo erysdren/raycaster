@@ -8,7 +8,8 @@ static bool
 linedef_segment_contains_light(const linedef_segment*, const light*);
 
 /* FIND a vertex at given point OR CREATE a new one */
-vertex* level_data_get_vertex(level_data *this, vec2f point)
+vertex*
+level_data_get_vertex(level_data *this, vec2f point)
 {
   register size_t i;
 
@@ -36,7 +37,8 @@ vertex* level_data_get_vertex(level_data *this, vec2f point)
 }
 
 /* FIND a linedef with given vertices OR CREATE a new one */
-linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vertex *v1, texture_ref texture)
+linedef*
+level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vertex *v1, texture_ref texture[])
 {
   register size_t i;
   linedef *line;
@@ -52,10 +54,14 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
       line->side[1].texture[1] = line->side[0].texture[1];
       line->side[1].texture[2] = line->side[0].texture[2];
 
-      line->side[0].texture[0] = texture;
-      line->side[0].texture[1] = texture;
-      line->side[0].texture[2] = texture;
+      line->side[0].texture[0] = texture[0];
+      line->side[0].texture[1] = texture[1];
+      line->side[0].texture[2] = texture[2];
 
+      /* Clear middle texture by default for two-sided lines */
+      line->side[0].texture[1] = TEXTURE_NONE;
+      line->side[1].texture[1] = TEXTURE_NONE;
+          
       linedef_create_segments_for_side(line, 1);
 
       IF_DEBUG(printf("\t\tRe-use linedef (0x%p): (%d,%d) <-> (%d,%d) (Front: 0x%p, Back: 0x%p)\n",
@@ -72,9 +78,9 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
     .v1 = v1,
     .side[0] = {
       .sector = sect,
-      .texture[0] = texture,
-      .texture[1] = texture,
-      .texture[2] = texture
+      .texture[0] = texture[0],
+      .texture[1] = texture[1],
+      .texture[2] = texture[2]
     },
     .side[1] = {
       .sector = NULL,
@@ -100,7 +106,8 @@ linedef* level_data_get_linedef(level_data *this, sector *sect, vertex *v0, vert
   return &this->linedefs[this->linedefs_count++];
 }
 
-sector* level_data_create_sector_from_polygon(level_data *this, polygon *poly)
+sector*
+level_data_create_sector_from_polygon(level_data *this, polygon *poly)
 {
   register size_t i;
 

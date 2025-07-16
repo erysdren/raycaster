@@ -23,7 +23,7 @@ typedef struct linedef_segment {
 
 typedef struct linedef {
   vertex *v0, *v1;
-  struct {
+  struct linedef_side {
     struct sector *sector;
     texture_ref texture[3];
     linedef_segment *segments;
@@ -40,5 +40,15 @@ linedef_update_floor_ceiling_limits(linedef*);
 
 void
 linedef_create_segments_for_side(linedef*, int side);
+
+M_INLINED void
+linedef_set_middle_texture(linedef *this, texture_ref texture)
+{
+  if (!this) { return; }
+  this->side[0].texture[LINE_TEXTURE_MIDDLE] = texture;
+  if (this->side[1].sector) {
+    this->side[1].texture[LINE_TEXTURE_MIDDLE] = texture;
+  }
+}
 
 #endif

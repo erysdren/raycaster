@@ -11,7 +11,7 @@ typedef struct polygon {
   int32_t     floor_height,
               ceiling_height;
   float       brightness;
-  texture_ref wall_texture,
+  texture_ref wall_texture[3],
               floor_texture,
               ceiling_texture;
   size_t      vertices_count;

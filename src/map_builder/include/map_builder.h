@@ -16,7 +16,7 @@ map_builder_add_polygon(
   int32_t floor_height,
   int32_t ceiling_height,
   float brightness,
-  texture_ref wall_texture,
+  texture_ref wall_texture[],
   texture_ref floor_texture,
   texture_ref ceiling_texture,
   size_t vertices_count,

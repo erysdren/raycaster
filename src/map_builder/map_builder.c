@@ -15,7 +15,7 @@ static void
 map_builder_step_configure_back_sectors(map_builder*, level_data*);
 
 static void
-map_builder_insert_polygon(map_builder*, size_t, int32_t, int32_t, float, texture_ref, texture_ref, texture_ref, size_t, void*, int);
+map_builder_insert_polygon(map_builder*, size_t, int32_t, int32_t, float, texture_ref[], texture_ref, texture_ref, size_t, void*, int);
 
 /*
  * Map data public API
@@ -27,7 +27,7 @@ map_builder_add_polygon(
   int32_t     floor_height,
   int32_t     ceiling_height,
   float       brightness,
-  texture_ref wall_texture,
+  texture_ref wall_texture[],
   texture_ref floor_texture,
   texture_ref ceiling_texture,
   size_t      vertices_count,
@@ -266,6 +266,9 @@ map_builder_step_configure_back_sectors(map_builder *this, level_data *level)
           line->side[1].texture[0] = line->side[0].texture[0];
           line->side[1].texture[1] = line->side[0].texture[1];
           line->side[1].texture[2] = line->side[0].texture[2];
+          /* Clear middle texture by default for two-sided lines */
+          line->side[0].texture[1] = TEXTURE_NONE;
+          line->side[1].texture[1] = TEXTURE_NONE;
           back->linedefs = realloc(back->linedefs, sizeof(linedef*) * (new_count+1));
           back->linedefs[new_count++] = line;
           linedef_update_floor_ceiling_limits(line);
@@ -285,7 +288,7 @@ map_builder_insert_polygon(
   int32_t     floor_height,
   int32_t     ceiling_height,
   float       brightness,
-  texture_ref wall_texture,
+  texture_ref wall_texture[],
   texture_ref floor_texture,
   texture_ref ceiling_texture,
   size_t      vertices_count,
@@ -313,7 +316,9 @@ map_builder_insert_polygon(
     .floor_height = floor_height,
     .ceiling_height = ceiling_height,
     .brightness = brightness,
-    .wall_texture = wall_texture,
+    .wall_texture[0] = wall_texture[0],
+    .wall_texture[1] = wall_texture[1],
+    .wall_texture[2] = wall_texture[2],
     .floor_texture = floor_texture,
     .ceiling_texture = ceiling_texture
   };

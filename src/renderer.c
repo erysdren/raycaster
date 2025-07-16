@@ -370,7 +370,9 @@ draw_column(
 ) {
   if (!intersection) { return; }
 
-  const sector *sect              = intersection->line->side[intersection->side].sector;
+  const struct linedef_side *front_side = &intersection->line->side[intersection->side];
+
+  const sector *sect              = front_side->sector;
   const sector *back_sector       = intersection->line->side[!intersection->side].sector;
   const float depth_scale_factor  = info->unit_size * intersection->planar_distance_inv;
   const float ceiling_z_scaled    = sect->ceiling.height * depth_scale_factor;
@@ -379,7 +381,7 @@ draw_column(
   const float ceiling_z_local     = info->half_h - ceiling_z_scaled + view_z_scaled;
   const float floor_z_local       = info->half_h - floor_z_scaled + view_z_scaled;
 
-  if (!back_sector || (back_sector && back_sector->floor.height == back_sector->ceiling.height)) {
+  if (!back_sector) {
     /* Draw a full wall */
     const float start_y = ceilf(M_MAX(ceiling_z_local, column->top_limit));
     const float end_y = M_CLAMP(floor_z_local, column->top_limit, column->bottom_limit);
@@ -393,7 +395,7 @@ draw_column(
       start_y,
       end_y,
       view_z_scaled,
-      intersection->line->side[intersection->side].texture[LINE_TEXTURE_MIDDLE]
+      front_side->texture[LINE_TEXTURE_MIDDLE]
     );
 
     if (sect->ceiling.texture != TEXTURE_NONE) {
@@ -449,7 +451,7 @@ draw_column(
           top_start_y,
           top_end_y,
           view_z_scaled,
-          intersection->line->side[intersection->side].texture[LINE_TEXTURE_TOP]
+          front_side->texture[LINE_TEXTURE_TOP]
         );
         new_top_limit = top_end_y;
       } else {
@@ -467,7 +469,7 @@ draw_column(
         bottom_start_y,
         bottom_end_y,
         view_z_scaled,
-        intersection->line->side[intersection->side].texture[LINE_TEXTURE_BOTTOM]
+        front_side->texture[LINE_TEXTURE_BOTTOM]
       );
       new_bottom_limit = bottom_start_y;
     } else {
@@ -506,13 +508,28 @@ draw_column(
     column->top_limit = new_top_limit;
     column->bottom_limit = new_bottom_limit;
 
-    if ((int)column->top_limit == (int)column->bottom_limit) {
+    if ((int)column->top_limit == (int)column->bottom_limit || back_sector->floor.height == back_sector->ceiling.height) {
       column->finished = true;
       return;
     }
 
     /* Render next ray intersection */
     draw_column(this, info, column, intersection->next);
+
+    /* Draw transparent middle texture from back to front */
+    if (front_side->texture[LINE_TEXTURE_MIDDLE] != TEXTURE_NONE) {
+      draw_wall_segment(
+        this,
+        info,
+        column,
+        sect,
+        intersection,
+        new_top_limit,
+        new_bottom_limit,
+        view_z_scaled,
+        front_side->texture[LINE_TEXTURE_MIDDLE]
+      );
+    }
   }
 }
 
@@ -651,7 +668,7 @@ draw_wall_segment(
   const float texture_x     = intersection->determinant * intersection->line->length;
   const uint16_t segment    = (uint16_t)floorf((intersection->line->segments - 1) * intersection->determinant);
   uint32_t *p               = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[3]            = { 0 };
+  uint8_t rgb[4]            = { 0 };
   uint8_t lights_count      = intersection->line->side[intersection->side].segments[segment].lights_count;
   struct light **lights     = intersection->line->side[intersection->side].segments[segment].lights;
   register float light      = !lights_count ? calculate_basic_brightness(
@@ -669,6 +686,8 @@ draw_wall_segment(
 
   for (y = from; y < to; ++y, p += column->buffer_stride, texture_y += texture_step) {
     texture_sampler(texture, texture_x, texture_y, &texture_coordinates_scaled, 1 + intersection->distance_steps, &rgb[0]);
+ 
+    if (!rgb[3]) { continue; } /* Transparent */
 
     light = lights_count ?
       calculate_vertical_surface_light(
@@ -713,7 +732,7 @@ draw_floor_segment(
   register uint32_t y, yz;
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[3], lights_count;
+  uint8_t rgb[4], lights_count;
   map_cache_cell *cell;
 
 #ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
@@ -780,7 +799,7 @@ draw_ceiling_segment(
   register uint32_t y, yz;
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[3], lights_count;
+  uint8_t rgb[4], lights_count;
   map_cache_cell *cell;
 
 #ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
@@ -836,7 +855,7 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
   }
 
   register uint16_t y;
-  uint8_t rgb[3];
+  uint8_t rgb[4];
   float angle = atan2f(column->ray_direction_unit.x, column->ray_direction_unit.y) * (180.0f / M_PI);
   if (angle < 0.0f) {
     angle += 360.0f;
