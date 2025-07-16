@@ -90,6 +90,10 @@ if(NOT SDL3_FOUND OR NOT SDL3_image_FOUND)
   endif()
 endif()
 
+# get libm on unix-like systems
+if(UNIX OR NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  find_library(libmath m)
+endif()
 
 ############
 # RENDERER #
@@ -97,6 +101,9 @@ endif()
 
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS src/*.c deps/gpc/gpc.c)
 add_library(renderer STATIC ${CORE_SRC})
+if(libmath)
+  target_link_libraries(renderer PUBLIC ${libmath})
+endif()
 target_include_directories(renderer
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
