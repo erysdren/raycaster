@@ -344,7 +344,7 @@ find_sector_intersections(
         .side = line->side[0].sector == sect ? 0 : 1,
         .distance_steps = (uint8_t)(point_distance * LIGHT_STEP_DISTANCE_INVERSE),
 #if !defined RAYCASTER_LIGHT_STEPS || (RAYCASTER_LIGHT_STEPS == 0)
-        .light_falloff = point_distance * DIMMING_DISTANCE_INVERSE
+        .light_falloff = point_distance * DIMMING_DISTANCE_INVERSE,
 #endif
         .next = NULL
       };
