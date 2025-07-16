@@ -65,23 +65,30 @@ endif()
 
 set(CMAKE_C_STANDARD 99)
 
-include(FetchContent)
+find_package(SDL3 3.2.16 CONFIG COMPONENTS SDL3-shared)
+find_package(SDL3_image 3.2.4 CONFIG COMPONENTS SDL3_image-shared)
 
-# SDL3
-FetchContent_Declare(
-  SDL3
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG release-3.2.16
-)
-FetchContent_MakeAvailable(SDL3)
-
-# SDL3_image
-FetchContent_Declare(
-  SDL3_image
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
-  GIT_TAG release-3.2.4
-)
-FetchContent_MakeAvailable(SDL3_image)
+if(NOT SDL3_FOUND OR NOT SDL3_image_FOUND)
+  include(FetchContent)
+  if(NOT SDL3_FOUND)
+    # SDL3
+    FetchContent_Declare(
+      SDL3
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+      GIT_TAG release-3.2.16
+    )
+    FetchContent_MakeAvailable(SDL3)
+  endif()
+  if(NOT SDL3_image_FOUND)
+    # SDL3_image
+    FetchContent_Declare(
+      SDL3_image
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
+      GIT_TAG release-3.2.4
+    )
+    FetchContent_MakeAvailable(SDL3_image)
+  endif()
+endif()
 
 
 ############
