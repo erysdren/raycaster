@@ -18,7 +18,7 @@ Once upon a time when taking part in a gamejam event I wrote a little [pseudo-3D
 * 🌲 Sprites & objects
 * 🪞 Maybe portals or mirrors?
 
-![image](https://github.com/user-attachments/assets/6b5109d5-98c4-4031-8a63-148ad4b71224)
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/9fc0383a-bd30-4dce-a9a3-e3a858db8f85" />
 ![image](https://github.com/user-attachments/assets/d8273d82-c590-4c58-a8dd-3c396a5b1353)
 ![image](https://github.com/user-attachments/assets/5a0f7275-709e-414f-873e-7df03bea65fb)
 
