@@ -134,13 +134,15 @@ endif()
 target_compile_definitions(demo PRIVATE ${RAYCASTER_DEFINES})
 target_compile_options(demo PRIVATE ${RAYCASTER_FLAGS})
 
-add_custom_command(TARGET demo POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    $<TARGET_RUNTIME_DLLS:demo>
-    $<TARGET_FILE_DIR:demo>
-  COMMAND_EXPAND_LISTS
-  COMMENT "Copying DLL files"
-)
+if($<BOOL:$<TARGET_RUNTIME_DLLS:demo>>)
+  add_custom_command(TARGET demo POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      $<TARGET_RUNTIME_DLLS:demo>
+      $<TARGET_FILE_DIR:demo>
+    COMMAND_EXPAND_LISTS
+    COMMENT "Copying DLL files"
+  )
+endif()
 
 add_custom_command(TARGET demo POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
