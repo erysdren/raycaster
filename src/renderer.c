@@ -1,4 +1,6 @@
 #include "renderer.h"
+#include "camera.h"
+#include "level_data.h"
 #include "maths.h"
 
 #include <string.h>
@@ -160,20 +162,20 @@ renderer_draw(
   this->tick++;
 
   int32_t half_h = this->buffer_size.y >> 1;
-  sector *root_sector = camera->in_sector;
+  sector *root_sector = camera->entity.sector;
 
-  info.level = camera->level;
-  info.view_position = camera->position;
-  info.near_left = vec2f_sub(camera->position, camera->plane),
-  info.near_right = vec2f_add(camera->position, camera->plane);
-  info.far_left = vec2f_add(camera->position, vec2f_mul(vec2f_sub(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
-  info.far_right = vec2f_add(camera->position, vec2f_mul(vec2f_add(camera->direction, camera->plane), RENDERER_DRAW_DISTANCE));
+  info.level = camera->entity.level;
+  info.view_position = camera->entity.position;
+  info.near_left = vec2f_sub(camera->entity.position, camera->plane),
+  info.near_right = vec2f_add(camera->entity.position, camera->plane);
+  info.far_left = vec2f_add(camera->entity.position, vec2f_mul(vec2f_sub(camera->entity.direction, camera->plane), RENDERER_DRAW_DISTANCE));
+  info.far_right = vec2f_add(camera->entity.position, vec2f_mul(vec2f_add(camera->entity.direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.half_w = this->buffer_size.x >> 1;
   info.pitch_offset = (int32_t)floorf(camera->pitch * half_h);
   info.half_h = half_h + info.pitch_offset;
   info.unit_size = (this->buffer_size.x >> 1) / camera->fov;
-  info.view_z = camera->z;
-  info.sky_texture = camera->level->sky_texture;
+  info.view_z = camera->entity.z;
+  info.sky_texture = info.level->sky_texture;
 
 #ifdef RAYCASTER_PRERENDER_VISCHECK
   refresh_sector_visibility(this, &info, root_sector);
@@ -185,24 +187,24 @@ renderer_draw(
   for (x = 0; x < this->buffer_size.x; ++x) {
     const float cam_x = ((x << 1) / (float)this->buffer_size.x) - 1;
     const vec2f ray = VEC2F(
-      camera->direction.x + (camera->plane.x * cam_x),
-      camera->direction.y + (camera->plane.y * cam_x)
+      camera->entity.direction.x + (camera->plane.x * cam_x),
+      camera->entity.direction.y + (camera->plane.y * cam_x)
     );
     const vec2f ray_end = VEC2F(
-      camera->position.x + (ray.x * RENDERER_DRAW_DISTANCE),
-      camera->position.y + (ray.y * RENDERER_DRAW_DISTANCE)
+      camera->entity.position.x + (ray.x * RENDERER_DRAW_DISTANCE),
+      camera->entity.position.y + (ray.y * RENDERER_DRAW_DISTANCE)
     );
 
     column_info column = (column_info) {
-      .ray_start = camera->position,
+      .ray_start = camera->entity.position,
       .ray_end = ray_end,
-      .ray_direction = vec2f_sub(ray_end, camera->position),
+      .ray_direction = vec2f_sub(ray_end, camera->entity.position),
       .ray_direction_unit = ray,
       .index = x,
       .intersections = { .count = 0, .head = NULL },
       .sector_depth = 0,
       .buffer_stride = this->buffer_size.x,
-      .theta_inverse = 1.f / (math_dot2(camera->direction, ray) / math_length(ray)),
+      .theta_inverse = 1.f / (math_dot2(camera->entity.direction, ray) / math_length(ray)),
       .top_limit = 0.f,
       .bottom_limit = this->buffer_size.y,
       .buffer_start = &this->buffer[x],
@@ -556,6 +558,7 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
 #endif
 ) {
   size_t i;
+  vec3f world_pos;
   light *lt;
   float dz, v = sect->brightness, dsq;
 
@@ -563,16 +566,18 @@ calculate_horizontal_surface_light(const sector *sect, vec3f pos, bool is_floor,
     lt = lights[i];
 
     /* Too far off the floor or ceiling */
-    if ((dz = is_floor ? (lt->position.z - sect->floor.height) : (sect->ceiling.height - lt->position.z)) && (dz < 0.f)) {
+    if ((dz = is_floor ? (lt->entity.z - sect->floor.height) : (sect->ceiling.height - lt->entity.z)) && (dz < 0.f)) {
       continue;
     }
 
-    if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
+    world_pos = entity_world_position(&lt->entity);
+
+    if ((dsq = math_vec3_distance_squared(pos, world_pos)) > lt->radius_sq) {
       continue;
     }
 
 #ifdef RAYCASTER_DYNAMIC_SHADOWS
-    v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
+    v = !map_cache_intersect_3d(&lt->entity.level->cache, pos, world_pos)
       ? math_max(v, lt->strength * math_min(1.f, dz / VERTICAL_FADE_DIST) * (1.f - (dsq * lt->radius_sq_inverse)))
       : v;
 #else
@@ -601,17 +606,19 @@ calculate_vertical_surface_light(const sector *sect, vec3f pos, size_t num_light
 ) {
   size_t i;
   light *lt;
+  vec3f world_pos;
   float v = sect->brightness, dsq;
 
   for (i = 0; i < num_lights; ++i) {
     lt = lights[i];
+    world_pos = entity_world_position(&lt->entity);
 
-    if ((dsq = math_vec3_distance_squared(pos, lt->position)) > lt->radius_sq) {
+    if ((dsq = math_vec3_distance_squared(pos, world_pos)) > lt->radius_sq) {
       continue;
     }
 
 #ifdef RAYCASTER_DYNAMIC_SHADOWS
-    v = !map_cache_intersect_3d(&lt->level->cache, pos, lt->position)
+    v = !map_cache_intersect_3d(&lt->entity.level->cache, pos, world_pos)
       ? math_max(v, lt->strength * (1.f - (dsq * lt->radius_sq_inverse)))
       : v;
 #else

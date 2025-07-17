@@ -1,5 +1,7 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "renderer.h"
+#include "camera.h"
+#include "level_data.h"
 #include "map_builder.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -177,25 +179,25 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
       }
 
       if (event->key.key == SDLK_HOME) {
-        cam.in_sector->ceiling.height += 2;
-        sector_update_floor_ceiling_limits(cam.in_sector);
+        cam.entity.sector->ceiling.height += 2;
+        sector_update_floor_ceiling_limits(cam.entity.sector);
       } else if (event->key.key == SDLK_END) {
-        cam.in_sector->ceiling.height = M_MAX(cam.in_sector->floor.height, cam.in_sector->ceiling.height - 2);
-        sector_update_floor_ceiling_limits(cam.in_sector);
+        cam.entity.sector->ceiling.height = M_MAX(cam.entity.sector->floor.height, cam.entity.sector->ceiling.height - 2);
+        sector_update_floor_ceiling_limits(cam.entity.sector);
       }
 
       if (event->key.key == SDLK_PAGEUP) {
-        cam.in_sector->floor.height = M_MIN(cam.in_sector->ceiling.height, cam.in_sector->floor.height + 2);
-        sector_update_floor_ceiling_limits(cam.in_sector);
+        cam.entity.sector->floor.height = M_MIN(cam.entity.sector->ceiling.height, cam.entity.sector->floor.height + 2);
+        sector_update_floor_ceiling_limits(cam.entity.sector);
       } else if (event->key.key == SDLK_PAGEDOWN) {
-        cam.in_sector->floor.height -= 2;
-        sector_update_floor_ceiling_limits(cam.in_sector);
+        cam.entity.sector->floor.height -= 2;
+        sector_update_floor_ceiling_limits(cam.entity.sector);
       }
 
       if (event->key.key == SDLK_K) {
-        cam.in_sector->brightness = M_MAX(0.f, cam.in_sector->brightness - 0.1f);
+        cam.entity.sector->brightness = M_MAX(0.f, cam.entity.sector->brightness - 0.1f);
       } else if (event->key.key == SDLK_L) {
-        cam.in_sector->brightness = M_MIN(4.f, cam.in_sector->brightness + 0.1f);
+        cam.entity.sector->brightness = M_MIN(4.f, cam.entity.sector->brightness + 0.1f);
       }
 
       if (event->key.key == SDLK_M) {
@@ -256,8 +258,8 @@ SDL_AppIterate(void *userdata)
   if (dynamic_light) {
     /* Light moves up and down */
     light_set_position(dynamic_light, VEC3F(
-      dynamic_light->position.x,
-      dynamic_light->position.y,
+      dynamic_light->entity.position.x,
+      dynamic_light->entity.position.y,
       light_z + sin((now_ticks/30) * M_PI / 180.0) * light_movement_range
     ));
 
@@ -265,7 +267,7 @@ SDL_AppIterate(void *userdata)
     /*light_set_position(dynamic_light, VEC3F(
       cam.position.x + cos((now_ticks/30) * M_PI / 180.0) * 16,
       cam.position.y + sin((now_ticks/30) * M_PI / 180.0) * 16,
-      cam.z + sin((now_ticks/30) * M_PI / 180.0) * 16
+      cam.entity.z + sin((now_ticks/30) * M_PI / 180.0) * 16
     ));*/
   }
 
@@ -287,8 +289,16 @@ SDL_AppIterate(void *userdata)
     int y = 4, h = 10;
     SDL_SetRenderDrawColor(sdl_renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
     SDL_RenderDebugText(sdl_renderer, 4, y, debug_buffer); y+=h;
-    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "[Camera] Pos: (%.1f, %.1f, %.1f) | Dir: (%.3f, %.3f) | Plane: (%.3f, %.3f) | FOV: %.2f", cam.position.x, cam.position.y, cam.z, cam.direction.x, cam.direction.y, cam.plane.x, cam.plane.y, cam.fov); y+=h;
-    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "[Sector] Ptr: 0x%p | Floor: %d | Ceiling: %d | Bright: %.2f", (void*)cam.in_sector, cam.in_sector->floor.height, cam.in_sector->ceiling.height, cam.in_sector->brightness); y+=h;
+    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "[Camera] Pos: (%.1f, %.1f, %.1f) | Dir: (%.3f, %.3f) | Plane: (%.3f, %.3f) | FOV: %.2f",
+      cam.entity.position.x, cam.entity.position.y, cam.entity.z,
+      cam.entity.direction.x, cam.entity.direction.y,
+      cam.plane.x, cam.plane.y,
+      cam.fov); y+=h;
+    SDL_RenderDebugTextFormat(sdl_renderer, 4, y, "[Sector] Ptr: 0x%p | Floor: %d | Ceiling: %d | Bright: %.2f",
+      (void*)cam.entity.sector,
+      cam.entity.sector->floor.height,
+      cam.entity.sector->ceiling.height,
+      cam.entity.sector->brightness); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[WASD] - Move & turn"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[Q Z] - Go up/down"); y+=h;
     SDL_RenderDebugText(sdl_renderer, 4, y, "[E C] - Pitch up/down"); y+=h;
@@ -319,7 +329,7 @@ static void process_camera_movement(const float delta_time)
   }
 
   if ((int)movement.raise != 0) {
-    cam.z += 88 * movement.raise * delta_time;
+    cam.entity.z += 88 * movement.raise * delta_time;
   }
 
   if ((int)movement.pitch != 0) {
@@ -467,7 +477,7 @@ static void create_big_one()
   demo_level = map_builder_build(&builder);
 
   dynamic_light = level_data_add_light(demo_level, VEC3F(460, 460, 512), 1024, 1.0f);
-  light_z = dynamic_light->position.z;
+  light_z = dynamic_light->entity.z;
   light_movement_range = 400;
 
   map_builder_free(&builder);
@@ -507,7 +517,7 @@ static void create_semi_intersecting_sectors()
     VEC2F(512, 364)
   ));
 
-  map_builder_add_polygon(&builder, 0, 128, 0.15f, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
+  map_builder_add_polygon(&builder, 0, 128, base_light, WALLTEX(LARGE_BRICKS_TEXTURE), FLOOR_TEXTURE, CEILING_TEXTURE, VERTICES(
     VEC2F(512, 364),
     VEC2F(640, 364),
     VEC2F(640, 480),
@@ -560,7 +570,7 @@ static void create_semi_intersecting_sectors()
   demo_level->sky_texture = SKY_TEXTURE;
 
   dynamic_light = level_data_add_light(demo_level, VEC3F(300, 400, 64), 300, 1.0f);
-  light_z = dynamic_light->position.z;
+  light_z = dynamic_light->entity.z;
   light_movement_range = 48;
 
   /* Configure some transparent textures */
@@ -595,7 +605,7 @@ create_crossing_and_splitting_sectors()
   demo_level = map_builder_build(&builder);
 
   dynamic_light = level_data_add_light(demo_level, VEC3F(250, 50, 50), 200, 0.5f);
-  light_z = dynamic_light->position.z;
+  light_z = dynamic_light->entity.z;
   light_movement_range = 24;
 
   map_builder_free(&builder);

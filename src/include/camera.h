@@ -4,20 +4,16 @@
 #define MIN_CAMERA_PITCH -1.0f
 #define MAX_CAMERA_PITCH 1.0f
 
-#include "types.h"
-#include "level_data.h"
+#include "entity.h"
 
-typedef struct {
-  vec2f position,
-        direction,
-        plane;
-  float fov, z, pitch;
-  level_data *level;
-  sector *in_sector;
+typedef struct camera {
+  entity entity;
+  vec2f plane;
+  float fov, pitch;
 } camera;
 
 void
-camera_init(camera *this, level_data *level);
+camera_init(camera *this, struct level_data *level);
 
 void
 camera_move(camera *this, float movement);

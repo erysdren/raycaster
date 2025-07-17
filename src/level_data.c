@@ -153,12 +153,20 @@ level_data_add_light(level_data *this, vec3f pos, float r, float s) {
   }
 
   light *new_light = &this->lights[this->lights_count++];
-  new_light->position = pos;
+
+  new_light->entity = (entity) {
+    .level = this,
+    .sector = NULL,
+    .position = VEC2F(pos.x, pos.y),
+    .z = pos.z,
+    .data = (void*)new_light,
+    .type = ENTITY_LIGHT
+  };
+
   new_light->radius = r;
   new_light->radius_sq = r*r;
   new_light->radius_sq_inverse = 1.f / new_light->radius_sq;
   new_light->strength = s;
-  new_light->level = this;
 
   level_data_update_lights(this);
   map_cache_process_light(&this->cache, new_light, pos);
@@ -194,7 +202,7 @@ level_data_update_lights(level_data *this)
   for (i = 0; i < this->lights_count; ++i) {
     lite = &this->lights[i];
 
-    pos2d = VEC2F(lite->position.x, lite->position.y);
+    pos2d = VEC2F(lite->entity.position.x, lite->entity.position.y);
 
     /* Find all sectors the light circle touches */
     for (si = 0; si < this->sectors_count; ++si) {

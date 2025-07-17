@@ -1,8 +1,9 @@
 #ifndef RAYCAST_RENDERER_INCLUDED
 #define RAYCAST_RENDERER_INCLUDED
 
-#include "sector.h"
-#include "camera.h"
+#include "types.h"
+
+struct camera;
 
 typedef uint32_t pixel_type;
 typedef pixel_type* frame_buffer;
@@ -26,7 +27,7 @@ void
 renderer_destroy(renderer *this);
 
 void
-renderer_draw(renderer *this, camera *camera);
+renderer_draw(renderer *this, struct camera *camera);
 
 #if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
   extern void (*renderer_step)(const renderer*);

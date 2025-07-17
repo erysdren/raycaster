@@ -86,7 +86,7 @@ void
 map_cache_process_light(map_cache *this, light *light, vec3f previous_position)
 {
   map_cache_add_or_remove_light_at_position(this, light, previous_position, false);
-  map_cache_add_or_remove_light_at_position(this, light, light->position, true);
+  map_cache_add_or_remove_light_at_position(this, light, entity_world_position(&light->entity), true);
 }
 
 bool
@@ -212,8 +212,8 @@ map_cache_add_or_remove_light_at_position(map_cache *this, light *l, vec3f posit
   map_cache_cell *cell;
 
   const vec2f light_pos_local = VEC2F(
-    math_max(0, l->position.x - this->origin.x),
-    math_max(0, l->position.y - this->origin.y)
+    math_max(0, l->entity.position.x - this->origin.x),
+    math_max(0, l->entity.position.y - this->origin.y)
   );
 
   /* Find all cells this light touches */
