@@ -65,24 +65,35 @@ endif()
 
 set(CMAKE_C_STANDARD 99)
 
-include(FetchContent)
+find_package(SDL3 3.2.16 CONFIG COMPONENTS SDL3-shared)
+find_package(SDL3_image 3.2.4 CONFIG COMPONENTS SDL3_image-shared)
 
-# SDL3
-FetchContent_Declare(
-  SDL3
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG release-3.2.16
-)
-FetchContent_MakeAvailable(SDL3)
+if(NOT SDL3_FOUND OR NOT SDL3_image_FOUND)
+  include(FetchContent)
+  if(NOT SDL3_FOUND)
+    # SDL3
+    FetchContent_Declare(
+      SDL3
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+      GIT_TAG release-3.2.16
+    )
+    FetchContent_MakeAvailable(SDL3)
+  endif()
+  if(NOT SDL3_image_FOUND)
+    # SDL3_image
+    FetchContent_Declare(
+      SDL3_image
+      GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
+      GIT_TAG release-3.2.4
+    )
+    FetchContent_MakeAvailable(SDL3_image)
+  endif()
+endif()
 
-# SDL3_image
-FetchContent_Declare(
-  SDL3_image
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
-  GIT_TAG release-3.2.4
-)
-FetchContent_MakeAvailable(SDL3_image)
-
+# get libm on unix-like systems
+if(UNIX OR NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  find_library(libmath m)
+endif()
 
 ############
 # RENDERER #
@@ -90,6 +101,9 @@ FetchContent_MakeAvailable(SDL3_image)
 
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS src/*.c deps/gpc/gpc.c)
 add_library(renderer STATIC ${CORE_SRC})
+if(libmath)
+  target_link_libraries(renderer PUBLIC ${libmath})
+endif()
 target_include_directories(renderer
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
@@ -120,13 +134,15 @@ endif()
 target_compile_definitions(demo PRIVATE ${RAYCASTER_DEFINES})
 target_compile_options(demo PRIVATE ${RAYCASTER_FLAGS})
 
-add_custom_command(TARGET demo POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    $<TARGET_RUNTIME_DLLS:demo>
-    $<TARGET_FILE_DIR:demo>
-  COMMAND_EXPAND_LISTS
-  COMMENT "Copying DLL files"
-)
+if($<BOOL:$<TARGET_RUNTIME_DLLS:demo>>)
+  add_custom_command(TARGET demo POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      $<TARGET_RUNTIME_DLLS:demo>
+      $<TARGET_FILE_DIR:demo>
+    COMMAND_EXPAND_LISTS
+    COMMENT "Copying DLL files"
+  )
+endif()
 
 add_custom_command(TARGET demo POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
