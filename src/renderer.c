@@ -32,8 +32,6 @@ void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uin
 typedef struct {
   level_data *level;
   vec2f view_position,
-        near_left,
-        near_right,
         far_left,
         far_right;
   float unit_size, view_z;
@@ -166,8 +164,6 @@ renderer_draw(
 
   info.level = camera->entity.level;
   info.view_position = camera->entity.position;
-  info.near_left = vec2f_sub(camera->entity.position, camera->plane),
-  info.near_right = vec2f_add(camera->entity.position, camera->plane);
   info.far_left = vec2f_add(camera->entity.position, vec2f_mul(vec2f_sub(camera->entity.direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.far_right = vec2f_add(camera->entity.position, vec2f_mul(vec2f_add(camera->entity.direction, camera->plane), RENDERER_DRAW_DISTANCE));
   info.half_w = this->buffer_size.x >> 1;
@@ -204,7 +200,7 @@ renderer_draw(
       .intersections = { .count = 0, .head = NULL },
       .sector_depth = 0,
       .buffer_stride = this->buffer_size.x,
-      .theta_inverse = 1.f / (math_dot2(camera->entity.direction, ray) / math_length(ray)),
+      .theta_inverse = 1.f / math_dot2(camera->entity.direction, ray),
       .top_limit = 0.f,
       .bottom_limit = this->buffer_size.y,
       .buffer_start = &this->buffer[x],
@@ -303,7 +299,7 @@ find_sector_intersections(
   register size_t i;
   float planar_distance, point_distance;
   vec2f point;
-  float determinant;
+  float line_det, ray_det;
   linedef *line;
 
   if (column->sector_depth == MAX_SECTOR_HISTORY) {
@@ -329,8 +325,8 @@ find_sector_intersections(
     line = sect->linedefs[i];
 #endif
 
-    if (math_find_line_intersection_cached(line->v0->point, column->ray_start, line->direction, column->ray_direction, &point, &determinant)) {
-      planar_distance = math_line_segment_point_perpendicular_distance(info->near_left, info->near_right, point);
+    if (math_find_line_intersection_cached(line->v0->point, column->ray_start, line->direction, column->ray_direction, &point, &line_det, &ray_det)) {
+      planar_distance = ray_det * RENDERER_DRAW_DISTANCE;
       point_distance = planar_distance * column->theta_inverse;
 
       insert_index = column->intersections.count++;
@@ -341,7 +337,7 @@ find_sector_intersections(
         .planar_distance_inv = 1.f / planar_distance,
         .point_distance = point_distance,
         .point_distance_inverse = 1.f / point_distance,
-        .determinant = determinant,
+        .determinant = line_det,
         .line = line,
         .side = line->side[0].sector == sect ? 0 : 1,
         .distance_steps = (uint8_t)(point_distance * LIGHT_STEP_DISTANCE_INVERSE),

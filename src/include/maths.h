@@ -124,7 +124,8 @@ math_find_line_intersection_cached(
   vec2f BA,
   vec2f DC,
   vec2f *r,
-  float *determinant
+  float *det_a,
+  float *det_b
 ) {
   register const vec2f AC = vec2f_sub(A, C);
   register float cross = math_cross(BA, DC);
@@ -155,8 +156,12 @@ math_find_line_intersection_cached(
     (*r).y = A.y + (uA * BA.y);
   }
 
-  if (determinant) {
-    *determinant = uA;
+  if (det_a) {
+    *det_a = uA;
+  }
+
+  if (det_b) {
+    *det_b = uB;
   }
 
   return true;
