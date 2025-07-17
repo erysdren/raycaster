@@ -17,7 +17,7 @@
 #define MAX_SECTOR_HISTORY 64
 #define MAX_LINE_HITS_PER_COLUMN 48
 
-void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
+void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*, uint8_t*);
 
 #if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
   #define INSERT_RENDER_BREAKPOINT if (renderer_step) { renderer_step(this); }
@@ -668,7 +668,8 @@ draw_wall_segment(
   const float texture_x     = intersection->determinant * intersection->line->length;
   const uint16_t segment    = (uint16_t)floorf((intersection->line->segments - 1) * intersection->determinant);
   uint32_t *p               = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[4]            = { 0 };
+  uint8_t rgb[3];
+  uint8_t mask;
   uint8_t lights_count      = intersection->line->side[intersection->side].segments[segment].lights_count;
   struct light **lights     = intersection->line->side[intersection->side].segments[segment].lights;
   register float light      = !lights_count ? calculate_basic_brightness(
@@ -685,9 +686,9 @@ draw_wall_segment(
 #endif
 
   for (y = from; y < to; ++y, p += column->buffer_stride, texture_y += texture_step) {
-    texture_sampler(texture, texture_x, texture_y, &texture_coordinates_scaled, 1 + intersection->distance_steps, &rgb[0]);
+    texture_sampler(texture, texture_x, texture_y, &texture_coordinates_scaled, 1 + intersection->distance_steps, &rgb[0], &mask);
  
-    if (!rgb[3]) { continue; } /* Transparent */
+    if (!mask) { continue; } /* Transparent */
 
     light = lights_count ?
       calculate_vertical_surface_light(
@@ -732,7 +733,7 @@ draw_floor_segment(
   register uint32_t y, yz;
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[4], lights_count;
+  uint8_t rgb[3], lights_count;
   map_cache_cell *cell;
 
 #ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
@@ -747,7 +748,7 @@ draw_floor_segment(
     cell = map_cache_cell_at(&info->level->cache, VEC2F(wx, wy));
     lights_count = cell ? cell->lights_count : 0;
 
-    texture_sampler(sect->floor.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->floor.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0], NULL);
 
     light = lights_count ? calculate_horizontal_surface_light(
       sect,
@@ -799,7 +800,7 @@ draw_ceiling_segment(
   register uint32_t y, yz;
   register float light=-1, distance, weight, wx, wy;
   uint32_t *p = column->buffer_start + (from*column->buffer_stride);
-  uint8_t rgb[4], lights_count;
+  uint8_t rgb[3], lights_count;
   map_cache_cell *cell;
 
 #ifdef RAYCASTER_SIMD_PIXEL_LIGHTING
@@ -814,7 +815,7 @@ draw_ceiling_segment(
     cell = map_cache_cell_at(&info->level->cache, VEC2F(wx, wy));
     lights_count = cell ? cell->lights_count : 0;
 
-    texture_sampler(sect->ceiling.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0]);
+    texture_sampler(sect->ceiling.texture, wx, wy, &texture_coordinates_scaled, 1 + (uint8_t)(distance * LIGHT_STEP_DISTANCE_INVERSE), &rgb[0], NULL);
 
     light = lights_count ? calculate_horizontal_surface_light(
       sect,
@@ -855,7 +856,7 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
   }
 
   register uint16_t y;
-  uint8_t rgb[4];
+  uint8_t rgb[3];
   float angle = atan2f(column->ray_direction_unit.x, column->ray_direction_unit.y) * (180.0f / M_PI);
   if (angle < 0.0f) {
     angle += 360.0f;
@@ -864,7 +865,7 @@ draw_sky_segment(const renderer *this, const frame_info *info, const column_info
   uint32_t *p = column->buffer_start + (from * column->buffer_stride);
 
   for (y = from; y < to; ++y, p += column->buffer_stride) {
-    texture_sampler(info->sky_texture, sky_x, math_min(1.f, 0.5f+(y-info->pitch_offset)/h), &texture_coordinates_normalized, 1, &rgb[0]);
+    texture_sampler(info->sky_texture, sky_x, math_min(1.f, 0.5f+(y-info->pitch_offset)/h), &texture_coordinates_normalized, 1, &rgb[0], NULL);
     *p = 0xFF000000 | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
     INSERT_RENDER_BREAKPOINT
   }

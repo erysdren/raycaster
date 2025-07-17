@@ -57,7 +57,7 @@ static void load_level(int);
 static void process_camera_movement(const float delta_time);
 
 M_INLINED void
-demo_texture_sampler(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
+demo_texture_sampler(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*, uint8_t*);
 
 #if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)
 static void
@@ -672,12 +672,29 @@ load_level(int n)
 }
 
 M_INLINED void
-demo_texture_sampler(texture_ref texture, float fx, float fy, texture_coordinates_func coords, uint8_t mip_level, uint8_t *rgb)
-{
+demo_texture_sampler(
+  texture_ref texture,
+  float fx,
+  float fy,
+  texture_coordinates_func coords,
+  uint8_t mip_level,
+  uint8_t *pixel,
+  uint8_t *mask
+) {
+  M_UNUSED(mip_level);
   int32_t x, y;
   const SDL_Surface *surface = textures[texture];
   coords(fx, fy, surface->w, surface->h, &x, &y);
-  memcpy(rgb, (Uint8 *)surface->pixels + y * surface->pitch + x * SDL_BYTESPERPIXEL(surface->format), 4);
+  const Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * SDL_BYTESPERPIXEL(surface->format);
+  if (pixel)
+    memcpy(pixel, p, 3);
+
+  /*
+   * Only masked textures are supported for now, so any pixel
+   * with a non-zero mask value will be drawn.
+   */
+  if (mask)
+    *mask = p[3];
 }
 
 #if defined(RAYCASTER_DEBUG) && !defined(RAYCASTER_PARALLEL_RENDERING)

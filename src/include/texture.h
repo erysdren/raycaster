@@ -11,15 +11,32 @@ typedef int32_t texture_ref;
 
 typedef void (*texture_coordinates_func)(float, float, int, int, int32_t*, int32_t*);
 
-extern void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*);
+extern void (*texture_sampler)(texture_ref, float, float, texture_coordinates_func, uint8_t, uint8_t*, uint8_t*);
 
 M_INLINED void
-debug_texture_sampler(texture_ref texture, float x, float y, texture_coordinates_func coords, uint8_t mip_level, uint8_t *rgb)
-{
-  rgb[0] = (int32_t)floorf(x) & 127;
-  rgb[1] = (int32_t)floorf(y) & 127;
-  rgb[2] = (int32_t)floorf(y) & 127;
-  rgb[3] = 255;
+debug_texture_sampler(
+  texture_ref texture,
+  float fx,
+  float fy,
+  texture_coordinates_func coords,
+  uint8_t mip_level,
+  uint8_t *pixel,
+  uint8_t *mask
+) {
+  M_UNUSED(mip_level);
+
+  if (pixel) {
+    pixel[0] = (int32_t)floorf(fx) & 127;
+    pixel[1] = (int32_t)floorf(fy) & 127;
+    pixel[2] = (int32_t)floorf(fy) & 127;
+  }
+
+  /*
+   * Only masked textures are supported for now, so any pixel
+   * with a non-zero mask value will be drawn.
+   */
+  if (mask)
+    *mask = 255;
 }
 
 M_INLINED void
