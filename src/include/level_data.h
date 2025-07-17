@@ -38,9 +38,6 @@ level_data_add_light(level_data*, vec3f, float, float);
 void
 level_data_update_lights(level_data*);
 
-bool
-level_data_intersect_3d(const level_data*, vec3f, vec3f, const sector*);
-
 M_INLINED linedef*
 level_data_find_linedef(level_data *this, vec2f p0, vec2f p1)
 {

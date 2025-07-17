@@ -239,11 +239,13 @@ level_data_update_lights(level_data *this)
               seg->lights_count < MAX_LIGHTS_PER_SURFACE &&
               !linedef_segment_contains_light(seg, lite)
           ) {
-            if (!level_data_intersect_3d(this, VEC3F(seg->p0.x, seg->p0.y, sect->floor.height), lite->position, sect) ||
-                !level_data_intersect_3d(this, VEC3F(seg->p1.x, seg->p1.y, sect->floor.height), lite->position, sect) ||
-                !level_data_intersect_3d(this, VEC3F(seg->p0.x, seg->p0.y, sect->ceiling.height), lite->position, sect) ||
-                !level_data_intersect_3d(this, VEC3F(seg->p1.x, seg->p1.y, sect->ceiling.height), lite->position, sect
-            )) {
+            vec3f world_pos = entity_world_position(&lite->entity);
+
+            if (!map_cache_intersect_3d(&this->cache, VEC3F(seg->p0.x, seg->p0.y, sect->floor.height), world_pos) ||
+                !map_cache_intersect_3d(&this->cache, VEC3F(seg->p1.x, seg->p1.y, sect->floor.height), world_pos) ||
+                !map_cache_intersect_3d(&this->cache, VEC3F(seg->p0.x, seg->p0.y, sect->ceiling.height), world_pos) ||
+                !map_cache_intersect_3d(&this->cache, VEC3F(seg->p1.x, seg->p1.y, sect->ceiling.height), world_pos)
+            ) {
               seg->lights[seg->lights_count++] = lite;
             }
           }
@@ -252,79 +254,6 @@ level_data_update_lights(level_data *this)
       }
     }
   }
-}
-
-M_INLINED bool
-sector_visited(sector *element, size_t n, sector **history)
-{
-  if (!n) { return false; }
-  sector **p = history;
-  sector **end = history + n;
-  do {
-    if (*p == element) { return true; }
-  } while (++p != end);
-  return false;
-}
-
-bool
-level_data_intersect_3d(const level_data *this, vec3f p0, vec3f p1, const sector *start)
-{
-  assert(start);
-  register size_t li = 0, sh=0;
-  int any_hits;
-  linedef *line;
-  sector *sect = (sector*)start, *back;
-  sector *history[64];
-  vec2f p0_2 = VEC2F(p0.x, p0.y);
-  vec2f p1_2 = VEC2F(p1.x, p1.y);
-  float det, z, z0 = p0.z, z1 = p1.z;
-
-  // printf("\nstart %p\n", start);
-
-  do {
-    if (sh == 64) {
-      printf("history limit hit (%d)!\n", sh);
-      return false;
-    }
-    for (li = 0, back = NULL, any_hits = 0; li < sect->linedefs_count; ++li) {
-      line = sect->linedefs[li];
-
-      /*sign[0] = math_sign(line->v0->point, line->v1->point, p0_2);
-      sign[1] = math_sign(line->v0->point, line->v1->point, p1_2);
-
-      // Both ray points are on the same side of the linedef, cannot intersect
-      if ((sign[0] < 0 && sign[1] < 0) || (sign[0] > 0 && sign[1] > 0)) {
-        continue;
-      }*/
-
-      if (math_find_line_intersection(p0_2, p1_2, line->v0->point, line->v1->point, NULL, &det) && det > MATHS_EPSILON) {
-        back = line->side[0].sector == sect ? line->side[1].sector : line->side[0].sector;
-        if (sector_visited(back, sh, history)) {
-          continue;
-        }
-        if (!back) {
-          return true;
-        }
-        any_hits = 1;
-        z = z0+(z1-z0)*det;
-        if (z < back->floor.height || z > back->ceiling.height) {
-          return true;
-        }
-        // printf("%p line %d back %p\n", sect, li, back);
-        history[sh++] = back;
-        sect = back;
-        break;
-      }
-    }
-    if (!any_hits) {
-      if (sector_point_inside(sect, p1_2)) {
-        return false;
-      }
-      break;
-    }
-  } while(sect);
-
-  return false;
 }
 
 static bool
